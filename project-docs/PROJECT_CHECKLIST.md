@@ -18,40 +18,40 @@ Legend:
 
 ## 0.1 Local development tools
 
-- [ ] Install VS Code
-- [ ] Install Node.js LTS
-- [ ] Install Git for Windows
-- [ ] Install GitHub Desktop optional
+- [x] Install VS Code
+- [x] Install Node.js LTS
+- [x] Install Git for Windows
+- [x] Install GitHub Desktop optional
 - [ ] Install Supabase CLI
-- [ ] Confirm `node --version`
-- [ ] Confirm `npm --version`
-- [ ] Confirm `git --version`
+- [x] Confirm `node --version`
+- [x] Confirm `npm --version`
+- [x] Confirm `git --version`
 - [ ] Confirm Supabase CLI works
-- [ ] Create GitHub account or confirm existing account
-- [ ] Sign into GitHub from VS Code
-- [ ] Choose local project folder location
-- [ ] Create project root folder
-- [ ] Initialize Git repository
+- [x] Create GitHub account or confirm existing account
+- [x] Sign into GitHub from VS Code
+- [x] Choose local project folder location
+- [x] Create project root folder
+- [x] Initialize Git repository
 - [ ] Create remote GitHub repository
 - [ ] Connect local repo to GitHub remote
 - [ ] Make first commit
 
 ## 0.2 Create Next.js app
 
-- [ ] Create Next.js app with TypeScript
-- [ ] Enable App Router
-- [ ] Install Tailwind CSS
+- [x] Create Next.js app with TypeScript
+- [x] Enable App Router
+- [x] Install Tailwind CSS
 - [ ] Install shadcn/ui
-- [ ] Configure path alias `@/*`
-- [ ] Confirm app runs locally
-- [ ] Clean default starter files
+- [x] Configure path alias `@/*`
+- [x] Confirm app runs locally
+- [x] Clean default starter files
 - [ ] Add base README
-- [ ] Add `.env.local.example`
+- [x] Add `.env.local.example`
 - [ ] Add `.gitignore` review
-- [ ] Add formatter/linting configuration
-- [ ] Add Prettier
-- [ ] Add ESLint rules
-- [ ] Add initial project documentation folder
+- [x] Add formatter/linting configuration
+- [x] Add Prettier
+- [x] Add ESLint rules
+- [x] Add initial project documentation folder
 
 ## 0.3 Required documentation files
 
@@ -69,16 +69,16 @@ Legend:
 
 ## 1.1 Root folders
 
-- [ ] Create `app/`
-- [ ] Create `components/`
-- [ ] Create `features/`
-- [ ] Create `lib/`
-- [ ] Create `database/`
-- [ ] Create `hooks/`
-- [ ] Create `types/`
-- [ ] Create `styles/`
-- [ ] Create `project-docs/`
-- [ ] Create `public/`
+- [x] Create `app/`
+- [x] Create `components/`
+- [x] Create `features/`
+- [x] Create `lib/`
+- [x] Create `database/`
+- [x] Create `hooks/`
+- [x] Create `types/`
+- [x] Create `styles/`
+- [x] Create `project-docs/`
+- [x] Create `public/`
 
 ## 1.2 App route groups
 
@@ -96,10 +96,10 @@ Legend:
 
 ## 1.3 Component structure
 
-- [ ] Create `components/ui/` for shadcn components only
-- [ ] Create `components/themed/`
-- [ ] Create `components/layout/`
-- [ ] Create `components/shared/`
+- [x] Create `components/ui/` for shadcn components only
+- [x] Create `components/themed/`
+- [x] Create `components/layout/`
+- [x] Create `components/shared/`
 - [ ] Add component README explaining rules
 - [ ] Confirm raw shadcn components are not business-specific
 - [ ] Confirm themed components use CSS variables/theme tokens
@@ -108,26 +108,26 @@ Legend:
 
 Create each feature folder with consistent subfolders where needed:
 
-- [ ] `features/auth/`
-- [ ] `features/businesses/`
-- [ ] `features/locations/`
-- [ ] `features/menu/`
-- [ ] `features/products/`
-- [ ] `features/modifiers/`
-- [ ] `features/product-configurator/`
-- [ ] `features/cart/`
-- [ ] `features/checkout/`
-- [ ] `features/orders/`
-- [ ] `features/payments/`
-- [ ] `features/delivery/`
-- [ ] `features/specials/`
-- [ ] `features/website-builder/`
-- [ ] `features/themes/`
-- [ ] `features/media-library/`
-- [ ] `features/display-panels/`
-- [ ] `features/print-menus/`
-- [ ] `features/reports/`
-- [ ] `features/settings/`
+- [x] `features/auth/`
+- [x] `features/businesses/`
+- [x] `features/locations/`
+- [x] `features/menu/`
+- [x] `features/products/`
+- [x] `features/modifiers/`
+- [x] `features/product-configurator/`
+- [x] `features/cart/`
+- [x] `features/checkout/`
+- [x] `features/orders/`
+- [x] `features/payments/`
+- [x] `features/delivery/`
+- [x] `features/specials/`
+- [x] `features/website-builder/`
+- [x] `features/themes/`
+- [x] `features/media-library/`
+- [x] `features/display-panels/`
+- [x] `features/print-menus/`
+- [x] `features/reports/`
+- [x] `features/settings/`
 
 For each feature:
 
@@ -145,15 +145,15 @@ For each feature:
 
 ## 2.1 Supabase project
 
-- [ ] Create Supabase project
-- [ ] Record project URL
-- [ ] Record anon key in `.env.local`
+- [x] Create Supabase project
+- [x] Record project URL
+- [x] Record anon key in `.env.local`
 - [ ] Record service role key securely, not committed
 - [ ] Configure local Supabase CLI
 - [ ] Link local project to Supabase project
-- [ ] Create `database/migrations/`
-- [ ] Create `database/seed/`
-- [ ] Create `database/types/`
+- [x] Create `database/migrations/`
+- [x] Create `database/seed/`
+- [x] Create `database/types/`
 
 ## 2.2 Supabase clients
 
