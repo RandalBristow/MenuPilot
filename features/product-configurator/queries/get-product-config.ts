@@ -46,6 +46,13 @@ export async function getProductConfig(productId: string) {
             )
           )
         )
+      ),
+      product_included_modifier_groups (
+        id,
+        modifier_group_id,
+        included_quantity,
+        is_swappable,
+        charge_for_extra
       )
     `)
     .eq("id", productId)

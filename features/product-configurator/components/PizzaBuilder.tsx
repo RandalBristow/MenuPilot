@@ -49,6 +49,9 @@ type ModifierGroup = {
   min_multiplier: number;
   max_multiplier: number;
   multiplier_step: number;
+  included_quantity?: number;
+  is_swappable?: boolean;
+  charge_for_extra?: boolean;
   modifier_options: ModifierOption[];
 };
 
@@ -65,6 +68,7 @@ type ProductConfig = {
   base_price: number | null;
   product_variants: Variant[];
   product_modifier_groups: ProductModifierGroup[];
+  product_included_modifier_groups?: IncludedModifierGroup[];
 };
 
 type SelectedModifier = {
@@ -77,6 +81,14 @@ type PizzaBuilderProps = {
   product: ProductConfig;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+};
+
+type IncludedModifierGroup = {
+  id: string;
+  modifier_group_id: string;
+  included_quantity: number;
+  is_swappable: boolean;
+  charge_for_extra: boolean;
 };
 
 export function PizzaBuilder({
@@ -108,8 +120,23 @@ export function PizzaBuilder({
     () =>
       [...(product.product_modifier_groups ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order)
-        .map((item) => item.modifier_groups),
-    [product.product_modifier_groups],
+        .map((item) => {
+          const group = item.modifier_groups;
+
+          const includedRule = product.product_included_modifier_groups?.find(
+            (rule) => rule.modifier_group_id === group.id,
+          );
+
+          return {
+            ...group,
+            included_quantity: includedRule
+              ? Number(includedRule.included_quantity)
+              : 0,
+            is_swappable: includedRule?.is_swappable ?? false,
+            charge_for_extra: includedRule?.charge_for_extra ?? true,
+          };
+        }),
+    [product.product_modifier_groups, product.product_included_modifier_groups],
   );
 
   const total = useMemo(() => {
@@ -284,6 +311,16 @@ export function PizzaBuilder({
               <div className="mb-3 flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold">{group.name}</h3>
+                  {group.included_quantity && group.included_quantity > 0 ? (
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      Includes {group.included_quantity}{" "}
+                      {group.included_quantity === 1
+                        ? "selection"
+                        : "selections"}
+                      {group.is_swappable ? " — swappable" : ""}.
+                    </p>
+                  ) : null}
+
                   {getGroupValidationMessage(group) ? (
                     <p className="mb-3 text-sm text-destructive">
                       {getGroupValidationMessage(group)}
