@@ -37,12 +37,14 @@ type CategorySectionProps = {
   parentGroup: MenuGroup;
   childGroups: MenuGroup[];
   onCustomize?: (productId: string) => void;
+  loadingProductId?: string | null;
 };
 
 export function CategorySection({
   parentGroup,
   childGroups,
   onCustomize,
+  loadingProductId,
 }: CategorySectionProps) {
   return (
     <section id={parentGroup.slug} className="scroll-mt-24">
@@ -88,6 +90,7 @@ export function CategorySection({
                         key={productGroup.id}
                         product={product}
                         onCustomize={onCustomize}
+                        isLoading={loadingProductId === product.id}
                       />
                     );
                   })}

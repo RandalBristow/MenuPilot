@@ -42,9 +42,15 @@ type MenuPageProps = {
   businessName: string;
   menu: Menu;
   onCustomize?: (productId: string) => void;
+  loadingProductId?: string | null;
 };
 
-export function MenuPage({ businessName, menu, onCustomize }: MenuPageProps) {
+export function MenuPage({
+  businessName,
+  menu,
+  onCustomize,
+  loadingProductId,
+}: MenuPageProps) {
   const groups = [...(menu.menu_groups ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
@@ -117,6 +123,7 @@ export function MenuPage({ businessName, menu, onCustomize }: MenuPageProps) {
                 parentGroup={parentGroup}
                 childGroups={childGroups}
                 onCustomize={onCustomize}
+                loadingProductId={loadingProductId}
               />
             );
           })}

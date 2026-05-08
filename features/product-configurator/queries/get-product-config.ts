@@ -36,7 +36,14 @@ export async function getProductConfig(productId: string) {
             id,
             name,
             price_delta,
-            sort_order
+            sort_order,
+            modifier_option_group_id,
+            modifier_option_groups (
+              id,
+              name,
+              description,
+              sort_order
+            )
           )
         )
       )

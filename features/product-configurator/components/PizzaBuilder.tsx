@@ -1,73 +1,83 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { ThemedButton } from "@/components/themed/ThemedButton"
-import { ThemedCard } from "@/components/themed/ThemedCard"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
+import { useMemo, useState } from "react";
+import { ThemedButton } from "@/components/themed/ThemedButton";
+import { ThemedCard } from "@/components/themed/ThemedCard";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { calculateProductTotal } from "@/lib/pricing/calculate-product-total";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 type Variant = {
-  id: string
-  name: string
-  base_price: number
-  is_default: boolean
-  sort_order: number
-}
+  id: string;
+  name: string;
+  base_price: number;
+  is_default: boolean;
+  sort_order: number;
+};
 
 type ModifierOption = {
-  id: string
-  name: string
-  price_delta: number
-  sort_order: number
-}
+  id: string;
+  name: string;
+  price_delta: number;
+  sort_order: number;
+  modifier_option_group_id: string | null;
+  modifier_option_groups: ModifierOptionGroup | null;
+};
+
+type ModifierOptionGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+};
 
 type ModifierGroup = {
-  id: string
-  name: string
-  selection_type: string
-  is_required: boolean
-  min_required: number
-  max_allowed: number | null
-  supports_placement: boolean
-  supports_multiplier: boolean
-  min_multiplier: number
-  max_multiplier: number
-  multiplier_step: number
-  modifier_options: ModifierOption[]
-}
+  id: string;
+  name: string;
+  selection_type: string;
+  is_required: boolean;
+  min_required: number;
+  max_allowed: number | null;
+  supports_placement: boolean;
+  supports_multiplier: boolean;
+  min_multiplier: number;
+  max_multiplier: number;
+  multiplier_step: number;
+  modifier_options: ModifierOption[];
+};
 
 type ProductModifierGroup = {
-  id: string
-  sort_order: number
-  modifier_groups: ModifierGroup
-}
+  id: string;
+  sort_order: number;
+  modifier_groups: ModifierGroup;
+};
 
 type ProductConfig = {
-  id: string
-  name: string
-  description: string | null
-  base_price: number | null
-  product_variants: Variant[]
-  product_modifier_groups: ProductModifierGroup[]
-}
+  id: string;
+  name: string;
+  description: string | null;
+  base_price: number | null;
+  product_variants: Variant[];
+  product_modifier_groups: ProductModifierGroup[];
+};
 
 type SelectedModifier = {
-  optionId: string
-  placement: "left" | "whole" | "right"
-  multiplier: number
-}
+  optionId: string;
+  placement: "left" | "whole" | "right";
+  multiplier: number;
+};
 
 type PizzaBuilderProps = {
-  product: ProductConfig
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+  product: ProductConfig;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
 export function PizzaBuilder({
   product,
@@ -77,56 +87,74 @@ export function PizzaBuilder({
   const sortedVariants = useMemo(
     () =>
       [...(product.product_variants ?? [])].sort(
-        (a, b) => a.sort_order - b.sort_order
+        (a, b) => a.sort_order - b.sort_order,
       ),
-    [product.product_variants]
-  )
+    [product.product_variants],
+  );
 
   const defaultVariant =
-    sortedVariants.find((variant) => variant.is_default) ?? sortedVariants[0]
+    sortedVariants.find((variant) => variant.is_default) ?? sortedVariants[0];
 
-  const [variantId, setVariantId] = useState(defaultVariant?.id ?? "")
+  const [variantId, setVariantId] = useState(defaultVariant?.id ?? "");
   const [selectedModifiers, setSelectedModifiers] = useState<
     Record<string, SelectedModifier>
-  >({})
+  >({});
 
   const selectedVariant = sortedVariants.find(
-    (variant) => variant.id === variantId
-  )
+    (variant) => variant.id === variantId,
+  );
 
   const modifierGroups = useMemo(
     () =>
       [...(product.product_modifier_groups ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((item) => item.modifier_groups),
-    [product.product_modifier_groups]
-  )
+    [product.product_modifier_groups],
+  );
 
   const total = useMemo(() => {
-    const base = selectedVariant?.base_price ?? product.base_price ?? 0
+    const basePrice = selectedVariant?.base_price ?? product.base_price ?? 0;
 
-    const modifierTotal = Object.values(selectedModifiers).reduce(
-      (sum, selected) => {
-        const option = modifierGroups
-          .flatMap((group) => group.modifier_options)
-          .find((modifierOption) => modifierOption.id === selected.optionId)
+    return calculateProductTotal({
+      basePrice,
+      modifierGroups,
+      selectedModifiers,
+    });
+  }, [selectedVariant, product.base_price, selectedModifiers, modifierGroups]);
 
-        if (!option) return sum
-
-        return sum + Number(option.price_delta) * selected.multiplier
-      },
-      0
-    )
-
-    return base + modifierTotal
-  }, [selectedVariant, product.base_price, selectedModifiers, modifierGroups])
-
-  function toggleModifier(option: ModifierOption) {
+  function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
       if (current[option.id]) {
-        const copy = { ...current }
-        delete copy[option.id]
-        return copy
+        const copy = { ...current };
+        delete copy[option.id];
+        return copy;
+      }
+
+      const selectedInGroup = Object.values(current).filter((selected) =>
+        group.modifier_options.some(
+          (groupOption) => groupOption.id === selected.optionId,
+        ),
+      );
+
+      if (group.selection_type === "single" && selectedInGroup.length > 0) {
+        const copy = { ...current };
+
+        selectedInGroup.forEach((selected) => {
+          delete copy[selected.optionId];
+        });
+
+        return {
+          ...copy,
+          [option.id]: {
+            optionId: option.id,
+            placement: "whole",
+            multiplier: 1,
+          },
+        };
+      }
+
+      if (group.max_allowed && selectedInGroup.length >= group.max_allowed) {
+        return current;
       }
 
       return {
@@ -136,13 +164,13 @@ export function PizzaBuilder({
           placement: "whole",
           multiplier: 1,
         },
-      }
-    })
+      };
+    });
   }
 
   function updateModifier(
     optionId: string,
-    updates: Partial<SelectedModifier>
+    updates: Partial<SelectedModifier>,
   ) {
     setSelectedModifiers((current) => ({
       ...current,
@@ -150,8 +178,74 @@ export function PizzaBuilder({
         ...current[optionId],
         ...updates,
       },
-    }))
+    }));
   }
+
+  function groupOptionsBySubgroup(options: ModifierOption[]) {
+    const sortedOptions = [...options].sort(
+      (a, b) => a.sort_order - b.sort_order,
+    );
+
+    const grouped = sortedOptions.reduce<
+      Record<
+        string,
+        {
+          group: ModifierOptionGroup | null;
+          options: ModifierOption[];
+        }
+      >
+    >((acc, option) => {
+      const key = option.modifier_option_group_id ?? "ungrouped";
+
+      if (!acc[key]) {
+        acc[key] = {
+          group: option.modifier_option_groups ?? null,
+          options: [],
+        };
+      }
+
+      acc[key].options.push(option);
+
+      return acc;
+    }, {});
+
+    return Object.values(grouped).sort((a, b) => {
+      const aOrder = a.group?.sort_order ?? 999;
+      const bOrder = b.group?.sort_order ?? 999;
+
+      return aOrder - bOrder;
+    });
+  }
+
+  function getSelectedOptionsForGroup(group: ModifierGroup) {
+    return Object.values(selectedModifiers).filter((selected) =>
+      group.modifier_options.some((option) => option.id === selected.optionId),
+    );
+  }
+
+  function getGroupValidationMessage(group: ModifierGroup) {
+    const selectedCount = getSelectedOptionsForGroup(group).length;
+
+    if (group.is_required && selectedCount < group.min_required) {
+      return `Please choose at least ${group.min_required}.`;
+    }
+
+    if (group.max_allowed && selectedCount > group.max_allowed) {
+      return `Please choose no more than ${group.max_allowed}.`;
+    }
+
+    return null;
+  }
+
+  const validationMessages = modifierGroups
+    .map((group) => ({
+      groupId: group.id,
+      groupName: group.name,
+      message: getGroupValidationMessage(group),
+    }))
+    .filter((item) => item.message);
+
+  const canAddToCart = validationMessages.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,6 +284,11 @@ export function PizzaBuilder({
               <div className="mb-3 flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold">{group.name}</h3>
+                  {getGroupValidationMessage(group) ? (
+                    <p className="mb-3 text-sm text-destructive">
+                      {getGroupValidationMessage(group)}
+                    </p>
+                  ) : null}
                   {group.max_allowed ? (
                     <p className="text-sm text-muted-foreground">
                       Choose up to {group.max_allowed}.
@@ -204,95 +303,134 @@ export function PizzaBuilder({
                 ) : null}
               </div>
 
-              <div className="space-y-3">
-                {[...(group.modifier_options ?? [])]
-                  .sort((a, b) => a.sort_order - b.sort_order)
-                  .map((option) => {
-                    const selected = selectedModifiers[option.id]
+              <div className="space-y-6">
+                {groupOptionsBySubgroup(group.modifier_options ?? []).map(
+                  (optionGroup) => (
+                    <div key={optionGroup.group?.id ?? "ungrouped"}>
+                      {optionGroup.group ? (
+                        <div className="mb-3">
+                          <h4 className="font-semibold">
+                            Choose Your {optionGroup.group.name}
+                          </h4>
 
-                    return (
-                      <div
-                        key={option.id}
-                        className="rounded-lg border p-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <button
-                            type="button"
-                            onClick={() => toggleModifier(option)}
-                            className="text-left font-medium"
-                          >
-                            {selected ? "✓ " : ""}
-                            {option.name}
-                          </button>
-
-                          {Number(option.price_delta) > 0 ? (
-                            <span className="text-sm font-semibold">
-                              +${Number(option.price_delta).toFixed(2)}
-                            </span>
+                          {optionGroup.group.description ? (
+                            <p className="text-sm text-muted-foreground">
+                              {optionGroup.group.description}
+                            </p>
                           ) : null}
                         </div>
+                      ) : null}
 
-                        {selected && group.supports_placement ? (
-                          <div className="mt-3 grid grid-cols-3 gap-2">
-                            {(["left", "whole", "right"] as const).map(
-                              (placement) => (
-                                <button
-                                  key={placement}
-                                  type="button"
-                                  onClick={() =>
-                                    updateModifier(option.id, { placement })
-                                  }
-                                  className={`rounded-md border px-3 py-2 text-sm capitalize ${
-                                    selected.placement === placement
-                                      ? "bg-primary text-primary-foreground"
-                                      : ""
-                                  }`}
-                                >
-                                  {placement}
-                                </button>
-                              )
-                            )}
-                          </div>
-                        ) : null}
+                      <div className="space-y-3">
+                        {optionGroup.options.map((option) => {
+                          const selected = selectedModifiers[option.id];
 
-                        {selected && group.supports_multiplier ? (
-                          <div className="mt-3">
-                            <Label className="text-sm">Amount</Label>
-                            <select
-                              value={selected.multiplier}
-                              onChange={(event) =>
-                                updateModifier(option.id, {
-                                  multiplier: Number(event.target.value),
-                                })
-                              }
-                              className="mt-1 h-10 w-full rounded-md border bg-background px-3"
+                          return (
+                            <div
+                              key={option.id}
+                              className="rounded-lg border p-3"
                             >
-                              {Array.from(
-                                { length: Number(group.max_multiplier) },
-                                (_, index) => index + 1
-                              ).map((amount) => (
-                                <option key={amount} value={amount}>
-                                  {amount}x
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : null}
+                              <div className="flex items-center justify-between gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleModifier(group, option)}
+                                  className="text-left font-medium"
+                                >
+                                  {selected ? "✓ " : ""}
+                                  {option.name}
+                                </button>
+
+                                {Number(option.price_delta) > 0 ? (
+                                  <span className="text-sm font-semibold">
+                                    +${Number(option.price_delta).toFixed(2)}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {selected && group.supports_placement ? (
+                                <div className="mt-3 grid grid-cols-3 gap-2">
+                                  {(["left", "whole", "right"] as const).map(
+                                    (placement) => (
+                                      <button
+                                        key={placement}
+                                        type="button"
+                                        onClick={() =>
+                                          updateModifier(option.id, {
+                                            placement,
+                                          })
+                                        }
+                                        className={`rounded-md border px-3 py-2 text-sm capitalize ${
+                                          selected.placement === placement
+                                            ? "bg-primary text-primary-foreground"
+                                            : ""
+                                        }`}
+                                      >
+                                        {placement}
+                                      </button>
+                                    ),
+                                  )}
+                                </div>
+                              ) : null}
+
+                              {selected && group.supports_multiplier ? (
+                                <div className="mt-3">
+                                  <Label className="text-sm">Amount</Label>
+                                  <select
+                                    value={selected.multiplier}
+                                    onChange={(event) =>
+                                      updateModifier(option.id, {
+                                        multiplier: Number(event.target.value),
+                                      })
+                                    }
+                                    className="mt-1 h-10 w-full rounded-md border bg-background px-3"
+                                  >
+                                    {Array.from(
+                                      { length: Number(group.max_multiplier) },
+                                      (_, index) => index + 1,
+                                    ).map((amount) => (
+                                      <option key={amount} value={amount}>
+                                        {amount}x
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
-                    )
-                  })}
+                    </div>
+                  ),
+                )}
               </div>
             </ThemedCard>
           ))}
         </div>
 
         <div className="border-t bg-background p-4">
-          <ThemedButton className="h-12 w-full justify-between text-base">
+          {validationMessages.length > 0 ? (
+            <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <p className="font-semibold">Please finish your selections:</p>
+
+              <ul className="mt-1 list-inside list-disc">
+                {validationMessages.map((item) => (
+                  <li key={item.groupId}>
+                    {item.groupName}: {item.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <ThemedButton
+            disabled={!canAddToCart}
+            className="h-12 w-full justify-between text-base"
+          >
             <span>Add to cart</span>
             <span>${total.toFixed(2)}</span>
           </ThemedButton>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
