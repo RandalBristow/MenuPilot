@@ -1,27 +1,27 @@
 export type PricingModifierOption = {
-  id: string
-  price_delta: number
-}
+  id: string;
+  price_delta: number;
+};
 
 export type PricingModifierGroup = {
-  id: string
-  modifier_options: PricingModifierOption[]
-  included_quantity?: number
-  is_swappable?: boolean
-  charge_for_extra?: boolean
-}
+  id: string;
+  modifier_options: PricingModifierOption[];
+  included_quantity?: number;
+  is_swappable?: boolean;
+  charge_for_extra?: boolean;
+};
 
 export type PricingSelectedModifier = {
-  optionId: string
-  multiplier: number
-  placement?: "left" | "whole" | "right"
-}
+  optionId: string;
+  multiplier: number;
+  placement?: "left" | "whole" | "right";
+};
 
 type CalculateProductTotalInput = {
-  basePrice: number
-  modifierGroups: PricingModifierGroup[]
-  selectedModifiers: Record<string, PricingSelectedModifier>
-}
+  basePrice: number;
+  modifierGroups: PricingModifierGroup[];
+  selectedModifiers: Record<string, PricingSelectedModifier>;
+};
 
 export function calculateProductTotal({
   basePrice,
@@ -31,48 +31,77 @@ export function calculateProductTotal({
   const modifierTotal = modifierGroups.reduce((groupSum, group) => {
     const selectedForGroup = Object.values(selectedModifiers).filter(
       (selected) =>
-        group.modifier_options.some((option) => option.id === selected.optionId)
-    )
+        group.modifier_options.some(
+          (option) => option.id === selected.optionId,
+        ),
+    );
 
     const selectedWithPrices = selectedForGroup
       .map((selected) => {
         const option = group.modifier_options.find(
-          (modifierOption) => modifierOption.id === selected.optionId
-        )
+          (modifierOption) => modifierOption.id === selected.optionId,
+        );
 
-        if (!option) return null
+        if (!option) return null;
+
+        const totalUnits = selected.multiplier ?? 1;
 
         return {
           selected,
           option,
-          totalPrice: Number(option.price_delta) * selected.multiplier,
-        }
+          totalUnits,
+          unitPrice: Number(option.price_delta),
+        };
       })
       .filter(Boolean) as {
-      selected: PricingSelectedModifier
-      option: PricingModifierOption
-      totalPrice: number
-    }[]
+      selected: PricingSelectedModifier;
+      option: PricingModifierOption;
+      totalUnits: number;
+      unitPrice: number;
+    }[];
 
-    const includedQuantity = group.included_quantity ?? 0
-    const chargeForExtra = group.charge_for_extra ?? true
+    const includedQuantity = group.included_quantity ?? 0;
+    const chargeForExtra = group.charge_for_extra ?? true;
 
     if (!chargeForExtra || includedQuantity <= 0) {
       return (
         groupSum +
-        selectedWithPrices.reduce((sum, item) => sum + item.totalPrice, 0)
-      )
+        selectedWithPrices.reduce(
+          (sum, item) => sum + item.unitPrice * item.totalUnits,
+          0,
+        )
+      );
     }
 
+    let remainingCredits = includedQuantity;
+
     const sortedByPrice = [...selectedWithPrices].sort(
-      (a, b) => b.totalPrice - a.totalPrice
-    )
+      (a, b) => b.unitPrice - a.unitPrice,
+    );
 
-    const freeItems = sortedByPrice.slice(0, includedQuantity)
-    const paidItems = sortedByPrice.slice(includedQuantity)
+    let groupTotal = 0;
 
-    return groupSum + paidItems.reduce((sum, item) => sum + item.totalPrice, 0)
-  }, 0)
+    for (const item of sortedByPrice) {
+      const units = item.totalUnits;
 
-  return basePrice + modifierTotal
+      if (remainingCredits <= 0) {
+        groupTotal += units * item.unitPrice;
+        continue;
+      }
+
+      if (units <= remainingCredits) {
+        // fully covered by included credits
+        remainingCredits -= units;
+      } else {
+        // partially covered
+        const paidUnits = units - remainingCredits;
+        groupTotal += paidUnits * item.unitPrice;
+        remainingCredits = 0;
+      }
+    }
+
+    return groupSum + groupTotal;
+  }, 0);
+
+  return basePrice + modifierTotal;
 }

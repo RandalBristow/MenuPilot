@@ -161,5 +161,67 @@ describe("calculateProductTotal", () => {
 
     expect(total).toBe(11.25);
   });
-  
+
+  it("multiplier consumes included credits correctly", () => {
+    const total = calculateProductTotal({
+      basePrice: 10,
+      modifierGroups: [
+        {
+          id: "pizza-toppings",
+          included_quantity: 2,
+          charge_for_extra: true,
+          modifier_options: [{ id: "pepperoni", price_delta: 1.5 }],
+        },
+      ],
+      selectedModifiers: {
+        pepperoni: { optionId: "pepperoni", multiplier: 2 },
+      },
+    });
+
+    expect(total).toBe(10);
+  });
+
+  it("charges extra units beyond included credits", () => {
+    const total = calculateProductTotal({
+      basePrice: 10,
+      modifierGroups: [
+        {
+          id: "pizza-toppings",
+          included_quantity: 2,
+          charge_for_extra: true,
+          modifier_options: [{ id: "pepperoni", price_delta: 1.5 }],
+        },
+      ],
+      selectedModifiers: {
+        pepperoni: { optionId: "pepperoni", multiplier: 3 },
+      },
+    });
+
+    expect(total).toBe(11.5);
+  });
+
+  it("distributes credits across multiple toppings correctly", () => {
+    const total = calculateProductTotal({
+      basePrice: 10,
+      modifierGroups: [
+        {
+          id: "pizza-toppings",
+          included_quantity: 2,
+          charge_for_extra: true,
+          modifier_options: [
+            { id: "pepperoni", price_delta: 1.5 },
+            { id: "bacon", price_delta: 2 },
+          ],
+        },
+      ],
+      selectedModifiers: {
+        bacon: { optionId: "bacon", multiplier: 1 },
+        pepperoni: { optionId: "pepperoni", multiplier: 2 },
+      },
+    });
+
+    // bacon (2.00) gets covered first
+    // 1 credit left → pepperoni uses 1 free, 1 paid → 1.5
+    expect(total).toBe(11.5);
+  });
 });
