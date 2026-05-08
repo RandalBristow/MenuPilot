@@ -6,6 +6,8 @@ import { ThemedCard } from "@/components/themed/ThemedCard";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { calculateProductTotal } from "@/lib/pricing/calculate-product-total";
+import { useCart } from "@/features/cart/context/CartProvider";
+import type { CartModifier } from "@/features/cart/types/cart";
 import {
   Dialog,
   DialogContent,
@@ -111,6 +113,8 @@ export function PizzaBuilder({
   const [selectedModifiers, setSelectedModifiers] = useState<
     Record<string, SelectedModifier>
   >({});
+
+  const { addItem } = useCart();
 
   const selectedVariant = sortedVariants.find(
     (variant) => variant.id === variantId,
@@ -273,6 +277,50 @@ export function PizzaBuilder({
     .filter((item) => item.message);
 
   const canAddToCart = validationMessages.length === 0;
+
+  function handleAddToCart() {
+    if (!canAddToCart) return;
+
+    const modifiers: CartModifier[] = Object.values(selectedModifiers)
+      .map((selected) => {
+        const group = modifierGroups.find((modifierGroup) =>
+          modifierGroup.modifier_options.some(
+            (option) => option.id === selected.optionId,
+          ),
+        );
+
+        const option = group?.modifier_options.find(
+          (modifierOption) => modifierOption.id === selected.optionId,
+        );
+
+        if (!group || !option) return null;
+
+        return {
+          optionId: option.id,
+          optionName: option.name,
+          groupId: group.id,
+          groupName: group.name,
+          placement: selected.placement,
+          multiplier: selected.multiplier,
+          priceDelta: Number(option.price_delta),
+        };
+      })
+      .filter(Boolean) as CartModifier[];
+
+    addItem({
+      cartItemId: crypto.randomUUID(),
+      productId: product.id,
+      productName: product.name,
+      variantId: selectedVariant?.id ?? null,
+      variantName: selectedVariant?.name ?? null,
+      quantity: 1,
+      unitPrice: total,
+      totalPrice: total,
+      modifiers,
+    });
+
+    onOpenChange(false);
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -461,6 +509,7 @@ export function PizzaBuilder({
 
           <ThemedButton
             disabled={!canAddToCart}
+            onClick={handleAddToCart}
             className="h-12 w-full justify-between text-base"
           >
             <span>Add to cart</span>

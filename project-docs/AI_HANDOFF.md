@@ -72,6 +72,17 @@ MenuPilot is a multi-location restaurant platform that includes:
 - Multiple builder templates (pizza UI variations)
 - Reporting
 - Subscriptions
+- Social media integration (Facebook, Instagram, etc.)
+- External link blocks in page builder
+- Sponsor/advertisement link sections
+- Website builder (custom pages, sections)
+- Theme editor (colors, fonts, layout)
+- Website templates
+- Product configurator templates
+- Inventory and reorder system
+- Social media links and external link support
+- Marketing tools (ads, promotions)
+- Reporting/dashboard improvements
 
 ## Notes
 

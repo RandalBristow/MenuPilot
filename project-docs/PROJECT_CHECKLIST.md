@@ -1532,3 +1532,57 @@ The full platform is complete when:
 - [ ] Add stress testing for pricing engine
 - [ ] Add stress testing for product configuration engine
 - [ ] Expand edge case test suite
+
+## 41.9 Social Media & External Links
+
+- [ ] Add social media links to location settings
+  - Facebook
+  - Instagram
+  - TikTok
+  - Google Reviews
+  - Custom links
+
+- [ ] Display social icons in header/footer
+
+- [ ] Add external link block to page builder
+  - Title
+  - Button text
+  - URL
+
+- [ ] Support ads/sponsor links in pages
+
+- [ ] Allow ordering businesses to link to external sites
+
+## 41.10 Website Builder & Marketing (Future)
+
+- [ ] Custom page builder (About, Community, etc.)
+- [ ] Page sections (text, image, CTA, ads)
+- [ ] Navigation editor
+- [ ] Footer editor
+
+## 41.11 Theme System (Future)
+
+- [ ] Theme editor (colors, fonts, styles)
+- [ ] Theme presets
+- [ ] Business-level theme settings
+
+## 41.12 Templates (Future)
+
+- [ ] Website templates
+- [ ] Product builder templates (pizza variants, etc.)
+
+## 41.13 Inventory System (Future)
+
+- [ ] Inventory items
+- [ ] Internal item numbers
+- [ ] Vendor item numbers
+- [ ] Low stock thresholds
+- [ ] Out-of-stock reporting
+
+## 41.14 Social Media & External Links
+
+- [ ] Add social links to location settings
+- [ ] Display social icons in UI
+- [ ] External link blocks in page builder
+- [ ] Sponsor/advertisement links
+

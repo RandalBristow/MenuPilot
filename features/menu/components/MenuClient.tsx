@@ -4,6 +4,7 @@ import { useState } from "react"
 import { MenuPage } from "./MenuPage"
 import { PizzaBuilder } from "@/features/product-configurator/components/PizzaBuilder"
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
+import { CartSummaryBar } from "@/features/cart/components/CartSummaryBar"
 
 export function MenuClient({ businessName, menu }: any) {
   const [open, setOpen] = useState(false)
@@ -52,6 +53,8 @@ export function MenuClient({ businessName, menu }: any) {
           onOpenChange={setOpen}
         />
       )}
+      
+      <CartSummaryBar />
     </>
   )
 }
