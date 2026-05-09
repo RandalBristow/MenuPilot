@@ -6,9 +6,17 @@ import { PizzaBuilder } from "@/features/product-configurator/components/PizzaBu
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
 import { CartSummaryBar } from "@/features/cart/components/CartSummaryBar"
 
-export function MenuClient({ businessName, menu }: any) {
+type MenuPageProps = React.ComponentProps<typeof MenuPage>
+type ProductConfig = React.ComponentProps<typeof PizzaBuilder>["product"]
+
+type MenuClientProps = {
+  businessName: MenuPageProps["businessName"]
+  menu: MenuPageProps["menu"]
+}
+
+export function MenuClient({ businessName, menu }: MenuClientProps) {
   const [open, setOpen] = useState(false)
-  const [productConfig, setProductConfig] = useState<any>(null)
+  const [productConfig, setProductConfig] = useState<ProductConfig | null>(null)
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -21,7 +29,7 @@ export function MenuClient({ businessName, menu }: any) {
     try {
       const config = await getProductConfig(productId)
 
-      setProductConfig(config)
+      setProductConfig(config as unknown as ProductConfig)
       setOpen(true)
     } catch (error) {
       console.error("Failed to load product config:", error)
@@ -46,14 +54,14 @@ export function MenuClient({ businessName, menu }: any) {
         loadingProductId={loadingProductId}
       />
 
-      {productConfig && (
+      {productConfig ? (
         <PizzaBuilder
           product={productConfig}
           open={open}
           onOpenChange={setOpen}
         />
-      )}
-      
+      ) : null}
+
       <CartSummaryBar />
     </>
   )

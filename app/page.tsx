@@ -56,10 +56,10 @@ export default function HomePage() {
       </header>
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-950 via-zinc-950 to-black" />
+        <div className="absolute inset-0 bg-linear-to-br from-red-950 via-zinc-950 to-black" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_35%)]" />
 
-        <div className="relative mx-auto grid min-h-[560px] max-w-7xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative mx-auto grid min-h-140 max-w-7xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="max-w-2xl">
             <p className="mb-4 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white">
               Pizza • Wings • Subs • Carryout
@@ -86,7 +86,7 @@ export default function HomePage() {
           </div>
 
           <ThemedCard className="border-white/15 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
-            <div className="aspect-square rounded-3xl bg-gradient-to-br from-red-500 via-orange-400 to-yellow-300 p-6">
+            <div className="aspect-square rounded-3xl bg-linear-to-br from-red-500 via-orange-400 to-yellow-300 p-6">
               <div className="flex h-full items-center justify-center rounded-2xl border-4 border-white/40 bg-black/20 text-center">
                 <div>
                   <p className="text-7xl">🍕</p>
