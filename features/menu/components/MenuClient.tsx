@@ -4,7 +4,7 @@ import { useState } from "react"
 import { MenuPage } from "./MenuPage"
 import { PizzaBuilder } from "@/features/product-configurator/components/PizzaBuilder"
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
-import { CartSummaryBar } from "@/features/cart/components/CartSummaryBar"
+import { CartHeaderButton } from "@/features/cart/components/CartHeaderButton"
 
 type MenuPageProps = React.ComponentProps<typeof MenuPage>
 type ProductConfig = React.ComponentProps<typeof PizzaBuilder>["product"]
@@ -52,6 +52,7 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
         menu={menu}
         onCustomize={handleCustomize}
         loadingProductId={loadingProductId}
+        headerAction={<CartHeaderButton />}
       />
 
       {productConfig ? (
@@ -61,8 +62,6 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
           onOpenChange={setOpen}
         />
       ) : null}
-
-      <CartSummaryBar />
     </>
   )
 }

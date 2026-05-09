@@ -43,6 +43,7 @@ type MenuPageProps = {
   menu: Menu;
   onCustomize?: (productId: string) => void;
   loadingProductId?: string | null;
+  headerAction?: React.ReactNode;
 };
 
 export function MenuPage({
@@ -50,6 +51,7 @@ export function MenuPage({
   menu,
   onCustomize,
   loadingProductId,
+  headerAction,
 }: MenuPageProps) {
   const groups = [...(menu.menu_groups ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
@@ -60,23 +62,27 @@ export function MenuPage({
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5">
-          <div>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5">
+          <div className="min-w-0">
             <p className="text-sm text-muted-foreground">MenuPilot Demo</p>
             <h1 className="text-2xl font-bold">{businessName}</h1>
           </div>
 
-          <nav className="hidden gap-4 md:flex">
-            {parentGroups.map((group) => (
-              <a
-                key={group.id}
-                href={`#${group.slug}`}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                {group.name}
-              </a>
-            ))}
-          </nav>
+          <div className="flex shrink-0 items-center gap-3">
+            <nav className="hidden gap-4 md:flex">
+              {parentGroups.map((group) => (
+                <a
+                  key={group.id}
+                  href={`#${group.slug}`}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  {group.name}
+                </a>
+              ))}
+            </nav>
+
+            {headerAction}
+          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto px-4 pb-4 md:hidden">
