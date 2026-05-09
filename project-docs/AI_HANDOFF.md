@@ -23,18 +23,25 @@ MenuPilot is a multi-location restaurant platform that includes:
 - RLS policies (002)
 - Seed data (003)
 - Modifier option subgroups (004 + 005)
+- Homepage route at `/`
+- Menu route at `/menu`
 - Menu UI
-- Homepage
 - Pizza Builder UI
 - Validation logic
 - Loading state
 - Pricing logic extracted
-- Initial tests passing
+- Included topping credits wired from Supabase
+- Multiplier-aware included topping pricing
+- Cart provider
+- Cart summary bar
+- Cart sheet UI
+- Add-to-cart from PizzaBuilder
+- Pricing tests passing
 
 ### Current State
 - Pizza builder functional but not fully feature-complete
-- Pricing engine basic (no included toppings yet)
-- No cart system yet
+- Pricing engine supports included topping credits and multiplier-aware pricing
+- Cart foundation exists with provider, summary bar, sheet UI, and add-to-cart flow
 - No checkout yet
 - No staff dashboard yet
 
@@ -59,10 +66,10 @@ MenuPilot is a multi-location restaurant platform that includes:
 
 ## Next Steps
 
-1. Add included toppings logic
-2. Expand pricing engine
-3. Build cart system
-4. Build checkout
+1. Improve cart UI and behavior
+2. Persist cart to localStorage
+3. Build checkout shell
+4. Create orders in Supabase
 5. Build staff order dashboard
 
 ## Future Features

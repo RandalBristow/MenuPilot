@@ -12,6 +12,26 @@ Legend:
 - [!] Blocked
 - [D] Deferred
 
+## Current build focus
+
+Completed:
+- [x] Homepage route at `/`
+- [x] Menu route at `/menu`
+- [x] Cart provider
+- [x] Cart summary bar
+- [x] Cart sheet UI
+- [x] Add-to-cart from PizzaBuilder
+- [x] Included topping credits wired from Supabase
+- [x] Multiplier-aware included topping pricing
+- [x] Pricing tests passing
+
+Next:
+1. Improve cart UI and behavior
+2. Persist cart to localStorage
+3. Build checkout shell
+4. Create orders in Supabase
+5. Build staff order dashboard
+
 ---
 
 # 0. Project Setup
@@ -781,10 +801,10 @@ For each feature:
 - [ ] Resolve available modifier options by selected variant
 - [ ] Resolve dependency-based options
 - [ ] Resolve default selections
-- [ ] Resolve included credits
+- [x] Resolve included credits
 - [ ] Resolve modifier price
 - [ ] Resolve placement rules
-- [ ] Resolve multiplier rules
+- [x] Resolve multiplier rules
 - [ ] Resolve prep time
 - [ ] Resolve related item options
 
@@ -829,6 +849,7 @@ For each feature:
 
 ## 17.2 Home page
 
+- [x] Add homepage route at `/`
 - [ ] Render published home page
 - [ ] Render hero section
 - [ ] Render featured items
@@ -840,6 +861,7 @@ For each feature:
 
 ## 17.3 Menu page
 
+- [x] Add menu route at `/menu`
 - [ ] Render menu groups
 - [ ] Render nested categories/subcategories
 - [ ] Render product cards
@@ -865,14 +887,14 @@ For each feature:
 - [ ] Show prep-time estimate if desired
 - [ ] Show related add-ons
 - [ ] Validate before add to cart
-- [ ] Add configured item to cart
+- [x] Add configured item to cart
 
 ---
 
 # 18. Cart
 
-- [ ] Create cart state management
-- [ ] Add item to cart
+- [x] Create cart state management
+- [x] Add item to cart
 - [ ] Edit configured item
 - [ ] Remove item
 - [ ] Remove dependent add-ons when parent removed
@@ -882,7 +904,8 @@ For each feature:
 - [ ] Persist cart locally
 - [ ] Clear cart after successful order
 - [ ] Prevent checkout with unavailable items
-- [ ] Show cart drawer/page
+- [x] Show cart summary bar
+- [x] Show cart drawer/page
 - [ ] Show item configuration summary
 - [ ] Show modifier placement/multiplier summary
 - [ ] Show add-ons indented under parent where appropriate
@@ -1328,10 +1351,10 @@ For each feature:
 
 ## 36.1 Unit tests
 
-- [ ] Test pricing resolver
+- [x] Test pricing resolver
 - [ ] Test modifier availability resolver
 - [ ] Test dependency resolver
-- [ ] Test included credits
+- [x] Test included credits
 - [ ] Test related add-on removal
 - [ ] Test prep-time calculation
 - [ ] Test delivery radius logic
