@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
+import { setProductEnabled } from "@/features/admin-products/actions/set-product-enabled"
 
 export type AdminProductVariant = {
   id: string
@@ -129,6 +130,14 @@ export function AdminProductsBrowser({
       : []),
   ]
 
+  async function handleEnabledChange(product: AdminProduct) {
+    const formData = new FormData()
+    formData.set("productId", product.id)
+    formData.set("isEnabled", String(!product.is_enabled))
+
+    await setProductEnabled(formData)
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -218,7 +227,22 @@ export function AdminProductsBrowser({
                           </span>
                         </div>
 
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4 flex flex-wrap justify-end gap-2">
+                          <ThemedButton
+                            type="button"
+                            size="sm"
+                            className={
+                              product.is_enabled
+                                ? "bg-muted text-foreground hover:bg-muted/80"
+                                : undefined
+                            }
+                            onClick={() => {
+                              void handleEnabledChange(product)
+                            }}
+                          >
+                            {product.is_enabled ? "Disable" : "Enable"}
+                          </ThemedButton>
+
                           <ThemedButton asChild size="sm">
                             <Link href={`/admin/products/${product.id}`}>
                               Edit
