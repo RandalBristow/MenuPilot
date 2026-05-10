@@ -1,14 +1,8 @@
 "use client"
 
-import { ThemedButton } from "@/components/themed/ThemedButton"
 import type { CartItem } from "@/features/cart/types/cart"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { PizzaBuilder, type ProductConfig } from "./PizzaBuilder"
+import { StandardItemBuilder } from "./StandardItemBuilder"
 
 type ProductConfiguratorProps = {
   product: ProductConfig
@@ -39,22 +33,12 @@ export function ProductConfigurator({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{product.name}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            This product configurator is not available yet.
-          </p>
-
-          <ThemedButton type="button" onClick={() => onOpenChange(false)}>
-            Close
-          </ThemedButton>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <StandardItemBuilder
+      product={product}
+      open={open}
+      onOpenChange={onOpenChange}
+      mode={mode}
+      cartItem={cartItem}
+    />
   )
 }
