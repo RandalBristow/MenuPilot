@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus } from "lucide-react"
+import { setModifierGroupEnabled } from "@/features/admin-modifiers/actions/set-modifier-group-enabled"
+import { setModifierOptionGroupEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-group-enabled"
 import { setModifierOptionEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-enabled"
 import { ModifierGroupFormDialog } from "@/features/admin-modifiers/components/ModifierGroupFormDialog"
 import { ModifierOptionFormDialog } from "@/features/admin-modifiers/components/ModifierOptionFormDialog"
@@ -32,6 +34,7 @@ export type RawModifierGroup = {
   min_required: number
   max_allowed: number | null
   is_required: boolean
+  is_enabled: boolean
   sort_order: number
   modifier_option_groups: RawModifierOptionGroup[] | null
   modifier_options: RawModifierOption[] | null
@@ -253,11 +256,41 @@ function ModifierGroupCard({
   onAddOption: (group: ActiveOptionGroup) => void
   onEditOption: (group: ActiveOptionGroup, option: RawModifierOption) => void
 }) {
+  const router = useRouter()
   const optionGroups = getOptionGroups(group)
   const sortedOptionGroups = sortBySortOrder(group.modifier_option_groups ?? [])
 
+  async function handleEnabledChange() {
+    const formData = new FormData()
+    formData.set("modifierGroupId", group.id)
+    formData.set("isEnabled", String(!group.is_enabled))
+
+    await setModifierGroupEnabled(formData)
+    router.refresh()
+  }
+
+  async function handleOptionGroupEnabledChange(
+    optionGroup: ModifierOptionGroup
+  ) {
+    if (optionGroup.id === "ungrouped") return
+
+    const formData = new FormData()
+    formData.set("modifierGroupId", group.id)
+    formData.set("modifierOptionGroupId", optionGroup.id)
+    formData.set("isEnabled", String(!optionGroup.isEnabled))
+
+    await setModifierOptionGroupEnabled(formData)
+    router.refresh()
+  }
+
   return (
-    <ThemedCard className="overflow-hidden">
+    <ThemedCard
+      className={
+        group.is_enabled
+          ? "overflow-hidden"
+          : "overflow-hidden bg-muted/30 opacity-75"
+      }
+    >
       <details className="group">
         <summary className="flex cursor-pointer list-none flex-col gap-3 px-4 py-3 marker:hidden sm:flex-row sm:items-center sm:justify-between sm:px-5 [&::-webkit-details-marker]:hidden">
           <div className="min-w-0">
@@ -268,11 +301,30 @@ function ModifierGroupCard({
               <h2 className="truncate text-base font-semibold sm:text-lg">
                 {group.name}
               </h2>
+              {!group.is_enabled ? (
+                <StatusPill tone="muted">Disabled</StatusPill>
+              ) : null}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {formatGroupRules(group)} - {getOptionCount(group)} options
             </p>
           </div>
+
+          <ThemedButton
+            type="button"
+            variant={group.is_enabled ? "outline" : "default"}
+            className={
+              group.is_enabled
+                ? "w-full bg-background text-foreground hover:bg-muted sm:w-auto"
+                : "w-full sm:w-auto"
+            }
+            onClick={(event) => {
+              event.preventDefault()
+              void handleEnabledChange()
+            }}
+          >
+            {group.is_enabled ? "Disable" : "Enable"}
+          </ThemedButton>
         </summary>
 
         <div className="space-y-3 border-t px-4 py-4 sm:px-5">
@@ -283,7 +335,14 @@ function ModifierGroupCard({
               </p>
             ) : (
               optionGroups.map((optionGroup) => (
-                <section key={optionGroup.id} className="space-y-2">
+                <section
+                  key={optionGroup.id}
+                  className={
+                    optionGroup.isEnabled
+                      ? "space-y-2"
+                      : "space-y-2 rounded-md bg-muted/30 p-2 opacity-75"
+                  }
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <h3 className="text-sm font-semibold">
@@ -294,25 +353,44 @@ function ModifierGroupCard({
                       ) : null}
                     </div>
 
-                    <ThemedButton
-                      type="button"
-                      aria-label={`Add option to ${optionGroup.name}`}
-                      title={`Add option to ${optionGroup.name}`}
-                      className="h-8 w-8 shrink-0 p-0"
-                      onClick={() =>
-                        onAddOption({
-                          id: group.id,
-                          name: group.name,
-                          optionGroups: sortedOptionGroups,
-                          initialOptionGroupId:
-                            optionGroup.id === "ungrouped"
-                              ? null
-                              : optionGroup.id,
-                        })
-                      }
-                    >
-                      <Plus className="h-4 w-4" aria-hidden="true" />
-                    </ThemedButton>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {optionGroup.id !== "ungrouped" ? (
+                        <ThemedButton
+                          type="button"
+                          variant={optionGroup.isEnabled ? "outline" : "default"}
+                          className={
+                            optionGroup.isEnabled
+                              ? "h-8 bg-background px-3 text-foreground hover:bg-muted"
+                              : "h-8 px-3"
+                          }
+                          onClick={() =>
+                            void handleOptionGroupEnabledChange(optionGroup)
+                          }
+                        >
+                          {optionGroup.isEnabled ? "Disable" : "Enable"}
+                        </ThemedButton>
+                      ) : null}
+
+                      <ThemedButton
+                        type="button"
+                        aria-label={`Add option to ${optionGroup.name}`}
+                        title={`Add option to ${optionGroup.name}`}
+                        className="h-8 w-8 shrink-0 p-0"
+                        onClick={() =>
+                          onAddOption({
+                            id: group.id,
+                            name: group.name,
+                            optionGroups: sortedOptionGroups,
+                            initialOptionGroupId:
+                              optionGroup.id === "ungrouped"
+                                ? null
+                                : optionGroup.id,
+                          })
+                        }
+                      >
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      </ThemedButton>
+                    </div>
                   </div>
 
                   <OptionList

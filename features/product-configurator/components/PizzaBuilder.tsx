@@ -27,6 +27,7 @@ type ModifierOption = {
   id: string;
   name: string;
   price_delta: number;
+  is_enabled: boolean;
   sort_order: number;
   modifier_option_group_id: string | null;
   modifier_option_groups: ModifierOptionGroup | null;
@@ -36,6 +37,7 @@ type ModifierOptionGroup = {
   id: string;
   name: string;
   description: string | null;
+  is_enabled: boolean;
   sort_order: number;
 };
 
@@ -44,6 +46,7 @@ type ModifierGroup = {
   name: string;
   selection_type: string;
   is_required: boolean;
+  is_enabled: boolean;
   min_required: number;
   max_allowed: number | null;
   supports_placement: boolean;
@@ -59,8 +62,9 @@ type ModifierGroup = {
 
 type ProductModifierGroup = {
   id: string;
+  is_enabled: boolean;
   sort_order: number;
-  modifier_groups: ModifierGroup;
+  modifier_groups: ModifierGroup | null;
 };
 
 export type ProductConfig = {
@@ -111,6 +115,26 @@ function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
   );
 }
 
+function getEnabledModifierOptions(options: ModifierOption[]) {
+  return options.filter((option) => {
+    if (!option.is_enabled) return false;
+    if (
+      option.modifier_option_groups &&
+      !option.modifier_option_groups.is_enabled
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function hasEnabledModifierGroup(
+  item: ProductModifierGroup,
+): item is ProductModifierGroup & { modifier_groups: ModifierGroup } {
+  return item.is_enabled && item.modifier_groups?.is_enabled === true;
+}
+
 export function PizzaBuilder({
   product,
   open,
@@ -144,6 +168,7 @@ export function PizzaBuilder({
     () =>
       [...(product.product_modifier_groups ?? [])]
         .sort((a, b) => a.sort_order - b.sort_order)
+        .filter(hasEnabledModifierGroup)
         .map((item) => {
           const group = item.modifier_groups;
 
@@ -158,6 +183,9 @@ export function PizzaBuilder({
               : 0,
             is_swappable: includedRule?.is_swappable ?? false,
             charge_for_extra: includedRule?.charge_for_extra ?? true,
+            modifier_options: getEnabledModifierOptions(
+              group.modifier_options ?? [],
+            ),
           };
         }),
     [product.product_modifier_groups, product.product_included_modifier_groups],

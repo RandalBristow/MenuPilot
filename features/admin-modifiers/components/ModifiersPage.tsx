@@ -76,6 +76,7 @@ async function getModifierGroupCategories() {
         min_required,
         max_allowed,
         is_required,
+        is_enabled,
         sort_order,
         modifier_option_groups (
           id,

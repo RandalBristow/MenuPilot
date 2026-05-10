@@ -19,6 +19,7 @@ export async function getProductConfig(productId: string) {
       ),
       product_modifier_groups (
         id,
+        is_enabled,
         sort_order,
         modifier_groups (
           id,
@@ -27,6 +28,7 @@ export async function getProductConfig(productId: string) {
           is_required,
           min_required,
           max_allowed,
+          is_enabled,
           supports_placement,
           supports_multiplier,
           min_multiplier,
@@ -36,12 +38,14 @@ export async function getProductConfig(productId: string) {
             id,
             name,
             price_delta,
+            is_enabled,
             sort_order,
             modifier_option_group_id,
             modifier_option_groups (
               id,
               name,
               description,
+              is_enabled,
               sort_order
             )
           )

@@ -25,11 +25,13 @@ type MenuGroup = {
       builder_template: string;
       has_variants: boolean;
       is_featured: boolean;
+      is_enabled: boolean;
       product_variants: {
         id: string;
         name: string;
         base_price: number;
         is_default: boolean;
+        is_enabled: boolean;
         sort_order: number;
       }[];
     };

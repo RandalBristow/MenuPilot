@@ -8,6 +8,7 @@ type ProductVariant = {
   name: string;
   base_price: number;
   is_default: boolean;
+  is_enabled: boolean;
   sort_order: number;
 };
 
@@ -20,6 +21,7 @@ type Product = {
   builder_template: string;
   has_variants: boolean;
   is_featured: boolean;
+  is_enabled: boolean;
   product_variants?: ProductVariant[];
 };
 

@@ -15,7 +15,7 @@ import {
 import type { ProductConfig } from "./PizzaBuilder"
 
 type ModifierGroup =
-  ProductConfig["product_modifier_groups"][number]["modifier_groups"]
+  NonNullable<ProductConfig["product_modifier_groups"][number]["modifier_groups"]>
 
 type ModifierOption = ModifierGroup["modifier_options"][number]
 
@@ -62,6 +62,30 @@ function getSelectedOptionsForGroup(
   )
 }
 
+function getEnabledModifierOptions(
+  options: ModifierGroup["modifier_options"]
+) {
+  return options.filter((option) => {
+    if (!option.is_enabled) return false
+    if (
+      option.modifier_option_groups &&
+      !option.modifier_option_groups.is_enabled
+    ) {
+      return false
+    }
+
+    return true
+  })
+}
+
+function hasEnabledModifierGroup(
+  item: ProductConfig["product_modifier_groups"][number]
+): item is ProductConfig["product_modifier_groups"][number] & {
+  modifier_groups: ModifierGroup
+} {
+  return item.is_enabled && item.modifier_groups?.is_enabled === true
+}
+
 export function StandardItemBuilder({
   product,
   open,
@@ -98,6 +122,7 @@ export function StandardItemBuilder({
     () =>
       [...(product.product_modifier_groups ?? [])]
         .sort((first, second) => first.sort_order - second.sort_order)
+        .filter(hasEnabledModifierGroup)
         .map((item) => {
           const group = item.modifier_groups
           const includedRule = product.product_included_modifier_groups?.find(
@@ -111,6 +136,9 @@ export function StandardItemBuilder({
               : 0,
             is_swappable: includedRule?.is_swappable ?? false,
             charge_for_extra: includedRule?.charge_for_extra ?? true,
+            modifier_options: getEnabledModifierOptions(
+              group.modifier_options ?? []
+            ),
           }
         }),
     [product.product_modifier_groups, product.product_included_modifier_groups]

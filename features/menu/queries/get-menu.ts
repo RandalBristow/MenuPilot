@@ -38,11 +38,13 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
             builder_template,
             has_variants,
             is_featured,
+            is_enabled,
             product_variants (
               id,
               name,
               base_price,
               is_default,
+              is_enabled,
               sort_order
             )
           )

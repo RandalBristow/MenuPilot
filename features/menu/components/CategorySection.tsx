@@ -12,11 +12,13 @@ type ProductGroup = {
     builder_template: string;
     has_variants: boolean;
     is_featured: boolean;
+    is_enabled: boolean;
     product_variants: {
       id: string;
       name: string;
       base_price: number;
       is_default: boolean;
+      is_enabled: boolean;
       sort_order: number;
     }[];
   };
@@ -31,6 +33,11 @@ type MenuGroup = {
   sort_order: number;
   display_style: string;
   product_groups: ProductGroup[];
+};
+
+type VisibleProductGroup = {
+  id: string;
+  product: ProductGroup["products"];
 };
 
 type CategorySectionProps = {
@@ -60,9 +67,30 @@ export function CategorySection({
 
       <div className="space-y-10">
         {childGroups.map((childGroup) => {
-          const productGroups = [...(childGroup.product_groups ?? [])].sort(
-            (a, b) => a.sort_order - b.sort_order,
-          );
+          const productGroups = [...(childGroup.product_groups ?? [])]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((productGroup) => {
+              const product = Array.isArray(productGroup.products)
+                ? productGroup.products[0]
+                : productGroup.products;
+
+              if (!product || !product.is_enabled) return null;
+
+              return {
+                id: productGroup.id,
+                product: {
+                  ...product,
+                  product_variants: (product.product_variants ?? []).filter(
+                    (variant: ProductGroup["products"]["product_variants"][number]) =>
+                      variant.is_enabled,
+                  ),
+                },
+              };
+            })
+            .filter(
+              (productGroup): productGroup is VisibleProductGroup =>
+                productGroup !== null,
+            );
 
           return (
             <div key={childGroup.id}>
@@ -79,18 +107,12 @@ export function CategorySection({
               {productGroups.length ? (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {productGroups.map((productGroup) => {
-                    const product = Array.isArray(productGroup.products)
-                      ? productGroup.products[0]
-                      : productGroup.products;
-
-                    if (!product) return null;
-
                     return (
                       <ProductCard
                         key={productGroup.id}
-                        product={product}
+                        product={productGroup.product}
                         onCustomize={onCustomize}
-                        isLoading={loadingProductId === product.id}
+                        isLoading={loadingProductId === productGroup.product.id}
                       />
                     );
                   })}
