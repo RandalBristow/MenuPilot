@@ -8,6 +8,7 @@ type CartContextValue = {
   itemCount: number
   subtotal: number
   addItem: (item: CartItem) => void
+  updateItem: (cartItemId: string, updatedItem: CartItem) => void
   removeItem: (cartItemId: string) => void
   clearCart: () => void
 }
@@ -116,6 +117,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
+  function updateItem(cartItemId: string, updatedItem: CartItem) {
+    setItems((current) => {
+      const nextItems = current.map((item) =>
+        item.cartItemId === cartItemId ? updatedItem : item
+      )
+      writeStoredCartItems(nextItems)
+      return nextItems
+    })
+  }
+
   function removeItem(cartItemId: string) {
     setItems((current) => {
       const nextItems = current.filter(
@@ -138,6 +149,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         itemCount,
         subtotal,
         addItem,
+        updateItem,
         removeItem,
         clearCart,
       }}

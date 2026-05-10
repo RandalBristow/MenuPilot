@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { calculateProductTotal } from "@/lib/pricing/calculate-product-total";
 import { useCart } from "@/features/cart/context/CartProvider";
-import type { CartModifier } from "@/features/cart/types/cart";
+import type { CartItem, CartModifier } from "@/features/cart/types/cart";
 import {
   Dialog,
   DialogContent,
@@ -63,10 +63,11 @@ type ProductModifierGroup = {
   modifier_groups: ModifierGroup;
 };
 
-type ProductConfig = {
+export type ProductConfig = {
   id: string;
   name: string;
   description: string | null;
+  builder_template: string | null;
   base_price: number | null;
   product_variants: Variant[];
   product_modifier_groups: ProductModifierGroup[];
@@ -83,6 +84,7 @@ type PizzaBuilderProps = {
   product: ProductConfig;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingCartItem?: CartItem | null;
 };
 
 type IncludedModifierGroup = {
@@ -93,10 +95,27 @@ type IncludedModifierGroup = {
   charge_for_extra: boolean;
 };
 
+function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
+  if (!editingCartItem) return {};
+
+  return editingCartItem.modifiers.reduce<Record<string, SelectedModifier>>(
+    (selectedModifiers, modifier) => ({
+      ...selectedModifiers,
+      [modifier.optionId]: {
+        optionId: modifier.optionId,
+        placement: modifier.placement,
+        multiplier: modifier.multiplier,
+      },
+    }),
+    {},
+  );
+}
+
 export function PizzaBuilder({
   product,
   open,
   onOpenChange,
+  editingCartItem = null,
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
     () =>
@@ -108,13 +127,14 @@ export function PizzaBuilder({
 
   const defaultVariant =
     sortedVariants.find((variant) => variant.is_default) ?? sortedVariants[0];
+  const initialVariantId = editingCartItem?.variantId ?? defaultVariant?.id ?? "";
 
-  const [variantId, setVariantId] = useState(defaultVariant?.id ?? "");
+  const [variantId, setVariantId] = useState(initialVariantId);
   const [selectedModifiers, setSelectedModifiers] = useState<
     Record<string, SelectedModifier>
-  >({});
+  >(() => getInitialSelectedModifiers(editingCartItem));
 
-  const { addItem } = useCart();
+  const { addItem, updateItem } = useCart();
 
   const selectedVariant = sortedVariants.find(
     (variant) => variant.id === variantId,
@@ -278,7 +298,7 @@ export function PizzaBuilder({
 
   const canAddToCart = validationMessages.length === 0;
 
-  function handleAddToCart() {
+  function handleCartSubmit() {
     if (!canAddToCart) return;
 
     const modifiers: CartModifier[] = Object.values(selectedModifiers)
@@ -307,17 +327,24 @@ export function PizzaBuilder({
       })
       .filter(Boolean) as CartModifier[];
 
-    addItem({
-      cartItemId: crypto.randomUUID(),
+    const quantity = editingCartItem?.quantity ?? 1;
+    const cartItem: CartItem = {
+      cartItemId: editingCartItem?.cartItemId ?? crypto.randomUUID(),
       productId: product.id,
       productName: product.name,
       variantId: selectedVariant?.id ?? null,
       variantName: selectedVariant?.name ?? null,
-      quantity: 1,
+      quantity,
       unitPrice: total,
-      totalPrice: total,
+      totalPrice: total * quantity,
       modifiers,
-    });
+    };
+
+    if (editingCartItem) {
+      updateItem(editingCartItem.cartItemId, cartItem);
+    } else {
+      addItem(cartItem);
+    }
 
     onOpenChange(false);
   }
@@ -509,10 +536,10 @@ export function PizzaBuilder({
 
           <ThemedButton
             disabled={!canAddToCart}
-            onClick={handleAddToCart}
+            onClick={handleCartSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>Add to cart</span>
+            <span>{editingCartItem ? "Save changes" : "Add to cart"}</span>
             <span>${total.toFixed(2)}</span>
           </ThemedButton>
         </div>

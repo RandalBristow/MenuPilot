@@ -47,7 +47,7 @@ export function CategorySection({
   loadingProductId,
 }: CategorySectionProps) {
   return (
-    <section id={parentGroup.slug} className="scroll-mt-24">
+    <section id={parentGroup.slug} className="scroll-mt-28 md:scroll-mt-28">
       <div className="mb-6">
         <h2 className="text-3xl font-bold">{parentGroup.name}</h2>
 

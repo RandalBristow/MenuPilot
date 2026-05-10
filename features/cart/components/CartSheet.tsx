@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactElement } from "react"
+import { useState, type ReactElement } from "react"
 import Link from "next/link"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -13,7 +13,12 @@ import {
   ThemedSheetTrigger,
 } from "@/components/themed/ThemedSheet"
 import { useCart } from "@/features/cart/context/CartProvider"
-import type { CartModifier } from "@/features/cart/types/cart"
+import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import {
+  ProductConfigurator,
+  type ProductConfig,
+} from "@/features/product-configurator/components/ProductConfigurator"
+import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
 
 type CartSheetProps = {
   trigger: ReactElement
@@ -53,18 +58,61 @@ function formatPlacement(placement: CartModifier["placement"]) {
 
 export function CartSheet({ trigger }: CartSheetProps) {
   const { items, subtotal, removeItem, clearCart } = useCart()
+  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null)
+  const [editingProduct, setEditingProduct] = useState<ProductConfig | null>(
+    null
+  )
+  const [loadingEditItemId, setLoadingEditItemId] = useState<string | null>(
+    null
+  )
+  const [editError, setEditError] = useState<string | null>(null)
+
+  async function handleEditItem(item: CartItem) {
+    if (loadingEditItemId) return
+
+    setEditError(null)
+    setLoadingEditItemId(item.cartItemId)
+
+    try {
+      const config = await getProductConfig(item.productId)
+
+      setEditingProduct(config as unknown as ProductConfig)
+      setEditingItem(item)
+      setIsCartOpen(false)
+    } catch (error) {
+      console.error("Failed to load cart item config:", error)
+      setEditError("Could not load this item. Please try again.")
+    } finally {
+      setLoadingEditItemId(null)
+    }
+  }
+
+  function handleEditOpenChange(open: boolean) {
+    if (open) return
+
+    setEditingItem(null)
+    setEditingProduct(null)
+  }
 
   return (
-    <ThemedSheet>
-      <ThemedSheetTrigger asChild>{trigger}</ThemedSheetTrigger>
+    <>
+      <ThemedSheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+        <ThemedSheetTrigger asChild>{trigger}</ThemedSheetTrigger>
 
-      <ThemedSheetContent className="flex h-dvh w-full max-w-full flex-col gap-0 p-0 sm:max-w-md md:max-w-lg">
-        <ThemedSheetHeader className="border-b px-4 py-4 pr-12">
-          <ThemedSheetTitle>Your Cart</ThemedSheetTitle>
-          <ThemedSheetDescription>
-            Review your order before checkout.
-          </ThemedSheetDescription>
-        </ThemedSheetHeader>
+        <ThemedSheetContent className="flex h-dvh w-full max-w-full flex-col gap-0 p-0 sm:max-w-md md:max-w-lg">
+          <ThemedSheetHeader className="border-b px-4 py-4 pr-12">
+            <ThemedSheetTitle>Your Cart</ThemedSheetTitle>
+            <ThemedSheetDescription>
+              Review your order before checkout.
+            </ThemedSheetDescription>
+          </ThemedSheetHeader>
+
+          {editError ? (
+            <p className="mx-4 mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {editError}
+            </p>
+          ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           {items.length === 0 ? (
@@ -153,6 +201,18 @@ export function CartSheet({ trigger }: CartSheetProps) {
                     <ThemedButton
                       type="button"
                       variant="link"
+                      onClick={() => handleEditItem(item)}
+                      disabled={loadingEditItemId === item.cartItemId}
+                      className="mr-4 h-auto bg-transparent p-0 text-sm font-medium text-foreground hover:bg-transparent"
+                    >
+                      {loadingEditItemId === item.cartItemId
+                        ? "Loading..."
+                        : "Edit"}
+                    </ThemedButton>
+
+                    <ThemedButton
+                      type="button"
+                      variant="link"
                       onClick={() => removeItem(item.cartItemId)}
                       className="h-auto bg-transparent p-0 text-sm font-medium text-destructive hover:bg-transparent"
                     >
@@ -190,7 +250,19 @@ export function CartSheet({ trigger }: CartSheetProps) {
             </div>
           </div>
         ) : null}
-      </ThemedSheetContent>
-    </ThemedSheet>
+        </ThemedSheetContent>
+      </ThemedSheet>
+
+      {editingProduct && editingItem ? (
+        <ProductConfigurator
+          key={editingItem.cartItemId}
+          product={editingProduct}
+          open={Boolean(editingProduct && editingItem)}
+          onOpenChange={handleEditOpenChange}
+          mode="edit"
+          cartItem={editingItem}
+        />
+      ) : null}
+    </>
   )
 }

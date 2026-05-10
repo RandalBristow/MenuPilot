@@ -36,13 +36,25 @@ function isCanceledStatus(status: string) {
   return status === "canceled" || status === "cancelled"
 }
 
+function isActiveStatus(status: string) {
+  return ["new", "accepted", "preparing", "ready"].includes(status)
+}
+
+function isTerminalStatus(status: string) {
+  return isCompletedStatus(status) || isCanceledStatus(status)
+}
+
 function getOrderCardClassName(status: string) {
+  if (status === "new") {
+    return "space-y-5 border-primary/60 bg-primary/5 p-4 shadow-sm ring-1 ring-primary/15 sm:p-5"
+  }
+
   if (isCompletedStatus(status)) {
-    return "space-y-5 border-emerald-500/40 bg-emerald-500/10 p-4 sm:p-5"
+    return "space-y-5 bg-muted/30 p-4 opacity-75 sm:p-5"
   }
 
   if (isCanceledStatus(status)) {
-    return "space-y-5 border-destructive/40 bg-destructive/5 p-4 opacity-80 sm:p-5"
+    return "space-y-5 bg-muted/30 p-4 opacity-70 sm:p-5"
   }
 
   return "space-y-5 p-4 sm:p-5"
@@ -187,12 +199,50 @@ function OrderCard({ order }: { order: StaffOrder }) {
   )
 }
 
+function OrdersSection({
+  title,
+  description,
+  orders,
+}: {
+  title: string
+  description: string
+  orders: StaffOrder[]
+}) {
+  if (orders.length === 0) return null
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">
+          {orders.length} {orders.length === 1 ? "order" : "orders"}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {orders.map((order) => (
+          <OrderCard key={order.id} order={order} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export async function StaffOrdersPage() {
   const orders = await getRecentStaffOrders()
+  const activeOrders = orders.filter((order) =>
+    isActiveStatus(order.orderStatus)
+  )
+  const terminalOrders = orders.filter((order) =>
+    isTerminalStatus(order.orderStatus)
+  )
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-8">
         <div className="space-y-2">
           <ThemedHeading>Staff Orders</ThemedHeading>
           <p className="text-sm text-muted-foreground">
@@ -208,10 +258,18 @@ export async function StaffOrdersPage() {
             </p>
           </ThemedCard>
         ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
+          <div className="space-y-8">
+            <OrdersSection
+              title="Active orders"
+              description="New and in-progress orders that need staff attention."
+              orders={activeOrders}
+            />
+
+            <OrdersSection
+              title="Completed and canceled"
+              description="Recently closed orders for quick reference."
+              orders={terminalOrders}
+            />
           </div>
         )}
       </div>

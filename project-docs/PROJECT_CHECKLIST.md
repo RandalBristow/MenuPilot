@@ -25,13 +25,6 @@ Completed:
 - [x] Multiplier-aware included topping pricing
 - [x] Pricing tests passing
 
-Next:
-1. Improve cart UI and behavior
-2. Persist cart to localStorage
-3. Build checkout shell
-4. Create orders in Supabase
-5. Build staff order dashboard
-
 ---
 
 # 0. Project Setup
@@ -896,18 +889,18 @@ For each feature:
 - [x] Create cart state management
 - [x] Add item to cart
 - [ ] Edit configured item
-- [ ] Remove item
+- [x] Remove item
 - [ ] Remove dependent add-ons when parent removed
 - [ ] Keep independent add-ons when configured
 - [ ] Update quantities
-- [ ] Recalculate totals
-- [ ] Persist cart locally
-- [ ] Clear cart after successful order
+- [x] Recalculate totals
+- [x] Persist cart locally
+- [x] Clear cart after successful order
 - [ ] Prevent checkout with unavailable items
 - [x] Show cart summary bar
 - [x] Show cart drawer/page
-- [ ] Show item configuration summary
-- [ ] Show modifier placement/multiplier summary
+- [x] Show item configuration summary
+- [x] Show modifier placement/multiplier summary
 - [ ] Show add-ons indented under parent where appropriate
 
 ---
@@ -916,7 +909,7 @@ For each feature:
 
 ## 19.1 Fulfillment
 
-- [ ] Choose pickup or delivery
+- [x] Choose pickup or delivery
 - [ ] Validate pickup enabled
 - [ ] Validate delivery enabled
 - [ ] Select requested time or ASAP
@@ -928,11 +921,11 @@ For each feature:
 
 ## 19.2 Customer info
 
-- [ ] Collect name
-- [ ] Collect phone
-- [ ] Collect email
-- [ ] Collect order notes
-- [ ] Validate required customer fields
+- [x] Collect name
+- [x] Collect phone
+- [x] Collect email
+- [x] Collect order notes
+- [x] Validate required customer fields
 
 ## 19.3 Delivery
 
@@ -946,14 +939,14 @@ For each feature:
 
 ## 19.4 Totals
 
-- [ ] Calculate subtotal
+- [x] Calculate subtotal
 - [ ] Apply specials/discounts later
 - [ ] Calculate taxes
 - [ ] Calculate fees
 - [ ] Calculate delivery fee
 - [ ] Calculate tip
 - [ ] Calculate final total
-- [ ] Show full order summary
+- [x] Show full order summary
 
 ---
 
@@ -983,21 +976,21 @@ For each feature:
 # 21. Order Creation
 
 - [ ] Create server-side order validation
-- [ ] Validate business/location
+- [x] Validate business/location
 - [ ] Validate cart items
 - [ ] Validate product availability
 - [ ] Validate variant availability
 - [ ] Validate modifier availability
 - [ ] Validate pricing server-side
 - [ ] Validate totals server-side
-- [ ] Create order record
-- [ ] Create order item records
-- [ ] Create order item modifier records
+- [x] Create order record
+- [x] Create order item records
+- [x] Create order item modifier records
 - [ ] Create delivery details if delivery
-- [ ] Generate order number
-- [ ] Store snapshots
-- [ ] Return order confirmation
-- [ ] Show confirmation page
+- [x] Generate order number
+- [x] Store snapshots
+- [x] Return order confirmation
+- [x] Show confirmation page
 
 ---
 
@@ -1012,18 +1005,18 @@ For each feature:
 
 ## 22.2 Live order queue
 
-- [ ] Show new orders
-- [ ] Show accepted orders
-- [ ] Show preparing orders
-- [ ] Show ready orders
+- [x] Show new orders
+- [x] Show accepted orders
+- [x] Show preparing orders
+- [x] Show ready orders
 - [ ] Show completed/cancelled filter
 - [ ] Subscribe to new orders with Supabase Realtime if appropriate
 - [ ] Play/trigger visual alert for new order
 - [ ] Open order detail
-- [ ] Accept order
-- [ ] Mark preparing
-- [ ] Mark ready
-- [ ] Mark completed
+- [x] Accept order
+- [x] Mark preparing
+- [x] Mark ready
+- [x] Mark completed
 - [ ] Cancel order with reason
 - [ ] Print kitchen ticket optional
 - [ ] Reprint receipt optional
@@ -1415,13 +1408,13 @@ The MVP is complete when:
 - [ ] Product variants can be created
 - [ ] Modifier groups/options can be created
 - [ ] Product configuration works for pizza
-- [ ] Customer can browse menu
-- [ ] Customer can configure item
-- [ ] Customer can add to cart
-- [ ] Customer can checkout for pickup
+- [x] Customer can browse menu
+- [x] Customer can configure item
+- [x] Customer can add to cart
+- [x] Customer can checkout for pickup
 - [ ] Customer can pay with Stripe
-- [ ] Order appears in staff dashboard
-- [ ] Staff can update order status
+- [x] Order appears in staff dashboard
+- [x] Staff can update order status
 - [ ] Order history can be searched
 - [ ] Basic public theme is applied
 - [ ] Disabled products/options do not appear

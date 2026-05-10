@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { CategorySection } from "./CategorySection";
+import { MobileCategoryNav } from "./MobileCategoryNav";
+import { MobileMenuDrawer } from "./MobileMenuDrawer";
 
 type MenuGroup = {
   id: string;
@@ -58,26 +63,56 @@ export function MenuPage({
   );
 
   const parentGroups = groups.filter((group) => !group.parent_group_id);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    parentGroups[0]?.id ?? null,
+  );
+
+  const selectedParentGroup =
+    parentGroups.find((group) => group.id === selectedCategoryId) ??
+    parentGroups[0] ??
+    null;
+
+  const selectedChildGroups = selectedParentGroup
+    ? groups.filter((group) => group.parent_group_id === selectedParentGroup.id)
+    : [];
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5">
-          <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">MenuPilot Demo</p>
-            <h1 className="text-2xl font-bold">{businessName}</h1>
+      <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:gap-4 md:py-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <MobileMenuDrawer />
+
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground md:size-10">
+              P
+            </div>
+
+            <div className="min-w-0">
+              <p className="hidden text-sm text-muted-foreground md:block">
+                MenuPilot Demo
+              </p>
+              <h1 className="truncate text-lg font-bold md:hidden">Pronto</h1>
+              <h1 className="hidden text-2xl font-bold md:block">
+                {businessName}
+              </h1>
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
             <nav className="hidden gap-4 md:flex">
               {parentGroups.map((group) => (
-                <a
+                <button
                   key={group.id}
-                  href={`#${group.slug}`}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                  type="button"
+                  onClick={() => setSelectedCategoryId(group.id)}
+                  className={
+                    selectedParentGroup?.id === group.id
+                      ? "text-sm font-medium text-foreground"
+                      : "text-sm font-medium text-muted-foreground hover:text-foreground"
+                  }
                 >
                   {group.name}
-                </a>
+                </button>
               ))}
             </nav>
 
@@ -85,54 +120,48 @@ export function MenuPage({
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto px-4 pb-4 md:hidden">
-          {parentGroups.map((group) => (
-            <a
-              key={group.id}
-              href={`#${group.slug}`}
-              className="whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium"
-            >
-              {group.name}
-            </a>
-          ))}
-        </div>
+        <MobileCategoryNav
+          categories={parentGroups}
+          selectedCategoryId={selectedParentGroup?.id ?? null}
+          onSelectCategory={setSelectedCategoryId}
+        />
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 lg:grid-cols-[220px_1fr]">
         <aside className="hidden lg:block">
-          <div className="sticky top-6 rounded-xl border bg-card p-4">
+          <div className="sticky top-28 rounded-xl border bg-card p-4">
             <p className="mb-3 text-sm font-semibold">Categories</p>
 
             <div className="space-y-2">
               {parentGroups.map((group) => (
-                <a
+                <button
                   key={group.id}
-                  href={`#${group.slug}`}
-                  className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                  type="button"
+                  onClick={() => setSelectedCategoryId(group.id)}
+                  className={
+                    selectedParentGroup?.id === group.id
+                      ? "block w-full rounded-lg bg-primary px-3 py-2 text-left text-sm font-medium text-primary-foreground"
+                      : "block w-full rounded-lg px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }
                 >
                   {group.name}
-                </a>
+                </button>
               ))}
             </div>
           </div>
         </aside>
 
         <div className="space-y-14">
-          {parentGroups.map((parentGroup) => {
-            const childGroups = groups.filter(
-              (group) => group.parent_group_id === parentGroup.id,
-            );
-
-            return (
-              <CategorySection
-                key={parentGroup.id}
-                parentGroup={parentGroup}
-                childGroups={childGroups}
-                onCustomize={onCustomize}
-                loadingProductId={loadingProductId}
-              />
-            );
-          })}
+          {selectedParentGroup ? (
+            <CategorySection
+              parentGroup={selectedParentGroup}
+              childGroups={selectedChildGroups}
+              onCustomize={onCustomize}
+              loadingProductId={loadingProductId}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">No categories found.</p>
+          )}
         </div>
       </div>
     </main>

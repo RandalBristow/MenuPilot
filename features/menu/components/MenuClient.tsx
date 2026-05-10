@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { MenuPage } from "./MenuPage"
-import { PizzaBuilder } from "@/features/product-configurator/components/PizzaBuilder"
+import {
+  ProductConfigurator,
+  type ProductConfig,
+} from "@/features/product-configurator/components/ProductConfigurator"
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
 import { CartHeaderButton } from "@/features/cart/components/CartHeaderButton"
 
 type MenuPageProps = React.ComponentProps<typeof MenuPage>
-type ProductConfig = React.ComponentProps<typeof PizzaBuilder>["product"]
 
 type MenuClientProps = {
   businessName: MenuPageProps["businessName"]
@@ -56,10 +58,11 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
       />
 
       {productConfig ? (
-        <PizzaBuilder
+        <ProductConfigurator
           product={productConfig}
           open={open}
           onOpenChange={setOpen}
+          mode="create"
         />
       ) : null}
     </>

@@ -15,7 +15,7 @@ export function CartHeaderButton() {
           type="button"
           variant="outline"
           size="icon"
-          className="relative bg-background text-foreground hover:bg-muted"
+          className="relative size-9 bg-background text-foreground hover:bg-muted md:size-8"
           aria-label={`Open cart, ${itemCount} ${
             itemCount === 1 ? "item" : "items"
           }`}
