@@ -1,5 +1,5 @@
-import { AdminProductsPage } from "@/features/admin-products/components/AdminProductsPage"
+import { ProductManagementHub } from "@/features/admin-products/components/ProductManagementHub"
 
 export default function AdminProductsRoutePage() {
-  return <AdminProductsPage />
+  return <ProductManagementHub />
 }
