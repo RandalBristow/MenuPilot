@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { calculateProductTotal } from "@/lib/pricing/calculate-product-total";
 import { useCart } from "@/features/cart/context/CartProvider";
 import type { CartItem, CartModifier } from "@/features/cart/types/cart";
+import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety";
+import { filterEnabledModifierOptions } from "@/features/product-configurator/utils/filter-enabled-modifier-options";
+import { filterEnabledProductVariants } from "@/features/product-configurator/utils/filter-enabled-product-variants";
+import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +24,7 @@ type Variant = {
   name: string;
   base_price: number;
   is_default: boolean;
+  is_enabled: boolean;
   sort_order: number;
 };
 
@@ -72,6 +77,8 @@ export type ProductConfig = {
   name: string;
   description: string | null;
   builder_template: string | null;
+  has_variants: boolean;
+  is_enabled: boolean;
   base_price: number | null;
   product_variants: Variant[];
   product_modifier_groups: ProductModifierGroup[];
@@ -115,20 +122,6 @@ function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
   );
 }
 
-function getEnabledModifierOptions(options: ModifierOption[]) {
-  return options.filter((option) => {
-    if (!option.is_enabled) return false;
-    if (
-      option.modifier_option_groups &&
-      !option.modifier_option_groups.is_enabled
-    ) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
 function hasEnabledModifierGroup(
   item: ProductModifierGroup,
 ): item is ProductModifierGroup & { modifier_groups: ModifierGroup } {
@@ -143,15 +136,15 @@ export function PizzaBuilder({
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
     () =>
-      [...(product.product_variants ?? [])].sort(
-        (a, b) => a.sort_order - b.sort_order,
-      ),
+      filterEnabledProductVariants(product.product_variants),
     [product.product_variants],
   );
 
-  const defaultVariant =
-    sortedVariants.find((variant) => variant.is_default) ?? sortedVariants[0];
-  const initialVariantId = editingCartItem?.variantId ?? defaultVariant?.id ?? "";
+  const isVariantUnavailable = product.has_variants && sortedVariants.length === 0;
+  const initialVariantId = getSafeInitialVariantId(
+    sortedVariants,
+    editingCartItem?.variantId,
+  );
 
   const [variantId, setVariantId] = useState(initialVariantId);
   const [selectedModifiers, setSelectedModifiers] = useState<
@@ -183,7 +176,7 @@ export function PizzaBuilder({
               : 0,
             is_swappable: includedRule?.is_swappable ?? false,
             charge_for_extra: includedRule?.charge_for_extra ?? true,
-            modifier_options: getEnabledModifierOptions(
+            modifier_options: filterEnabledModifierOptions(
               group.modifier_options ?? [],
             ),
           };
@@ -296,24 +289,11 @@ export function PizzaBuilder({
     });
   }
 
-  function getSelectedOptionsForGroup(group: ModifierGroup) {
-    return Object.values(selectedModifiers).filter((selected) =>
-      group.modifier_options.some((option) => option.id === selected.optionId),
-    );
-  }
-
   function getGroupValidationMessage(group: ModifierGroup) {
-    const selectedCount = getSelectedOptionsForGroup(group).length;
-
-    if (group.is_required && selectedCount < group.min_required) {
-      return `Please choose at least ${group.min_required}.`;
-    }
-
-    if (group.max_allowed && selectedCount > group.max_allowed) {
-      return `Please choose no more than ${group.max_allowed}.`;
-    }
-
-    return null;
+    return getValidationMessage(
+      group,
+      Object.values(selectedModifiers).map((selected) => selected.optionId),
+    );
   }
 
   const validationMessages = modifierGroups
@@ -324,7 +304,7 @@ export function PizzaBuilder({
     }))
     .filter((item) => item.message);
 
-  const canAddToCart = validationMessages.length === 0;
+  const canAddToCart = validationMessages.length === 0 && !isVariantUnavailable;
 
   function handleCartSubmit() {
     if (!canAddToCart) return;
@@ -388,25 +368,31 @@ export function PizzaBuilder({
           <ThemedCard className="p-4">
             <h3 className="mb-3 text-lg font-semibold">Choose Your Size</h3>
 
-            <RadioGroup value={variantId} onValueChange={setVariantId}>
-              <div className="space-y-2">
-                {sortedVariants.map((variant) => (
-                  <Label
-                    key={variant.id}
-                    className="flex min-h-12 cursor-pointer items-center justify-between rounded-lg border p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value={variant.id} />
-                      <span className="font-medium">{variant.name}</span>
-                    </div>
+            {isVariantUnavailable ? (
+              <p className="text-sm text-muted-foreground">
+                This item is not currently available.
+              </p>
+            ) : (
+              <RadioGroup value={variantId} onValueChange={setVariantId}>
+                <div className="space-y-2">
+                  {sortedVariants.map((variant) => (
+                    <Label
+                      key={variant.id}
+                      className="flex min-h-12 cursor-pointer items-center justify-between rounded-lg border p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value={variant.id} />
+                        <span className="font-medium">{variant.name}</span>
+                      </div>
 
-                    <span className="text-sm font-semibold">
-                      ${Number(variant.base_price).toFixed(2)}
-                    </span>
-                  </Label>
-                ))}
-              </div>
-            </RadioGroup>
+                      <span className="text-sm font-semibold">
+                        ${Number(variant.base_price).toFixed(2)}
+                      </span>
+                    </Label>
+                  ))}
+                </div>
+              </RadioGroup>
+            )}
           </ThemedCard>
 
           {modifierGroups.map((group) => (
@@ -559,6 +545,12 @@ export function PizzaBuilder({
                   </li>
                 ))}
               </ul>
+            </div>
+          ) : null}
+
+          {isVariantUnavailable ? (
+            <div className="mb-3 rounded-lg border p-3 text-sm text-muted-foreground">
+              This item has no available variants right now.
             </div>
           ) : null}
 

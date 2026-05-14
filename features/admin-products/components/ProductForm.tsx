@@ -1,6 +1,13 @@
+import Link from "next/link"
+import { Check, X } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
-import { ThemedCard } from "@/components/themed/ThemedCard"
-import { ThemedHeading } from "@/components/themed/ThemedHeading"
+import {
+  ThemedSheet,
+  ThemedSheetContent,
+  ThemedSheetDescription,
+  ThemedSheetHeader,
+  ThemedSheetTitle,
+} from "@/components/themed/ThemedSheet"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createProduct } from "@/features/admin-products/actions/create-product"
 import { updateProduct } from "@/features/admin-products/actions/update-product"
@@ -8,17 +15,24 @@ import {
   ProductVariantFields,
   type ProductFormVariant,
 } from "@/features/admin-products/components/ProductVariantFields"
+import {
+  PRODUCT_ADMIN_PANEL_BODY_CLASS,
+  PRODUCT_ADMIN_PANEL_FOOTER_CLASS,
+  PRODUCT_ADMIN_PANEL_HEADER_CLASS,
+  PRODUCT_ADMIN_PANEL_PAGE_CLASS,
+  PRODUCT_ADMIN_SHEET_PANEL_CLASS,
+} from "@/features/admin-products/components/product-admin-panel-styles"
 
 const BUSINESS_SLUG = "pronto-demo"
 
-type MenuGroup = {
+export type MenuGroup = {
   id: string
   name: string
   parent_group_id: string | null
   sort_order: number
 }
 
-type ModifierGroup = {
+export type ModifierGroup = {
   id: string
   name: string
   selection_type: string
@@ -26,7 +40,7 @@ type ModifierGroup = {
   sort_order: number
 }
 
-type ExistingProduct = {
+export type ExistingProduct = {
   id: string
   name: string
   description: string | null
@@ -38,7 +52,7 @@ type ExistingProduct = {
   variants: ProductFormVariant[]
 }
 
-type ProductFormData = {
+export type ProductFormData = {
   businessName: string
   menuGroups: MenuGroup[]
   modifierGroups: ModifierGroup[]
@@ -61,7 +75,7 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
   })
 }
 
-function getMenuGroupLabel(group: MenuGroup, groups: MenuGroup[]) {
+export function getMenuGroupLabel(group: MenuGroup, groups: MenuGroup[]) {
   const parent = groups.find((item) => item.id === group.parent_group_id)
 
   if (!parent) {
@@ -165,7 +179,9 @@ async function getExistingProduct(
   return mapExistingProduct(data as RawExistingProduct)
 }
 
-async function getProductFormData(productId?: string): Promise<ProductFormData> {
+export async function getProductFormData(
+  productId?: string
+): Promise<ProductFormData> {
   const { data: business, error: businessError } = await supabaseAdmin
     .from("businesses")
     .select("id, name")
@@ -220,26 +236,50 @@ export async function ProductForm({ productId }: ProductFormProps) {
   const variants = product?.variants ?? []
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="space-y-2">
-          <ThemedHeading>
+    <main className={PRODUCT_ADMIN_PANEL_PAGE_CLASS}>
+      <ThemedSheet open>
+        <ThemedSheetContent
+          side="bottom"
+          showCloseButton={false}
+          className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
+        >
+          <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
+          <ThemedButton
+            asChild
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close"
+            className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
+          >
+            <Link href="/admin/products">
+              <X aria-hidden="true" />
+              <span className="sr-only">Close</span>
+            </Link>
+          </ThemedButton>
+          <ThemedSheetTitle>
             {isEditMode ? "Edit Product" : "New Product"}
-          </ThemedHeading>
-          <p className="text-sm text-muted-foreground">
+          </ThemedSheetTitle>
+          <ThemedSheetDescription>
             {isEditMode
               ? `Update product details for ${businessName}.`
               : `Create a basic product for ${businessName}.`}
-          </p>
-        </div>
+          </ThemedSheetDescription>
+        </ThemedSheetHeader>
 
-        <ThemedCard className="p-4 sm:p-6">
-          <form
-            action={isEditMode ? updateProduct : createProduct}
-            className="space-y-6"
-          >
+        <form
+          action={isEditMode ? updateProduct : createProduct}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className={PRODUCT_ADMIN_PANEL_BODY_CLASS}>
             {product ? (
-              <input type="hidden" name="productId" value={product.id} />
+              <>
+                <input type="hidden" name="productId" value={product.id} />
+                <input
+                  type="hidden"
+                  name="isEnabled"
+                  value={String(product.is_enabled)}
+                />
+              </>
             ) : null}
 
             <div className="grid gap-4">
@@ -249,7 +289,7 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   name="name"
                   required
                   defaultValue={product?.name ?? ""}
-                  className="h-10 rounded-md border bg-background px-3 text-sm"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 />
               </label>
 
@@ -259,7 +299,7 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   name="description"
                   rows={3}
                   defaultValue={product?.description ?? ""}
-                  className="rounded-md border bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 />
               </label>
 
@@ -272,7 +312,7 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   step="0.01"
                   required
                   defaultValue={product?.base_price ?? ""}
-                  className="h-10 rounded-md border bg-background px-3 text-sm"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 />
               </label>
 
@@ -281,7 +321,7 @@ export async function ProductForm({ productId }: ProductFormProps) {
                 <select
                   name="builderTemplate"
                   defaultValue={product?.builder_template ?? "standard"}
-                  className="h-10 rounded-md border bg-background px-3 text-sm"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
                   <option value="standard">Standard</option>
                   <option value="pizza">Pizza</option>
@@ -296,7 +336,7 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   name="menuGroupId"
                   required
                   defaultValue={product?.menuGroupId ?? ""}
-                  className="h-10 rounded-md border bg-background px-3 text-sm"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
                   <option value="">Select a menu group</option>
                   {menuGroups.map((group) => (
@@ -306,20 +346,6 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   ))}
                 </select>
               </label>
-
-              {isEditMode ? (
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Status</span>
-                  <select
-                    name="isEnabled"
-                    defaultValue={product.is_enabled ? "true" : "false"}
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="true">Enabled</option>
-                    <option value="false">Disabled</option>
-                  </select>
-                </label>
-              ) : null}
             </div>
 
             <ProductVariantFields variants={variants} />
@@ -365,14 +391,36 @@ export async function ProductForm({ productId }: ProductFormProps) {
               )}
             </section>
 
-            <div className="flex justify-end">
-              <ThemedButton type="submit">
-                {isEditMode ? "Save Product" : "Create Product"}
-              </ThemedButton>
-            </div>
-          </form>
-        </ThemedCard>
-      </div>
+          </div>
+
+          <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
+            <ThemedButton
+              asChild
+              variant="outline"
+              size="icon"
+              aria-label="Close"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+            >
+              <Link href="/admin/products">
+                <X aria-hidden="true" />
+                <span className="sr-only">Close</span>
+              </Link>
+            </ThemedButton>
+            <ThemedButton
+              type="submit"
+              size="icon"
+              aria-label={isEditMode ? "Save product" : "Create product"}
+              className="size-10"
+            >
+              <Check aria-hidden="true" />
+              <span className="sr-only">
+                {isEditMode ? "Save product" : "Create product"}
+              </span>
+            </ThemedButton>
+          </div>
+        </form>
+      </ThemedSheetContent>
+      </ThemedSheet>
     </main>
   )
 }

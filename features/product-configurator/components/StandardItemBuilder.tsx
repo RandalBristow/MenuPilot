@@ -6,6 +6,10 @@ import { ThemedCard } from "@/components/themed/ThemedCard"
 import { calculateProductTotal } from "@/lib/pricing/calculate-product-total"
 import { useCart } from "@/features/cart/context/CartProvider"
 import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety"
+import { filterEnabledModifierOptions } from "@/features/product-configurator/utils/filter-enabled-modifier-options"
+import { filterEnabledProductVariants } from "@/features/product-configurator/utils/filter-enabled-product-variants"
+import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation"
 import {
   Dialog,
   DialogContent,
@@ -62,22 +66,6 @@ function getSelectedOptionsForGroup(
   )
 }
 
-function getEnabledModifierOptions(
-  options: ModifierGroup["modifier_options"]
-) {
-  return options.filter((option) => {
-    if (!option.is_enabled) return false
-    if (
-      option.modifier_option_groups &&
-      !option.modifier_option_groups.is_enabled
-    ) {
-      return false
-    }
-
-    return true
-  })
-}
-
 function hasEnabledModifierGroup(
   item: ProductConfig["product_modifier_groups"][number]
 ): item is ProductConfig["product_modifier_groups"][number] & {
@@ -95,17 +83,14 @@ export function StandardItemBuilder({
 }: StandardItemBuilderProps) {
   const sortedVariants = useMemo(
     () =>
-      [...(product.product_variants ?? [])].sort(
-        (first, second) => first.sort_order - second.sort_order
-      ),
+      filterEnabledProductVariants(product.product_variants),
     [product.product_variants]
   )
 
-  const defaultVariant =
-    sortedVariants.find((variant) => variant.is_default) ?? sortedVariants[0]
+  const isVariantUnavailable = product.has_variants && sortedVariants.length === 0
 
   const [variantId, setVariantId] = useState(
-    cartItem?.variantId ?? defaultVariant?.id ?? ""
+    getSafeInitialVariantId(sortedVariants, cartItem?.variantId)
   )
   const [quantity, setQuantity] = useState(getInitialQuantity(cartItem))
   const [selectedModifiers, setSelectedModifiers] = useState<
@@ -136,7 +121,7 @@ export function StandardItemBuilder({
               : 0,
             is_swappable: includedRule?.is_swappable ?? false,
             charge_for_extra: includedRule?.charge_for_extra ?? true,
-            modifier_options: getEnabledModifierOptions(
+            modifier_options: filterEnabledModifierOptions(
               group.modifier_options ?? []
             ),
           }
@@ -211,20 +196,10 @@ export function StandardItemBuilder({
   }
 
   function getGroupValidationMessage(group: ModifierGroup) {
-    const selectedCount = getSelectedOptionsForGroup(
+    return getValidationMessage(
       group,
-      selectedModifiers
-    ).length
-
-    if (group.is_required && selectedCount < group.min_required) {
-      return `Please choose at least ${group.min_required}.`
-    }
-
-    if (group.max_allowed && selectedCount > group.max_allowed) {
-      return `Please choose no more than ${group.max_allowed}.`
-    }
-
-    return null
+      Object.values(selectedModifiers).map((selected) => selected.optionId)
+    )
   }
 
   const validationMessages = modifierGroups
@@ -235,7 +210,7 @@ export function StandardItemBuilder({
     }))
     .filter((item) => item.message)
 
-  const canSubmit = validationMessages.length === 0
+  const canSubmit = validationMessages.length === 0 && !isVariantUnavailable
 
   function getCartModifiers() {
     return Object.values(selectedModifiers)
@@ -324,6 +299,13 @@ export function StandardItemBuilder({
                   </button>
                 ))}
               </div>
+            </ThemedCard>
+          ) : product.has_variants ? (
+            <ThemedCard className="p-4">
+              <h3 className="mb-2 text-lg font-semibold">Choose an option</h3>
+              <p className="text-sm text-muted-foreground">
+                This item is not currently available.
+              </p>
             </ThemedCard>
           ) : null}
 
@@ -452,6 +434,12 @@ export function StandardItemBuilder({
                   </li>
                 ))}
               </ul>
+            </div>
+          ) : null}
+
+          {isVariantUnavailable ? (
+            <div className="mb-3 rounded-lg border p-3 text-sm text-muted-foreground">
+              This item has no available variants right now.
             </div>
           ) : null}
 

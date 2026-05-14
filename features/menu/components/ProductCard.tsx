@@ -32,6 +32,10 @@ type ProductCardProps = {
 };
 
 function getStartingPrice(product: Product) {
+  if (product.has_variants && !product.product_variants?.length) {
+    return null;
+  }
+
   if (product.has_variants && product.product_variants?.length) {
     const sorted = [...product.product_variants].sort(
       (a, b) => a.base_price - b.base_price,
@@ -49,6 +53,14 @@ export function ProductCard({
   isLoading = false,
 }: ProductCardProps) {
   const startingPrice = getStartingPrice(product);
+  const canCustomize =
+    !product.has_variants || (product.product_variants?.length ?? 0) > 0;
+
+  function handleCustomize() {
+    if (!canCustomize) return;
+
+    onCustomize?.(product.id);
+  }
 
   return (
     <ThemedCard className="flex h-full flex-col justify-between p-5">
@@ -70,17 +82,19 @@ export function ProductCard({
 
       <div className="mt-5 flex items-center justify-between gap-4">
         <p className="font-semibold">
-          {startingPrice !== null
+          {!canCustomize
+            ? "Unavailable"
+            : startingPrice !== null
             ? `Starting at $${startingPrice.toFixed(2)}`
             : "Price varies"}
         </p>
 
         <ThemedButton
           size="sm"
-          disabled={isLoading}
-          onClick={() => onCustomize?.(product.id)}
+          disabled={isLoading || !canCustomize}
+          onClick={handleCustomize}
         >
-          {isLoading ? "Loading..." : "Customize"}
+          {!canCustomize ? "Unavailable" : isLoading ? "Loading..." : "Customize"}
         </ThemedButton>
       </div>
     </ThemedCard>

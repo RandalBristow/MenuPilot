@@ -2,7 +2,9 @@
 
 import { useRef } from "react"
 import { useRouter } from "next/navigation"
+import { Check, X } from "lucide-react"
 import { createModifierOption } from "@/features/admin-modifiers/actions/create-modifier-option"
+import { setModifierOptionEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-enabled"
 import { updateModifierOption } from "@/features/admin-modifiers/actions/update-modifier-option"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
@@ -12,6 +14,13 @@ import {
   ThemedSheetHeader,
   ThemedSheetTitle,
 } from "@/components/themed/ThemedSheet"
+import {
+  MODIFIER_FORM_BODY_CLASS,
+  MODIFIER_FORM_CLASS,
+  MODIFIER_FORM_FOOTER_CLASS,
+  MODIFIER_FORM_SHEET_CONTENT_CLASS,
+} from "@/features/admin-modifiers/components/modifier-form-panel-styles"
+import { ModifierStatusToggleControl } from "@/features/admin-modifiers/components/ModifierStatusToggleControl"
 import type {
   RawModifierOption,
   RawModifierOptionGroup,
@@ -61,10 +70,26 @@ export function ModifierOptionFormDialog({
     router.refresh()
   }
 
+  async function handleEnabledChange() {
+    if (!option) return
+
+    const formData = new FormData()
+    formData.set("optionId", option.id)
+    formData.set("modifierGroupId", modifierGroupId)
+    formData.set("isEnabled", String(!option.is_enabled))
+
+    await setModifierOptionEnabled(formData)
+    onOpenChange(false)
+    router.refresh()
+  }
+
   return (
     <ThemedSheet open={open} onOpenChange={onOpenChange}>
-      <ThemedSheetContent side="right" className="w-full sm:max-w-xl">
-        <ThemedSheetHeader>
+      <ThemedSheetContent
+        side="bottom"
+        className={MODIFIER_FORM_SHEET_CONTENT_CLASS}
+      >
+        <ThemedSheetHeader className="shrink-0">
           <ThemedSheetTitle>{title}</ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
@@ -73,70 +98,92 @@ export function ModifierOptionFormDialog({
           key={`${mode}-${option?.id ?? "new"}`}
           ref={formRef}
           action={handleSubmit}
-          className="mt-6 space-y-4"
+          className={MODIFIER_FORM_CLASS}
         >
-          <input
-            type="hidden"
-            name="modifierGroupId"
-            value={modifierGroupId}
-          />
-          {option ? (
-            <input type="hidden" name="optionId" value={option.id} />
-          ) : null}
-
-          <label className="space-y-1.5 text-sm">
-            <span className="font-medium">Option name</span>
+          <div className={MODIFIER_FORM_BODY_CLASS}>
             <input
-              name="name"
-              defaultValue={option?.name ?? ""}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              placeholder="Example: Extra Cheese"
-              required
+              type="hidden"
+              name="modifierGroupId"
+              value={modifierGroupId}
             />
-          </label>
+            {option ? (
+              <input type="hidden" name="optionId" value={option.id} />
+            ) : null}
 
-          <label className="space-y-1.5 text-sm">
-            <span className="font-medium">Price</span>
-            <input
-              name="priceDelta"
-              type="number"
-              step="0.01"
-              defaultValue={option ? String(option.price_delta) : "0.00"}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              required
-            />
-          </label>
+            {!isCreateMode && option ? (
+              <ModifierStatusToggleControl
+                enabled={option.is_enabled}
+                name={option.name}
+                entityLabel="modifier option"
+                onToggle={() => void handleEnabledChange()}
+              />
+            ) : null}
 
-          <label className="space-y-1.5 text-sm">
-            <span className="font-medium">Subgroup</span>
-            <select
-              name="modifierOptionGroupId"
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              defaultValue={
-                option?.modifier_option_group_id ??
-                initialOptionGroupId ??
-                "none"
-              }
-            >
-              <option value="none">None</option>
-              {optionGroups.map((optionGroup) => (
-                <option key={optionGroup.id} value={optionGroup.id}>
-                  {optionGroup.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium">Option name</span>
+              <input
+                name="name"
+                defaultValue={option?.name ?? ""}
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                placeholder="Example: Extra Cheese"
+                required
+              />
+            </label>
 
-          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium">Price</span>
+              <input
+                name="priceDelta"
+                type="number"
+                step="0.01"
+                defaultValue={option ? String(option.price_delta) : "0.00"}
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                required
+              />
+            </label>
+
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium">Subgroup</span>
+              <select
+                name="modifierOptionGroupId"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                defaultValue={
+                  option?.modifier_option_group_id ??
+                  initialOptionGroupId ??
+                  "none"
+                }
+              >
+                <option value="none">None</option>
+                {optionGroups.map((optionGroup) => (
+                  <option key={optionGroup.id} value={optionGroup.id}>
+                    {optionGroup.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className={MODIFIER_FORM_FOOTER_CLASS}>
             <ThemedButton
               type="button"
               variant="outline"
-              className="bg-background text-foreground hover:bg-muted"
+              size="icon"
+              aria-label="Close"
+              className="size-10 bg-background text-foreground hover:bg-muted"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              <X aria-hidden="true" />
+              <span className="sr-only">Close</span>
             </ThemedButton>
-            <ThemedButton type="submit">{submitLabel}</ThemedButton>
+            <ThemedButton
+              type="submit"
+              size="icon"
+              aria-label={submitLabel}
+              className="size-10"
+            >
+              <Check aria-hidden="true" />
+              <span className="sr-only">{submitLabel}</span>
+            </ThemedButton>
           </div>
         </form>
       </ThemedSheetContent>

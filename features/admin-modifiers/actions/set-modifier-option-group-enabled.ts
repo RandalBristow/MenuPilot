@@ -58,4 +58,7 @@ export async function setModifierOptionGroupEnabled(formData: FormData) {
   }
 
   revalidatePath("/admin/modifiers")
+  revalidatePath("/admin/modifiers/subgroups")
+  revalidatePath("/admin/modifiers/options")
+  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
 }

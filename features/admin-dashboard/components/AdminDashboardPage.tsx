@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedHeading } from "@/components/themed/ThemedHeading"
 
@@ -33,30 +32,33 @@ const adminLinks = [
 
 export function AdminDashboardPage() {
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="space-y-2">
+    <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
+        <div className="shrink-0 space-y-2 border-b pb-3">
           <ThemedHeading>MenuPilot Admin</ThemedHeading>
           <p className="text-sm text-muted-foreground">
             Quick links for managing the demo menu and order flow.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {adminLinks.map((item) => (
-            <ThemedCard key={item.href} className="flex flex-col p-4">
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold">{item.title}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {item.description}
-                </p>
-              </div>
-
-              <ThemedButton asChild className="mt-5 w-full">
-                <Link href={item.href}>Open</Link>
-              </ThemedButton>
-            </ThemedCard>
-          ))}
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {adminLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={`Open ${item.title}`}
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <ThemedCard className="min-h-full gap-1 p-4 transition-colors hover:bg-muted/40">
+                  <h2 className="m-0 text-lg font-semibold">{item.title}</h2>
+                  <p className="m-0 mt-1 text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </ThemedCard>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </main>

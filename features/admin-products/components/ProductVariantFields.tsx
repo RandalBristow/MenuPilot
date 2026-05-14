@@ -71,49 +71,51 @@ export function ProductVariantFields({ variants }: ProductVariantFieldsProps) {
                 value={variant.id ?? ""}
               />
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3">
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Variant name</span>
                   <input
                     name="variantNames"
                     required
                     defaultValue={variant.name}
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   />
                 </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Base price</span>
-                  <input
-                    name="variantBasePrices"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                    defaultValue={variant.base_price}
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
-                  />
-                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="grid gap-2">
+                    <span className="text-sm font-medium">Base price</span>
+                    <input
+                      name="variantBasePrices"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                      defaultValue={variant.base_price}
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    />
+                  </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Sort order</span>
-                  <input
-                    name="variantSortOrders"
-                    type="number"
-                    min="0"
-                    step="1"
-                    required
-                    defaultValue={variant.sort_order}
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
-                  />
-                </label>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-medium">Sort order</span>
+                    <input
+                      name="variantSortOrders"
+                      type="number"
+                      min="0"
+                      step="1"
+                      required
+                      defaultValue={variant.sort_order}
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    />
+                  </label>
+                </div>
 
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Status</span>
                   <select
                     name="variantIsEnabled"
                     defaultValue={variant.is_enabled ? "true" : "false"}
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   >
                     <option value="true">Enabled</option>
                     <option value="false">Disabled</option>

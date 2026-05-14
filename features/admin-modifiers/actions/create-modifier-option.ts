@@ -119,4 +119,6 @@ export async function createModifierOption(formData: FormData) {
   }
 
   revalidatePath("/admin/modifiers")
+  revalidatePath("/admin/modifiers/options")
+  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
 }

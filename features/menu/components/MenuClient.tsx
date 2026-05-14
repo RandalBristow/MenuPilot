@@ -16,6 +16,12 @@ type MenuClientProps = {
   menu: MenuPageProps["menu"]
 }
 
+function canCustomizeProduct(product: ProductConfig) {
+  if (!product.has_variants) return true
+
+  return product.product_variants.some((variant) => variant.is_enabled)
+}
+
 export function MenuClient({ businessName, menu }: MenuClientProps) {
   const [open, setOpen] = useState(false)
   const [productConfig, setProductConfig] = useState<ProductConfig | null>(null)
@@ -30,8 +36,16 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
 
     try {
       const config = await getProductConfig(productId)
+      const product = config as unknown as ProductConfig
 
-      setProductConfig(config as unknown as ProductConfig)
+      if (!canCustomizeProduct(product)) {
+        setProductConfig(null)
+        setOpen(false)
+        setLoadError("This item is not currently available.")
+        return
+      }
+
+      setProductConfig(product)
       setOpen(true)
     } catch (error) {
       console.error("Failed to load product config:", error)

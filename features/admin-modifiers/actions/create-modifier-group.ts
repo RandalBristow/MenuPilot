@@ -121,4 +121,7 @@ export async function createModifierGroup(formData: FormData) {
   }
 
   revalidatePath("/admin/modifiers")
+  revalidatePath("/admin/modifiers/groups")
+  revalidatePath("/admin/modifiers/subgroups")
+  revalidatePath("/admin/modifiers/options")
 }

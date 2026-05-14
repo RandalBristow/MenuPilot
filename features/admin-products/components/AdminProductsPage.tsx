@@ -1,4 +1,6 @@
+import Link from "next/link"
 import { ThemedHeading } from "@/components/themed/ThemedHeading"
+import { ThemedButton } from "@/components/themed/ThemedButton"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
   AdminProductsBrowser,
@@ -169,17 +171,37 @@ export async function AdminProductsPage() {
   const { businessName, menuGroups } = await getAdminProductsPageData()
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="space-y-2">
+    <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-col space-y-4">
+        <div className="shrink-0 space-y-3">
           <ThemedHeading>Product Management</ThemedHeading>
           <p className="text-sm text-muted-foreground">
             Products, menu categories, and modifier attachments for{" "}
             {businessName}.
           </p>
+          <div className="no-scrollbar flex gap-2 overflow-x-auto">
+            <ThemedButton
+              asChild
+              size="sm"
+              className="shrink-0 rounded-full border bg-background text-foreground hover:bg-muted"
+            >
+              <Link href="/admin/products/variants">Product Variants</Link>
+            </ThemedButton>
+            <ThemedButton
+              asChild
+              size="sm"
+              className="shrink-0 rounded-full border bg-background text-foreground hover:bg-muted"
+            >
+              <Link href="/admin/products/modifier-groups">
+                Product Modifier Groups
+              </Link>
+            </ThemedButton>
+          </div>
         </div>
 
-        <AdminProductsBrowser menuGroups={menuGroups} />
+        <div className="min-h-0 flex-1">
+          <AdminProductsBrowser menuGroups={menuGroups} />
+        </div>
       </div>
     </main>
   )

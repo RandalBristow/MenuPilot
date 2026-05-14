@@ -9,12 +9,14 @@ export async function getProductConfig(productId: string) {
       description,
       builder_template,
       has_variants,
+      is_enabled,
       base_price,
       product_variants (
         id,
         name,
         base_price,
         is_default,
+        is_enabled,
         sort_order
       ),
       product_modifier_groups (
@@ -60,6 +62,7 @@ export async function getProductConfig(productId: string) {
       )
     `)
     .eq("id", productId)
+    .eq("is_enabled", true)
     .single()
 
   if (error) {

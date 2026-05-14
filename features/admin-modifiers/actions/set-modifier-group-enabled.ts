@@ -53,4 +53,6 @@ export async function setModifierGroupEnabled(formData: FormData) {
   }
 
   revalidatePath("/admin/modifiers")
+  revalidatePath("/admin/modifiers/groups")
+  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
 }

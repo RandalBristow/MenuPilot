@@ -22,6 +22,25 @@ function parseEnabled(value: FormDataEntryValue | null) {
   return value === "true"
 }
 
+function parseRedirectTo(value: FormDataEntryValue | null, productId: string) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "/admin/products"
+  }
+
+  const redirectTo = value.trim()
+
+  if (
+    redirectTo === "/admin/products" ||
+    redirectTo === `/admin/products/${productId}` ||
+    redirectTo === `/admin/products/variants?productId=${productId}` ||
+    redirectTo === `/admin/products/modifier-groups?productId=${productId}`
+  ) {
+    return redirectTo
+  }
+
+  return "/admin/products"
+}
+
 async function getBusinessId() {
   const { data: business, error } = await supabaseAdmin
     .from("businesses")
@@ -89,6 +108,7 @@ export async function updateProduct(formData: FormData) {
   const { product: productPayload, menuGroupId, modifierGroupIds, variants } =
     buildProductPayload(formData)
   const isEnabled = parseEnabled(formData.get("isEnabled"))
+  const redirectTo = parseRedirectTo(formData.get("redirectTo"), productId)
 
   await assertProduct(businessId, productId)
   await assertMenuGroup(businessId, menuGroupId)
@@ -213,5 +233,5 @@ export async function updateProduct(formData: FormData) {
   revalidatePath("/admin/products")
   revalidatePath(`/admin/products/${productId}`)
   revalidatePath("/menu")
-  redirect("/admin/products")
+  redirect(redirectTo)
 }

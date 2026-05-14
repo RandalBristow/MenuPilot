@@ -1,4 +1,4 @@
-import { ProductForm } from "@/features/admin-products/components/ProductForm"
+import { ProductDetailPage } from "@/features/admin-products/components/ProductDetailPage"
 
 type AdminEditProductRoutePageProps = {
   params: Promise<{
@@ -11,5 +11,5 @@ export default async function AdminEditProductRoutePage({
 }: AdminEditProductRoutePageProps) {
   const { productId } = await params
 
-  return <ProductForm productId={productId} />
+  return <ProductDetailPage productId={productId} />
 }

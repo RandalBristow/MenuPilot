@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import { Plus } from "lucide-react"
 import { useMemo, useState } from "react"
+import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
+import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
-import { setProductEnabled } from "@/features/admin-products/actions/set-product-enabled"
 
 export type AdminProductVariant = {
   id: string
@@ -49,28 +51,6 @@ type ProductCategoryBrowserProps = {
 
 function sortBySortOrder<T extends { sort_order: number }>(items: T[]) {
   return [...items].sort((first, second) => first.sort_order - second.sort_order)
-}
-
-function getStartingPrice(product: AdminProduct) {
-  if (product.has_variants && product.product_variants.length > 0) {
-    return Math.min(
-      ...product.product_variants.map((variant) => Number(variant.base_price))
-    )
-  }
-
-  return product.base_price === null ? null : Number(product.base_price)
-}
-
-function formatPrice(product: AdminProduct) {
-  const price = getStartingPrice(product)
-
-  if (price === null) {
-    return "Price varies"
-  }
-
-  return product.has_variants
-    ? `Starting at $${price.toFixed(2)}`
-    : `$${price.toFixed(2)}`
 }
 
 function getProductGroups(group: AdminMenuGroup) {
@@ -127,21 +107,13 @@ export function AdminProductsBrowser({
             productGroups: directProductGroups,
           },
         ]
-      : []),
+    : []),
   ]
 
-  async function handleEnabledChange(product: AdminProduct) {
-    const formData = new FormData()
-    formData.set("productId", product.id)
-    formData.set("isEnabled", String(!product.is_enabled))
-
-    await setProductEnabled(formData)
-  }
-
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b pb-1.5">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto">
           {parentGroups.map((group) => {
             const isSelected = group.id === selectedParentGroup?.id
 
@@ -162,117 +134,91 @@ export function AdminProductsBrowser({
             )
           })}
         </div>
-
-        <ThemedButton asChild className="sm:self-start">
-          <Link href="/admin/products/new">New Product</Link>
-        </ThemedButton>
       </div>
 
-      {selectedParentGroup ? (
-        <div className="space-y-8">
-          <div>
-            <h2 className="text-2xl font-semibold">
-              {selectedParentGroup.name}
-            </h2>
-            {selectedParentGroup.description ? (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {selectedParentGroup.description}
-              </p>
-            ) : null}
-          </div>
-
-          {visibleSections.length > 0 ? (
-            visibleSections.map((section) => (
-              <section key={section.id} className="space-y-3">
-                <div>
-                  <h3 className="text-lg font-semibold">{section.name}</h3>
-                  {section.description ? (
-                    <p className="text-sm text-muted-foreground">
-                      {section.description}
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-20 pt-3">
+        {selectedParentGroup ? (
+          visibleSections.length > 0 ? (
+            <div className="space-y-3">
+              {visibleSections.map((section) => (
+                <section
+                  key={section.id}
+                  className="overflow-hidden rounded-md border bg-card"
+                >
+                  <div className="flex flex-col gap-1 border-b bg-muted/20 px-3 py-2.5 sm:flex-row sm:items-end sm:justify-between sm:px-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">{section.name}</h3>
+                      {section.description ? (
+                        <p className="text-sm text-muted-foreground">
+                          {section.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {section.productGroups.length} products
                     </p>
-                  ) : null}
-                </div>
-
-                {section.productGroups.length > 0 ? (
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {section.productGroups.map(({ id, product }) => (
-                      <ThemedCard key={id} className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h4 className="font-semibold">{product.name}</h4>
-                            {product.description ? (
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {product.description}
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <span
-                            className={
-                              product.is_enabled
-                                ? "shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
-                                : "shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
-                            }
-                          >
-                            {product.is_enabled ? "Enabled" : "Disabled"}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-                          <span className="font-semibold">
-                            {formatPrice(product)}
-                          </span>
-                          <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
-                            {product.builder_template}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap justify-end gap-2">
-                          <ThemedButton
-                            type="button"
-                            size="sm"
-                            className={
-                              product.is_enabled
-                                ? "bg-muted text-foreground hover:bg-muted/80"
-                                : undefined
-                            }
-                            onClick={() => {
-                              void handleEnabledChange(product)
-                            }}
-                          >
-                            {product.is_enabled ? "Disable" : "Enable"}
-                          </ThemedButton>
-
-                          <ThemedButton asChild size="sm">
-                            <Link href={`/admin/products/${product.id}`}>
-                              Edit
-                            </Link>
-                          </ThemedButton>
-                        </div>
-                      </ThemedCard>
-                    ))}
                   </div>
-                ) : (
-                  <p className="rounded-md border p-3 text-sm text-muted-foreground">
-                    No products in this subcategory yet.
-                  </p>
-                )}
-              </section>
-            ))
+
+                  {section.productGroups.length > 0 ? (
+                    <div className="space-y-2 p-2.5 sm:p-3">
+                      {section.productGroups.map(({ id, product }) => {
+                        return (
+                          <Link
+                            key={id}
+                            href={`/admin/products/${product.id}`}
+                            aria-label={`Open product ${product.name}`}
+                            className="block rounded-md border bg-background transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <CompactRecordRow
+                              title={product.name}
+                              statusIcon={
+                                <CompactRecordStatusIcon
+                                  enabled={product.is_enabled}
+                                />
+                              }
+                              description={product.description}
+                            />
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+                      No products in this subcategory yet.
+                    </p>
+                  )}
+                </section>
+              ))}
+            </div>
           ) : (
             <p className="rounded-md border p-3 text-sm text-muted-foreground">
               No subcategories or products found for this category.
             </p>
-          )}
+          )
+        ) : (
+          <ThemedCard className="p-6 text-center">
+            <p className="font-semibold">No menu categories yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create menu groups before adding products.
+            </p>
+          </ThemedCard>
+        )}
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl justify-end">
+          <ThemedButton
+            asChild
+            size="icon"
+            aria-label="New product"
+            className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+          >
+            <Link href="/admin/products/new">
+              <Plus aria-hidden="true" />
+            </Link>
+          </ThemedButton>
         </div>
-      ) : (
-        <ThemedCard className="p-6 text-center">
-          <p className="font-semibold">No menu categories yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create menu groups before adding products.
-          </p>
-        </ThemedCard>
-      )}
+      </div>
     </div>
   )
 }
