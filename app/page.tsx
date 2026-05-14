@@ -169,7 +169,20 @@ export default function HomePage() {
       <footer className="px-4 py-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Pronto Demo. Powered by MenuPilot.</p>
-          <p>Website, menu, ordering, and operations in one place.</p>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <p>Website, menu, ordering, and operations in one place.</p>
+            <nav
+              aria-label="Temporary admin links"
+              className="flex flex-wrap gap-x-3 gap-y-1 text-xs"
+            >
+              <Link href="/admin" className="hover:text-foreground">
+                Admin
+              </Link>
+              <Link href="/staff/orders" className="hover:text-foreground">
+                Staff Orders
+              </Link>
+            </nav>
+          </div>
         </div>
       </footer>
     </main>
