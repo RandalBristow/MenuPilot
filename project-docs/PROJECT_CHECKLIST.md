@@ -1,6 +1,6 @@
 # MenuPilot Completion Checklist
 
-_Last updated: 2026-05-06_
+_Last updated: 2026-05-15_
 
 This file is the step-by-step project itinerary. The project is considered complete when every required checklist item is complete or intentionally deferred with a documented reason.
 
@@ -23,6 +23,9 @@ Completed:
 - [x] Add-to-cart from PizzaBuilder
 - [x] Included topping credits wired from Supabase
 - [x] Multiplier-aware included topping pricing
+- [x] Reusable variant groups schema and seed data
+- [x] Product-to-variant-group assignment admin flow
+- [x] Per-product variant option overrides
 - [x] Pricing tests passing
 
 ---
@@ -45,16 +48,16 @@ Completed:
 - [x] Choose local project folder location
 - [x] Create project root folder
 - [x] Initialize Git repository
-- [ ] Create remote GitHub repository
-- [ ] Connect local repo to GitHub remote
-- [ ] Make first commit
+- [X] Create remote GitHub repository
+- [X] Connect local repo to GitHub remote
+- [X] Make first commit
 
 ## 0.2 Create Next.js app
 
 - [x] Create Next.js app with TypeScript
 - [x] Enable App Router
 - [x] Install Tailwind CSS
-- [ ] Install shadcn/ui
+- [X] Install shadcn/ui
 - [x] Configure path alias `@/*`
 - [x] Confirm app runs locally
 - [x] Clean default starter files
@@ -71,7 +74,7 @@ Completed:
 - [x] Create `PROJECT_STATE.md`
 - [x] Create `PROJECT_CHECKLIST.md`
 - [ ] Create `ARCHITECTURE.md`
-- [ ] Create `DATABASE.md`
+- [x] Create `DATABASE.md`
 - [ ] Create `DEPLOYMENT.md`
 - [ ] Create `CONTRIBUTING.md`
 - [ ] Create `CHANGELOG.md`
@@ -114,7 +117,7 @@ Completed:
 - [x] Create `components/layout/`
 - [x] Create `components/shared/`
 - [ ] Add component README explaining rules
-- [ ] Confirm raw shadcn components are not business-specific
+- [x] Confirm raw shadcn components are not business-specific
 - [ ] Confirm themed components use CSS variables/theme tokens
 
 ## 1.4 Feature structure
@@ -161,7 +164,7 @@ For each feature:
 - [x] Create Supabase project
 - [x] Record project URL
 - [x] Record anon key in `.env.local`
-- [ ] Record service role key securely, not committed
+- [x] Record service role key securely, not committed
 - [ ] Configure local Supabase CLI
 - [ ] Link local project to Supabase project
 - [x] Create `database/migrations/`
@@ -170,9 +173,9 @@ For each feature:
 
 ## 2.2 Supabase clients
 
-- [ ] Create browser Supabase client
+- [x] Create browser Supabase client
 - [ ] Create server Supabase client
-- [ ] Create admin/service Supabase client for server-only operations
+- [x] Create admin/service Supabase client for server-only operations
 - [ ] Add environment variable validation
 - [ ] Add typed database client placeholder
 - [ ] Document Supabase client usage rules
@@ -229,15 +232,20 @@ For each feature:
 
 ## 3.5 Menu structure
 
-- [ ] Create `menus`
-- [ ] Create `menu_groups`
-- [ ] Create `products`
-- [ ] Create `product_groups`
-- [ ] Create `product_variants`
-- [ ] Add product prep-time fields
-- [ ] Add product enabled/availability fields
+- [x] Create `menus`
+- [x] Create `menu_groups`
+- [x] Create `products`
+- [x] Create `product_groups`
+- [x] Create reusable `variant_groups`
+- [x] Create reusable `variant_group_options`
+- [x] Create product-to-variant-group assignments
+- [x] Create product variant option overrides
+- [x] Add one-enabled-variant-group-per-product constraint
+- [x] Prepare cleanup migration for old `product_variants`
+- [x] Add product prep-time fields
+- [x] Add product enabled/availability fields
 - [ ] Add group visibility fields for website/print/display/order
-- [ ] Add indexes for menu browsing
+- [x] Add indexes for menu browsing
 - [ ] Add constraints for variant sorting/defaults
 
 ## 3.6 Modifiers
@@ -628,50 +636,62 @@ For each feature:
 ## 12.2 Menu groups
 
 - [ ] Build menu group tree
-- [ ] Add top-level group
-- [ ] Add subgroup
-- [ ] Edit group
-- [ ] Enable/disable group
+- [x] Add top-level group
+- [x] Add subgroup
+- [x] Edit group
+- [x] Enable/disable group
 - [ ] Set group image
-- [ ] Set group description
+- [x] Set group description
 - [ ] Set show online flag
 - [ ] Set show print flag
 - [ ] Set show display flag
-- [ ] Reorder groups
-- [ ] Assign products to groups
+- [x] Reorder groups
+- [x] Assign products to groups
 
 ## 12.3 Products
 
-- [ ] Build products list
+- [x] Build products list
 - [ ] Search products
-- [ ] Filter by group
+- [x] Filter by group
 - [ ] Filter by enabled status
-- [ ] Add product
-- [ ] Edit product
+- [x] Add product
+- [x] Edit product
 - [ ] Duplicate product
-- [ ] Enable/disable product
+- [x] Enable/disable product
 - [ ] Set product image
-- [ ] Set product description
+- [x] Set product description
 - [ ] Set product taxable flag
 - [ ] Set product featured flag
 - [ ] Set product prep time
-- [ ] Assign product to groups
-- [ ] Set primary group
+- [x] Assign product to groups
+- [x] Set primary group
 
-## 12.4 Product variants
+## 12.4 Reusable variant groups
 
-- [ ] Add variants to product
-- [ ] Edit variant
-- [ ] Delete/disable variant
-- [ ] Set variant name
+- [x] Create reusable variant group
+- [x] Attach variant group to product
+- [x] Detach variant group from product
+- [x] Remove product overrides when detaching variant group
+- [x] Enforce one enabled variant group per product
+- [x] Preview unassigned variant groups without allowing overrides
+- [x] Build reusable variant group list
+- [x] Edit variant group option
+- [ ] Delete variant group option
+- [x] Disable variant group option
+- [x] Set variant option name
 - [ ] Set variant type
 - [ ] Set unit type
 - [ ] Set unit quantity
 - [ ] Set unit label
-- [ ] Set base price
+- [x] Set base price
 - [ ] Set prep time
-- [ ] Set default variant
-- [ ] Reorder variants
+- [x] Set default variant option
+- [x] Reorder variant options
+- [x] Override product variant option price
+- [x] Override product variant option enabled state
+- [x] Override product variant option default state
+- [x] Override product variant option sort order
+- [x] Save product-specific changes as overrides instead of global edits
 
 ---
 
@@ -774,13 +794,13 @@ For each feature:
 
 ## 16.1 Core engine
 
-- [ ] Create engine folder
+- [x] Create engine folder
 - [ ] Define product configuration input types
 - [ ] Define resolved configuration output types
-- [ ] Load product
-- [ ] Load variants
-- [ ] Load modifier groups
-- [ ] Load modifier options
+- [x] Load product
+- [x] Load variants
+- [x] Load modifier groups
+- [x] Load modifier options
 - [ ] Load price rules
 - [ ] Load availability rules
 - [ ] Load dependency rules
@@ -789,7 +809,7 @@ For each feature:
 
 ## 16.2 Resolution logic
 
-- [ ] Resolve available variants
+- [x] Resolve available variants
 - [ ] Resolve available modifier groups
 - [ ] Resolve available modifier options by selected variant
 - [ ] Resolve dependency-based options
@@ -855,28 +875,28 @@ For each feature:
 ## 17.3 Menu page
 
 - [x] Add menu route at `/menu`
-- [ ] Render menu groups
-- [ ] Render nested categories/subcategories
-- [ ] Render product cards
-- [ ] Hide disabled products
+- [x] Render menu groups
+- [x] Render nested categories/subcategories
+- [x] Render product cards
+- [x] Hide disabled products
 - [ ] Hide disabled groups
 - [ ] Show product images
-- [ ] Show variant starting price
-- [ ] Add category navigation
-- [ ] Add mobile-friendly category tabs
+- [x] Show variant starting price
+- [x] Add category navigation
+- [x] Add mobile-friendly category tabs
 
 ## 17.4 Product configurator UI
 
-- [ ] Open product modal/page
-- [ ] Show product image/description
-- [ ] Show variants
-- [ ] Show required modifier groups
-- [ ] Show optional modifier groups
+- [x] Open product modal/page
+- [x] Show product image/description
+- [x] Show variants
+- [x] Show required modifier groups
+- [x] Show optional modifier groups
 - [ ] Filter modifiers based on selected variant
 - [ ] Filter modifiers based on dependencies
-- [ ] Show topping placement controls
-- [ ] Show multiplier controls
-- [ ] Show live price
+- [x] Show topping placement controls
+- [x] Show multiplier controls
+- [x] Show live price
 - [ ] Show prep-time estimate if desired
 - [ ] Show related add-ons
 - [ ] Validate before add to cart
@@ -1345,6 +1365,8 @@ For each feature:
 ## 36.1 Unit tests
 
 - [x] Test pricing resolver
+- [x] Test effective reusable variant resolver
+- [x] Test one-enabled-variant-group assignment rule
 - [ ] Test modifier availability resolver
 - [ ] Test dependency resolver
 - [x] Test included credits
@@ -1403,11 +1425,13 @@ The MVP is complete when:
 - [ ] Location can be created
 - [ ] Admin can log in
 - [ ] Staff can log in
-- [ ] Menu groups can be created
-- [ ] Products can be created
-- [ ] Product variants can be created
+- [x] Menu groups can be created
+- [x] Products can be created
+- [x] Reusable variant groups/options can be created
+- [x] Reusable variant groups can be assigned to products
+- [x] Product-specific variant option overrides can be created
 - [ ] Modifier groups/options can be created
-- [ ] Product configuration works for pizza
+- [x] Product configuration works for pizza
 - [x] Customer can browse menu
 - [x] Customer can configure item
 - [x] Customer can add to cart
@@ -1417,7 +1441,7 @@ The MVP is complete when:
 - [x] Staff can update order status
 - [ ] Order history can be searched
 - [ ] Basic public theme is applied
-- [ ] Disabled products/options do not appear
+- [x] Disabled products/options do not appear
 
 ---
 

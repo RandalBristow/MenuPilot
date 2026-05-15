@@ -13,7 +13,7 @@ type ProductGroup = {
     has_variants: boolean;
     is_featured: boolean;
     is_enabled: boolean;
-    product_variants: {
+    variants: {
       id: string;
       name: string;
       base_price: number;
@@ -80,8 +80,8 @@ export function CategorySection({
                 id: productGroup.id,
                 product: {
                   ...product,
-                  product_variants: (product.product_variants ?? []).filter(
-                    (variant: ProductGroup["products"]["product_variants"][number]) =>
+                  variants: (product.variants ?? []).filter(
+                    (variant: ProductGroup["products"]["variants"][number]) =>
                       variant.is_enabled,
                   ),
                 },

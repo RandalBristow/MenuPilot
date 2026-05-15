@@ -90,7 +90,7 @@ export async function createOrder(input: CreateOrderInput) {
         business_id: business.id,
         order_id: order.id,
         product_id: item.productId,
-        product_variant_id: item.variantId,
+        product_variant_id: null,
         product_name_snapshot: item.productName,
         variant_name_snapshot: item.variantName,
         quantity: item.quantity,

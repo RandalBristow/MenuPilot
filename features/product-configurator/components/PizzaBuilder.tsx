@@ -80,7 +80,7 @@ export type ProductConfig = {
   has_variants: boolean;
   is_enabled: boolean;
   base_price: number | null;
-  product_variants: Variant[];
+  variants: Variant[];
   product_modifier_groups: ProductModifierGroup[];
   product_included_modifier_groups?: IncludedModifierGroup[];
 };
@@ -136,8 +136,8 @@ export function PizzaBuilder({
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
     () =>
-      filterEnabledProductVariants(product.product_variants),
-    [product.product_variants],
+      filterEnabledProductVariants(product.variants),
+    [product.variants],
   );
 
   const isVariantUnavailable = product.has_variants && sortedVariants.length === 0;

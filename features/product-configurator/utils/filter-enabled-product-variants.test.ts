@@ -40,7 +40,7 @@ describe("filterEnabledProductVariants", () => {
     expect(
       isVariantProductUnavailable({
         has_variants: true,
-        product_variants: [
+        variants: [
           {
             is_enabled: false,
             sort_order: 0,
@@ -54,7 +54,7 @@ describe("filterEnabledProductVariants", () => {
     expect(
       isVariantProductUnavailable({
         has_variants: false,
-        product_variants: [],
+        variants: [],
       })
     ).toBe(false)
   })

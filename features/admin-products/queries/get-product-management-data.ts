@@ -10,6 +10,7 @@ export type ProductOption = {
   id: string
   name: string
   is_enabled: boolean
+  menuGroupId: string | null
 }
 
 export type ProductManagementData = ProductFormData & {
@@ -57,7 +58,17 @@ export async function getProductOptions(): Promise<ProductOption[]> {
   const businessId = await getBusinessId()
   const { data, error } = await supabaseAdmin
     .from("products")
-    .select("id, name, is_enabled")
+    .select(
+      `
+      id,
+      name,
+      is_enabled,
+      product_groups (
+        menu_group_id,
+        is_primary
+      )
+    `
+    )
     .eq("business_id", businessId)
     .order("name", { ascending: true })
 
@@ -65,9 +76,30 @@ export async function getProductOptions(): Promise<ProductOption[]> {
     throw new Error(`Could not load product list: ${error.message}`)
   }
 
-  return ((data ?? []) as ProductOption[]).sort((first, second) =>
-    first.name.localeCompare(second.name)
-  )
+  return ((data ?? []) as Array<{
+    id: string
+    name: string
+    is_enabled: boolean
+    product_groups:
+      | {
+          menu_group_id: string
+          is_primary: boolean
+        }[]
+      | null
+  }>)
+    .map((product) => {
+      const primaryGroup =
+        product.product_groups?.find((group) => group.is_primary) ??
+        product.product_groups?.[0]
+
+      return {
+        id: product.id,
+        name: product.name,
+        is_enabled: product.is_enabled,
+        menuGroupId: primaryGroup?.menu_group_id ?? null,
+      }
+    })
+    .sort((first, second) => first.name.localeCompare(second.name))
 }
 
 export async function getProductManagementData(

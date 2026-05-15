@@ -21,9 +21,9 @@ const productHubLinks = [
     description: "Browse and edit product records.",
   },
   {
-    title: "Product Variants",
-    href: "/admin/products/variants",
-    description: "Manage product size, count, and portion choices.",
+    title: "Variant Groups",
+    href: "/admin/products/variant-groups",
+    description: "Manage reusable size, drink, and count groups.",
   },
   {
     title: "Product Modifier Groups",

@@ -57,7 +57,7 @@ async function assertModifierGroups(
 
 export async function createProduct(formData: FormData) {
   const businessId = await getBusinessId()
-  const { product: productPayload, menuGroupId, modifierGroupIds, variants } =
+  const { product: productPayload, menuGroupId, modifierGroupIds } =
     buildProductPayload(formData)
 
   await assertMenuGroup(businessId, menuGroupId)
@@ -110,26 +110,6 @@ export async function createProduct(formData: FormData) {
       throw new Error(
         `Could not attach modifier groups: ${modifierGroupError.message}`
       )
-    }
-  }
-
-  if (variants.length > 0) {
-    const { error: variantError } = await supabaseAdmin
-      .from("product_variants")
-      .insert(
-        variants.map((variant) => ({
-          business_id: businessId,
-          product_id: productId,
-          name: variant.name,
-          base_price: variant.base_price,
-          is_default: variant.is_default,
-          is_enabled: variant.is_enabled,
-          sort_order: variant.sort_order,
-        }))
-      )
-
-    if (variantError) {
-      throw new Error(`Could not create variants: ${variantError.message}`)
     }
   }
 

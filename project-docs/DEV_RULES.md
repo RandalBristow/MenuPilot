@@ -27,6 +27,14 @@
 - All changes must be migrations
 - Do not modify schema manually in Supabase UI
 
+## Reusable Configuration Rules
+
+- Reusable configuration objects are managed globally.
+- Products attach reusable objects.
+- Product-specific changes are stored as overrides.
+- Removing an assignment removes its overrides.
+- Unassigned objects may be viewed but not overridden.
+
 ## Philosophy
 
 - Clean > clever

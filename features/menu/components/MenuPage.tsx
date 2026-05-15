@@ -26,7 +26,7 @@ type MenuGroup = {
       has_variants: boolean;
       is_featured: boolean;
       is_enabled: boolean;
-      product_variants: {
+      variants: {
         id: string;
         name: string;
         base_price: number;

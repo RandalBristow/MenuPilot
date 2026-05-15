@@ -12,16 +12,6 @@ export type ProductCreationPayload = {
   }
   menuGroupId: string
   modifierGroupIds: string[]
-  variants: ProductVariantPayload[]
-}
-
-export type ProductVariantPayload = {
-  id: string | null
-  name: string
-  base_price: number
-  is_default: boolean
-  is_enabled: boolean
-  sort_order: number
 }
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
@@ -65,77 +55,6 @@ function parseStringList(values: FormDataEntryValue[]) {
   return values.filter((value): value is string => typeof value === "string")
 }
 
-function parseOptionalVariantId(value: FormDataEntryValue | undefined) {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return null
-  }
-
-  return value.trim()
-}
-
-function parseVariantSortOrder(value: FormDataEntryValue | undefined) {
-  const parsedValue = Number(value)
-
-  if (!Number.isInteger(parsedValue) || parsedValue < 0) {
-    throw new Error("Variant sort order must be zero or greater.")
-  }
-
-  return parsedValue
-}
-
-function parseVariantEnabled(value: FormDataEntryValue | undefined) {
-  return value !== "false"
-}
-
-function parseDefaultVariantIndex(
-  value: FormDataEntryValue | null,
-  variantCount: number
-) {
-  if (variantCount === 0) return null
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error("Choose one default variant.")
-  }
-
-  const parsedValue = Number(value)
-
-  if (
-    !Number.isInteger(parsedValue) ||
-    parsedValue < 0 ||
-    parsedValue >= variantCount
-  ) {
-    throw new Error("Choose one default variant.")
-  }
-
-  return parsedValue
-}
-
-function buildVariantPayloads(formData: FormData): ProductVariantPayload[] {
-  const variantNames = formData.getAll("variantNames")
-  const variantIds = formData.getAll("variantIds")
-  const variantBasePrices = formData.getAll("variantBasePrices")
-  const variantSortOrders = formData.getAll("variantSortOrders")
-  const variantIsEnabled = formData.getAll("variantIsEnabled")
-
-  const variants = variantNames.map((nameValue, index) => ({
-    id: parseOptionalVariantId(variantIds[index]),
-    name: parseString(nameValue, "Variant name"),
-    base_price: parsePrice(variantBasePrices[index] ?? null),
-    is_default: false,
-    is_enabled: parseVariantEnabled(variantIsEnabled[index]),
-    sort_order: parseVariantSortOrder(variantSortOrders[index]),
-  }))
-
-  const defaultVariantIndex = parseDefaultVariantIndex(
-    formData.get("defaultVariantIndex"),
-    variants.length
-  )
-
-  return variants.map((variant, index) => ({
-    ...variant,
-    is_default: index === defaultVariantIndex,
-  }))
-}
-
 export function createSlug(name: string) {
   return name
     .toLowerCase()
@@ -153,7 +72,6 @@ export function buildProductPayload(
   const builderTemplate = parseBuilderTemplate(formData.get("builderTemplate"))
   const menuGroupId = parseString(formData.get("menuGroupId"), "Category")
   const modifierGroupIds = parseStringList(formData.getAll("modifierGroupIds"))
-  const variants = buildVariantPayloads(formData)
 
   return {
     product: {
@@ -162,11 +80,10 @@ export function buildProductPayload(
       description,
       base_price: basePrice,
       builder_template: builderTemplate,
-      has_variants: variants.length > 0,
+      has_variants: true,
       is_enabled: true,
     },
     menuGroupId,
     modifierGroupIds,
-    variants,
   }
 }

@@ -12,10 +12,6 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createProduct } from "@/features/admin-products/actions/create-product"
 import { updateProduct } from "@/features/admin-products/actions/update-product"
 import {
-  ProductVariantFields,
-  type ProductFormVariant,
-} from "@/features/admin-products/components/ProductVariantFields"
-import {
   PRODUCT_ADMIN_PANEL_BODY_CLASS,
   PRODUCT_ADMIN_PANEL_FOOTER_CLASS,
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
@@ -49,7 +45,6 @@ export type ExistingProduct = {
   is_enabled: boolean
   menuGroupId: string
   modifierGroupIds: string[]
-  variants: ProductFormVariant[]
 }
 
 export type ProductFormData = {
@@ -103,16 +98,6 @@ type RawExistingProduct = {
         modifier_group_id: string
       }[]
     | null
-  product_variants:
-    | {
-        id: string
-        name: string
-        base_price: number
-        is_default: boolean
-        is_enabled: boolean
-        sort_order: number
-      }[]
-    | null
 }
 
 function mapExistingProduct(product: RawExistingProduct): ExistingProduct {
@@ -131,7 +116,6 @@ function mapExistingProduct(product: RawExistingProduct): ExistingProduct {
     modifierGroupIds: (product.product_modifier_groups ?? []).map(
       (group) => group.modifier_group_id
     ),
-    variants: sortBySortOrder(product.product_variants ?? []),
   }
 }
 
@@ -157,14 +141,6 @@ async function getExistingProduct(
       ),
       product_modifier_groups (
         modifier_group_id
-      ),
-      product_variants (
-        id,
-        name,
-        base_price,
-        is_default,
-        is_enabled,
-        sort_order
       )
     `
     )
@@ -233,7 +209,6 @@ export async function ProductForm({ productId }: ProductFormProps) {
     await getProductFormData(productId)
   const isEditMode = product !== null
   const selectedModifierGroupIds = new Set(product?.modifierGroupIds ?? [])
-  const variants = product?.variants ?? []
 
   return (
     <main className={PRODUCT_ADMIN_PANEL_PAGE_CLASS}>
@@ -347,8 +322,6 @@ export async function ProductForm({ productId }: ProductFormProps) {
                 </select>
               </label>
             </div>
-
-            <ProductVariantFields variants={variants} />
 
             <section className="space-y-3">
               <div>

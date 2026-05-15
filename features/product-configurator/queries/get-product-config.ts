@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client"
+import { applyEffectiveVariants } from "@/features/product-configurator/utils/apply-effective-product-variants"
 
 export async function getProductConfig(productId: string) {
   const { data, error } = await supabase
@@ -11,12 +12,27 @@ export async function getProductConfig(productId: string) {
       has_variants,
       is_enabled,
       base_price,
-      product_variants (
+      product_variant_groups (
         id,
-        name,
-        base_price,
-        is_default,
         is_enabled,
+        sort_order,
+        variant_groups (
+          id,
+          variant_group_options (
+            id,
+            name,
+            base_price,
+            is_default,
+            is_enabled,
+            sort_order
+          )
+        )
+      ),
+      product_variant_option_overrides (
+        variant_group_option_id,
+        price_override,
+        is_enabled,
+        is_default,
         sort_order
       ),
       product_modifier_groups (
@@ -69,5 +85,5 @@ export async function getProductConfig(productId: string) {
     throw new Error(`Failed to load product config: ${error.message}`)
   }
 
-  return data
+  return applyEffectiveVariants(data)
 }

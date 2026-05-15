@@ -19,7 +19,7 @@ type MenuClientProps = {
 function canCustomizeProduct(product: ProductConfig) {
   if (!product.has_variants) return true
 
-  return product.product_variants.some((variant) => variant.is_enabled)
+  return product.variants.some((variant) => variant.is_enabled)
 }
 
 export function MenuClient({ businessName, menu }: MenuClientProps) {

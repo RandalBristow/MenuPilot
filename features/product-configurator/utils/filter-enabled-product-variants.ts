@@ -5,7 +5,7 @@ export type ConfiguratorProductVariant = {
 
 export type VariantProduct = {
   has_variants: boolean
-  product_variants?: ConfiguratorProductVariant[] | null
+  variants?: ConfiguratorProductVariant[] | null
 }
 
 export function filterEnabledProductVariants<T extends ConfiguratorProductVariant>(
@@ -19,6 +19,6 @@ export function filterEnabledProductVariants<T extends ConfiguratorProductVarian
 export function isVariantProductUnavailable(product: VariantProduct) {
   return (
     product.has_variants &&
-    filterEnabledProductVariants(product.product_variants).length === 0
+    filterEnabledProductVariants(product.variants).length === 0
   )
 }

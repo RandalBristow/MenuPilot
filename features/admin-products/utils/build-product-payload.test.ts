@@ -36,7 +36,7 @@ describe("buildProductPayload", () => {
       description: "Classic pizza",
       base_price: 14.99,
       builder_template: "pizza",
-      has_variants: false,
+      has_variants: true,
       is_enabled: true,
     })
   })
@@ -91,49 +91,9 @@ describe("buildProductPayload", () => {
     ])
   })
 
-  it("marks products with variants as variant products", () => {
-    const payload = buildProductPayload(
-      createProductFormData({
-        variantIds: ["variant-small", ""],
-        variantNames: ["Small", "Large"],
-        variantBasePrices: ["10.99", "14.99"],
-        variantSortOrders: ["0", "1"],
-        variantIsEnabled: ["true", "false"],
-        defaultVariantIndex: "1",
-      })
-    )
+  it("marks products as variant-ready for reusable group assignments", () => {
+    const payload = buildProductPayload(createProductFormData())
 
     expect(payload.product.has_variants).toBe(true)
-    expect(payload.variants).toEqual([
-      {
-        id: "variant-small",
-        name: "Small",
-        base_price: 10.99,
-        is_default: false,
-        is_enabled: true,
-        sort_order: 0,
-      },
-      {
-        id: null,
-        name: "Large",
-        base_price: 14.99,
-        is_default: true,
-        is_enabled: false,
-        sort_order: 1,
-      },
-    ])
-  })
-
-  it("requires one default variant when variants are present", () => {
-    expect(() =>
-      buildProductPayload(
-        createProductFormData({
-          variantNames: ["Small"],
-          variantBasePrices: ["10.99"],
-          variantSortOrders: ["0"],
-          variantIsEnabled: ["true"],
-        })
-      )
-    ).toThrow("Choose one default variant.")
   })
 })

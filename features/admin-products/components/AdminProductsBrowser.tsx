@@ -8,15 +8,6 @@ import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatus
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 
-export type AdminProductVariant = {
-  id: string
-  name: string
-  base_price: number
-  is_default: boolean
-  is_enabled: boolean
-  sort_order: number
-}
-
 export type AdminProduct = {
   id: string
   name: string
@@ -26,7 +17,6 @@ export type AdminProduct = {
   builder_template: string
   has_variants: boolean
   is_enabled: boolean
-  product_variants: AdminProductVariant[]
 }
 
 export type AdminProductGroup = {
@@ -163,22 +153,42 @@ export function AdminProductsBrowser({
                     <div className="space-y-2 p-2.5 sm:p-3">
                       {section.productGroups.map(({ id, product }) => {
                         return (
-                          <Link
+                          <ThemedCard
                             key={id}
-                            href={`/admin/products/${product.id}`}
-                            aria-label={`Open product ${product.name}`}
-                            className="block rounded-md border bg-background transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            className="overflow-hidden border bg-background py-0"
                           >
                             <CompactRecordRow
-                              title={product.name}
+                              title={
+                                <Link
+                                  href={`/admin/products/${product.id}`}
+                                  aria-label={`Open product ${product.name}`}
+                                  className="block truncate rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
+                                  {product.name}
+                                </Link>
+                              }
                               statusIcon={
                                 <CompactRecordStatusIcon
                                   enabled={product.is_enabled}
                                 />
                               }
                               description={product.description}
+                              rightAction={
+                                <ThemedButton
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 bg-background px-2 text-xs text-foreground hover:bg-muted"
+                                >
+                                  <Link
+                                    href={`/admin/products/variant-assignments?productId=${product.id}`}
+                                  >
+                                    Variant Assignment
+                                  </Link>
+                                </ThemedButton>
+                              }
                             />
-                          </Link>
+                          </ThemedCard>
                         )
                       })}
                     </div>

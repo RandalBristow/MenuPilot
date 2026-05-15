@@ -38,12 +38,6 @@ export function getMenuGroupLabelById(groupId: string, groups: MenuGroup[]) {
   return `${parent.name} / ${group.name}`
 }
 
-export function getDefaultVariantIndex(product: ExistingProduct) {
-  const defaultIndex = product.variants.findIndex((variant) => variant.is_default)
-
-  return defaultIndex >= 0 ? defaultIndex : 0
-}
-
 export function ProductPanelHeader({
   title,
   description,
@@ -106,7 +100,6 @@ export function ProductUpdateHiddenFields({
   includeMenuPlacement = true,
   includeAvailability = true,
   includeModifierGroups = true,
-  includeVariants = true,
 }: {
   product: ExistingProduct
   redirectTo: string
@@ -114,7 +107,6 @@ export function ProductUpdateHiddenFields({
   includeMenuPlacement?: boolean
   includeAvailability?: boolean
   includeModifierGroups?: boolean
-  includeVariants?: boolean
 }) {
   return (
     <>
@@ -165,38 +157,6 @@ export function ProductUpdateHiddenFields({
           ))
         : null}
 
-      {includeVariants ? (
-        <>
-          {product.variants.map((variant, index) => (
-            <div key={variant.id ?? index} className="hidden">
-              <input type="hidden" name="variantIds" value={variant.id ?? ""} />
-              <input type="hidden" name="variantNames" value={variant.name} />
-              <input
-                type="hidden"
-                name="variantBasePrices"
-                value={String(variant.base_price)}
-              />
-              <input
-                type="hidden"
-                name="variantSortOrders"
-                value={String(variant.sort_order)}
-              />
-              <input
-                type="hidden"
-                name="variantIsEnabled"
-                value={String(variant.is_enabled)}
-              />
-            </div>
-          ))}
-          {product.variants.length > 0 ? (
-            <input
-              type="hidden"
-              name="defaultVariantIndex"
-              value={String(getDefaultVariantIndex(product))}
-            />
-          ) : null}
-        </>
-      ) : null}
     </>
   )
 }

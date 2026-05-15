@@ -22,7 +22,7 @@ type Product = {
   has_variants: boolean;
   is_featured: boolean;
   is_enabled: boolean;
-  product_variants?: ProductVariant[];
+  variants?: ProductVariant[];
 };
 
 type ProductCardProps = {
@@ -32,12 +32,12 @@ type ProductCardProps = {
 };
 
 function getStartingPrice(product: Product) {
-  if (product.has_variants && !product.product_variants?.length) {
+  if (product.has_variants && !product.variants?.length) {
     return null;
   }
 
-  if (product.has_variants && product.product_variants?.length) {
-    const sorted = [...product.product_variants].sort(
+  if (product.has_variants && product.variants?.length) {
+    const sorted = [...product.variants].sort(
       (a, b) => a.base_price - b.base_price,
     );
 
@@ -54,7 +54,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const startingPrice = getStartingPrice(product);
   const canCustomize =
-    !product.has_variants || (product.product_variants?.length ?? 0) > 0;
+    !product.has_variants || (product.variants?.length ?? 0) > 0;
 
   function handleCustomize() {
     if (!canCustomize) return;

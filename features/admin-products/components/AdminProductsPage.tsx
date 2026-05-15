@@ -1,6 +1,4 @@
-import Link from "next/link"
 import { ThemedHeading } from "@/components/themed/ThemedHeading"
-import { ThemedButton } from "@/components/themed/ThemedButton"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
   AdminProductsBrowser,
@@ -22,16 +20,6 @@ type RawProductGroup = {
         builder_template: string
         has_variants: boolean
         is_enabled: boolean
-        product_variants:
-          | {
-              id: string
-              name: string
-              base_price: number
-              is_default: boolean
-              is_enabled: boolean
-              sort_order: number
-            }[]
-          | null
       }
     | {
         id: string
@@ -42,16 +30,6 @@ type RawProductGroup = {
         builder_template: string
         has_variants: boolean
         is_enabled: boolean
-        product_variants:
-          | {
-              id: string
-              name: string
-              base_price: number
-              is_default: boolean
-              is_enabled: boolean
-              sort_order: number
-            }[]
-          | null
       }[]
     | null
 }
@@ -86,12 +64,7 @@ function mapProductGroup(productGroup: RawProductGroup) {
   return {
     id: productGroup.id,
     sort_order: productGroup.sort_order,
-    product: product
-      ? {
-          ...product,
-          product_variants: sortBySortOrder(product.product_variants ?? []),
-        }
-      : null,
+    product,
   }
 }
 
@@ -141,15 +114,7 @@ async function getAdminProductsPageData() {
           base_price,
           builder_template,
           has_variants,
-          is_enabled,
-          product_variants (
-            id,
-            name,
-            base_price,
-            is_default,
-            is_enabled,
-            sort_order
-          )
+          is_enabled
         )
       )
     `
@@ -179,24 +144,6 @@ export async function AdminProductsPage() {
             Products, menu categories, and modifier attachments for{" "}
             {businessName}.
           </p>
-          <div className="no-scrollbar flex gap-2 overflow-x-auto">
-            <ThemedButton
-              asChild
-              size="sm"
-              className="shrink-0 rounded-full border bg-background text-foreground hover:bg-muted"
-            >
-              <Link href="/admin/products/variants">Product Variants</Link>
-            </ThemedButton>
-            <ThemedButton
-              asChild
-              size="sm"
-              className="shrink-0 rounded-full border bg-background text-foreground hover:bg-muted"
-            >
-              <Link href="/admin/products/modifier-groups">
-                Product Modifier Groups
-              </Link>
-            </ThemedButton>
-          </div>
         </div>
 
         <div className="min-h-0 flex-1">

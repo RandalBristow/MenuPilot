@@ -11,6 +11,12 @@
 - Use existing patterns in the project
 - Keep changes minimal and focused
 - Do not refactor unrelated code
+- Preserve reusable configuration boundaries:
+  - reusable objects are edited globally
+  - products attach reusable objects
+  - product-specific changes are overrides
+  - removing assignments removes overrides
+  - unassigned objects are view-only in product context
 
 ## UI Rules
 

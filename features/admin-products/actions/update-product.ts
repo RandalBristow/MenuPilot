@@ -32,7 +32,7 @@ function parseRedirectTo(value: FormDataEntryValue | null, productId: string) {
   if (
     redirectTo === "/admin/products" ||
     redirectTo === `/admin/products/${productId}` ||
-    redirectTo === `/admin/products/variants?productId=${productId}` ||
+    redirectTo === `/admin/products/variant-assignments?productId=${productId}` ||
     redirectTo === `/admin/products/modifier-groups?productId=${productId}`
   ) {
     return redirectTo
@@ -105,7 +105,7 @@ async function assertModifierGroups(
 export async function updateProduct(formData: FormData) {
   const businessId = await getBusinessId()
   const productId = parseProductId(formData.get("productId"))
-  const { product: productPayload, menuGroupId, modifierGroupIds, variants } =
+  const { product: productPayload, menuGroupId, modifierGroupIds } =
     buildProductPayload(formData)
   const isEnabled = parseEnabled(formData.get("isEnabled"))
   const redirectTo = parseRedirectTo(formData.get("redirectTo"), productId)
@@ -188,45 +188,6 @@ export async function updateProduct(formData: FormData) {
       throw new Error(
         `Could not attach modifier groups: ${modifierGroupError.message}`
       )
-    }
-  }
-
-  for (const variant of variants) {
-    if (variant.id) {
-      const { error: variantError } = await supabaseAdmin
-        .from("product_variants")
-        .update({
-          name: variant.name,
-          base_price: variant.base_price,
-          is_default: variant.is_default,
-          is_enabled: variant.is_enabled,
-          sort_order: variant.sort_order,
-        })
-        .eq("id", variant.id)
-        .eq("product_id", productId)
-        .eq("business_id", businessId)
-
-      if (variantError) {
-        throw new Error(`Could not update variant: ${variantError.message}`)
-      }
-
-      continue
-    }
-
-    const { error: variantError } = await supabaseAdmin
-      .from("product_variants")
-      .insert({
-        business_id: businessId,
-        product_id: productId,
-        name: variant.name,
-        base_price: variant.base_price,
-        is_default: variant.is_default,
-        is_enabled: variant.is_enabled,
-        sort_order: variant.sort_order,
-      })
-
-    if (variantError) {
-      throw new Error(`Could not create variant: ${variantError.message}`)
     }
   }
 

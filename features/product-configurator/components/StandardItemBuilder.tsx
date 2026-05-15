@@ -83,8 +83,8 @@ export function StandardItemBuilder({
 }: StandardItemBuilderProps) {
   const sortedVariants = useMemo(
     () =>
-      filterEnabledProductVariants(product.product_variants),
-    [product.product_variants]
+      filterEnabledProductVariants(product.variants),
+    [product.variants]
   )
 
   const isVariantUnavailable = product.has_variants && sortedVariants.length === 0

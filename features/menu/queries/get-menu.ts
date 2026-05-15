@@ -1,4 +1,42 @@
 import { supabase } from "@/lib/supabase/client"
+import {
+  applyEffectiveVariants,
+  type ProductWithVariantSources,
+} from "@/features/product-configurator/utils/apply-effective-product-variants"
+
+type ProductGroupWithProduct = {
+  products: ProductWithVariantSources | ProductWithVariantSources[] | null
+}
+
+type MenuWithProductGroups = {
+  menu_groups?: {
+    product_groups?: ProductGroupWithProduct[] | null
+  }[] | null
+}
+
+function applyEffectiveVariantsToMenu<T extends MenuWithProductGroups>(menu: T) {
+  return {
+    ...menu,
+    menu_groups: (menu.menu_groups ?? []).map((menuGroup) => ({
+      ...menuGroup,
+      product_groups: (menuGroup.product_groups ?? []).map((productGroup) => {
+        const products = productGroup.products
+
+        if (Array.isArray(products)) {
+          return {
+            ...productGroup,
+            products: products.map(applyEffectiveVariants),
+          }
+        }
+
+        return {
+          ...productGroup,
+          products: products ? applyEffectiveVariants(products) : products,
+        }
+      }),
+    })),
+  }
+}
 
 export async function getMenuByBusinessSlug(businessSlug: string) {
   const { data: business, error: businessError } = await supabase
@@ -39,12 +77,27 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
             has_variants,
             is_featured,
             is_enabled,
-            product_variants (
+            product_variant_groups (
               id,
-              name,
-              base_price,
-              is_default,
               is_enabled,
+              sort_order,
+              variant_groups (
+                id,
+                variant_group_options (
+                  id,
+                  name,
+                  base_price,
+                  is_default,
+                  is_enabled,
+                  sort_order
+                )
+              )
+            ),
+            product_variant_option_overrides (
+              variant_group_option_id,
+              price_override,
+              is_enabled,
+              is_default,
               sort_order
             )
           )
@@ -62,6 +115,6 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
 
   return {
     business,
-    menus,
+    menus: (menus ?? []).map(applyEffectiveVariantsToMenu),
   }
 }
