@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronRight, Plus, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -17,17 +17,14 @@ type ModifierSubgroupListClientProps = {
   }
 }
 
-function getOptionCount(group: ModifierGroupDetail, subgroupId: string) {
-  return group.options.filter(
-    (option) => option.modifier_option_group_id === subgroupId
-  ).length
-}
-
 export function ModifierSubgroupListClient({
   data,
 }: ModifierSubgroupListClientProps) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
+  const [activeOptionGroup, setActiveOptionGroup] = useState<
+    ModifierGroupDetail["optionGroups"][number] | null
+  >(null)
   const { group } = data
 
   return (
@@ -35,12 +32,9 @@ export function ModifierSubgroupListClient({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Option Groups"
-            description={`Option groups inside ${group.name}.`}
+            title={group.name}
+            description="Option groups inside this modifier subgroup."
           />
-          <p className="truncate text-sm text-muted-foreground">
-            {data.businessName}
-          </p>
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
@@ -53,56 +47,55 @@ export function ModifierSubgroupListClient({
             </ThemedCard>
           ) : (
             group.optionGroups.map((subgroup) => (
-              <button
+              <ThemedCard
                 key={subgroup.id}
-                type="button"
-                aria-label={`Open subgroup ${subgroup.name}`}
-                onClick={() =>
-                  router.push(
-                    `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`
-                  )
-                }
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit option group ${subgroup.name}`}
+                onClick={() => setActiveOptionGroup(subgroup)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    setActiveOptionGroup(subgroup)
+                  }
+                }}
                 className={
                   subgroup.is_enabled
-                    ? "block w-full text-left"
-                    : "block w-full text-left opacity-75"
+                    ? "cursor-pointer gap-0 overflow-hidden p-0"
+                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
                 }
               >
-                <ThemedCard
-                  className={
-                    subgroup.is_enabled
-                      ? "overflow-hidden p-0"
-                      : "overflow-hidden bg-muted/30 p-0"
-                  }
-                >
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <CompactRecordStatusIcon enabled={subgroup.is_enabled} />
-                        <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
-                          {subgroup.name}
-                        </div>
-                      </div>
-
-                      {subgroup.description ? (
-                        <p className="text-xs leading-5 text-muted-foreground">
-                          {subgroup.description}
-                        </p>
-                      ) : null}
-
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>{getOptionCount(group, subgroup.id)} options</span>
-                        <span>Sort {subgroup.sort_order}</span>
-                      </div>
+                <div className="px-3 pt-2.5 text-left">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <CompactRecordStatusIcon enabled={subgroup.is_enabled} />
+                    <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
+                      {subgroup.name}
                     </div>
-
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="size-4 shrink-0 text-muted-foreground"
-                    />
                   </div>
-                </ThemedCard>
-              </button>
+
+                  {subgroup.description ? (
+                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                      {subgroup.description}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex justify-end px-3 pb-2.5 pt-1.5">
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      router.push(
+                        `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`
+                      )
+                    }}
+                  >
+                    Manage Options
+                  </ThemedButton>
+                </div>
+              </ThemedCard>
             ))
           )}
         </div>
@@ -146,6 +139,19 @@ export function ModifierSubgroupListClient({
         modifierGroupId={group.id}
         modifierGroupName={group.name}
       />
+
+      {activeOptionGroup ? (
+        <ModifierOptionGroupFormDialog
+          open={Boolean(activeOptionGroup)}
+          onOpenChange={(open) => {
+            if (!open) setActiveOptionGroup(null)
+          }}
+          mode="edit"
+          modifierGroupId={group.id}
+          modifierGroupName={group.name}
+          optionGroup={activeOptionGroup}
+        />
+      ) : null}
     </main>
   )
 }

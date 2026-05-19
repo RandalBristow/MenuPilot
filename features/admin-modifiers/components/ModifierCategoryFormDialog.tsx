@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, X } from "lucide-react"
+import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { createModifierCategory } from "@/features/admin-modifiers/actions/create-modifier-category"
 import { setModifierCategoryEnabled } from "@/features/admin-modifiers/actions/set-modifier-category-enabled"
 import { updateModifierCategory } from "@/features/admin-modifiers/actions/update-modifier-category"
@@ -22,7 +22,6 @@ import {
   MODIFIER_FORM_FOOTER_CLASS,
   MODIFIER_FORM_SHEET_CONTENT_CLASS,
 } from "@/features/admin-modifiers/components/modifier-form-panel-styles"
-import { ModifierStatusToggleControl } from "@/features/admin-modifiers/components/ModifierStatusToggleControl"
 import type { ModifierGroupCategory } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierCategoryFormMode = "create" | "edit"
@@ -54,11 +53,13 @@ export function ModifierCategoryFormDialog({
   const currentOpen = open ?? internalOpen
   const setCurrentOpen = onOpenChange ?? setInternalOpen
   const isCreateMode = mode === "create"
-  const title = isCreateMode ? "Create modifier category" : "Edit category"
+  const title = isCreateMode
+    ? "Create modifier group"
+    : (category?.name ?? "Edit modifier group")
   const description = isCreateMode
-    ? "Add an admin category for organizing modifier groups."
-    : "Update this modifier category."
-  const submitLabel = isCreateMode ? "Create category" : "Save category"
+    ? "Add a top-level group for organizing modifier subgroups."
+    : "Update this modifier group."
+  const submitLabel = isCreateMode ? "Create modifier group" : "Save modifier group"
 
   async function handleSubmit(formData: FormData) {
     if (isCreateMode) {
@@ -106,7 +107,7 @@ export function ModifierCategoryFormDialog({
           >
             {triggerIcon ??
               (triggerLabel ??
-                (isCreateMode ? "Add Category" : "Edit Category"))}
+                (isCreateMode ? "Add Modifier Group" : "Edit Modifier Group"))}
           </ThemedButton>
         </ThemedSheetTrigger>
       ) : null}
@@ -115,8 +116,10 @@ export function ModifierCategoryFormDialog({
         side="bottom"
         className={MODIFIER_FORM_SHEET_CONTENT_CLASS}
       >
-        <ThemedSheetHeader className="shrink-0">
-          <ThemedSheetTitle>{title}</ThemedSheetTitle>
+        <ThemedSheetHeader className="shrink-0 border-b pb-3">
+          <ThemedSheetTitle className="text-2xl leading-tight">
+            {title}
+          </ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
@@ -131,25 +134,38 @@ export function ModifierCategoryFormDialog({
               <input type="hidden" name="categoryId" value={category.id} />
             ) : null}
 
-            {!isCreateMode && category ? (
-              <ModifierStatusToggleControl
-                enabled={category.is_enabled}
-                name={category.name}
-                entityLabel="modifier category"
-                onToggle={() => void handleEnabledChange()}
-              />
-            ) : null}
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <label className="block min-w-0 space-y-1.5 text-sm">
+                <span className="font-medium">Modifier group name</span>
+                <input
+                  name="name"
+                  defaultValue={category?.name ?? ""}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  placeholder="Example: Pizza"
+                  required
+                />
+              </label>
 
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium">Category name</span>
-              <input
-                name="name"
-                defaultValue={category?.name ?? ""}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                placeholder="Example: Pizza"
-                required
-              />
-            </label>
+              {!isCreateMode && category ? (
+                <ThemedButton
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label={`${category.is_enabled ? "Disable" : "Enable"} modifier group ${category.name}`}
+                  className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                  onClick={() => void handleEnabledChange()}
+                >
+                  {category.is_enabled ? (
+                    <ThumbsUp aria-hidden="true" />
+                  ) : (
+                    <ThumbsDown aria-hidden="true" />
+                  )}
+                  <span className="sr-only">
+                    {category.is_enabled ? "Disable" : "Enable"} modifier group
+                  </span>
+                </ThemedButton>
+              ) : null}
+            </div>
 
             <label className="block space-y-1.5 text-sm">
               <span className="font-medium">Description</span>
@@ -157,7 +173,7 @@ export function ModifierCategoryFormDialog({
                 name="description"
                 defaultValue={category?.description ?? ""}
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                placeholder="Optional admin note."
+                placeholder="Optional description."
               />
             </label>
           </div>

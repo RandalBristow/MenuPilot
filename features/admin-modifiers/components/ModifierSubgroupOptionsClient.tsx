@@ -160,6 +160,7 @@ export function ModifierSubgroupOptionsClient({
           modifierGroupId={group.id}
           modifierGroupName={group.name}
           optionGroups={group.optionGroups}
+          initialOptionGroupId={subgroup.id}
         />
       ) : null}
     </main>

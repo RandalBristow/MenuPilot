@@ -35,6 +35,20 @@ function parsePrice(value: FormDataEntryValue | null) {
   return price
 }
 
+function parseSortOrder(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("Sort order is required.")
+  }
+
+  const sortOrder = Number(value)
+
+  if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+    throw new Error("Sort order must be a whole number.")
+  }
+
+  return sortOrder
+}
+
 async function getBusinessId() {
   const { data: business, error } = await supabaseAdmin
     .from("businesses")
@@ -61,6 +75,7 @@ export async function updateModifierOption(formData: FormData) {
   )
   const name = parseString(formData.get("name"), "Option name")
   const priceDelta = parsePrice(formData.get("priceDelta"))
+  const sortOrder = parseSortOrder(formData.get("sortOrder"))
 
   const { data: option, error: optionError } = await supabaseAdmin
     .from("modifier_options")
@@ -94,6 +109,7 @@ export async function updateModifierOption(formData: FormData) {
       modifier_option_group_id: modifierOptionGroupId,
       name,
       price_delta: priceDelta,
+      sort_order: sortOrder,
     })
     .eq("id", optionId)
     .eq("business_id", businessId)

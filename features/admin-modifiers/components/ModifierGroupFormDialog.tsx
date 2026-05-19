@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, X } from "lucide-react"
+import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { createModifierGroup } from "@/features/admin-modifiers/actions/create-modifier-group"
 import { setModifierGroupEnabled } from "@/features/admin-modifiers/actions/set-modifier-group-enabled"
 import { updateModifierGroup } from "@/features/admin-modifiers/actions/update-modifier-group"
@@ -22,13 +22,14 @@ import {
   MODIFIER_FORM_FOOTER_CLASS,
   MODIFIER_FORM_SHEET_CONTENT_CLASS,
 } from "@/features/admin-modifiers/components/modifier-form-panel-styles"
-import { ModifierStatusToggleControl } from "@/features/admin-modifiers/components/ModifierStatusToggleControl"
 import type { ModifierGroupCategory } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 import type { RawModifierGroup } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierGroupFormMode = "create" | "edit"
 
 type ModifierGroupFormDialogProps = {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   categories: ModifierGroupCategory[]
   selectedCategoryId: string
   mode?: ModifierGroupFormMode
@@ -40,6 +41,8 @@ type ModifierGroupFormDialogProps = {
 }
 
 export function ModifierGroupFormDialog({
+  open,
+  onOpenChange,
   categories,
   selectedCategoryId,
   mode = "create",
@@ -51,21 +54,23 @@ export function ModifierGroupFormDialog({
 }: ModifierGroupFormDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
-  const [open, setOpen] = useState(false)
-  const [categoryId, setCategoryId] = useState(selectedCategoryId)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const currentOpen = open ?? internalOpen
+  const setCurrentOpen = onOpenChange ?? setInternalOpen
   const isCreateMode = mode === "create"
-  const title = isCreateMode ? "Create modifier group" : "Edit modifier group"
+  const selectedCategory =
+    categories.find((category) => category.id === selectedCategoryId) ??
+    categories[0]
+  const categoryId = selectedCategory?.id ?? selectedCategoryId
+  const categoryName = selectedCategory?.name ?? "Selected modifier group"
+  const title = isCreateMode ? "Create modifier subgroup" : categoryName
   const description = isCreateMode
-    ? "Add a modifier group to a category. Options can be added later."
-    : "Update this modifier group rule set."
-  const submitLabel = isCreateMode ? "Create group" : "Save group"
+    ? "Add a reusable subgroup. Options can be added later."
+    : "Update this modifier subgroup rule set."
+  const submitLabel = isCreateMode ? "Create subgroup" : "Save subgroup"
 
   function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) {
-      setCategoryId(selectedCategoryId)
-    }
-
-    setOpen(nextOpen)
+    setCurrentOpen(nextOpen)
   }
 
   async function handleSubmit(formData: FormData) {
@@ -74,14 +79,14 @@ export function ModifierGroupFormDialog({
       const submittedCategoryId = String(formData.get("categoryId") ?? "")
 
       formRef.current?.reset()
-      setOpen(false)
+      setCurrentOpen(false)
       onCreated?.(submittedCategoryId)
       router.refresh()
     } else {
       await updateModifierGroup(formData)
       const submittedCategoryId = String(formData.get("categoryId") ?? "")
 
-      setOpen(false)
+      setCurrentOpen(false)
       onCreated?.(submittedCategoryId)
       router.refresh()
     }
@@ -95,39 +100,43 @@ export function ModifierGroupFormDialog({
     formData.set("isEnabled", String(!group.is_enabled))
 
     await setModifierGroupEnabled(formData)
-    setOpen(false)
+    setCurrentOpen(false)
     router.refresh()
   }
 
   return (
-    <ThemedSheet open={open} onOpenChange={handleOpenChange}>
-      <ThemedSheetTrigger asChild>
-        <ThemedButton
-          type="button"
-          variant={isCreateMode ? "default" : "outline"}
-          size={triggerIcon ? "icon" : "default"}
-          aria-label={triggerAriaLabel}
-          className={
-            triggerIcon
-              ? isCreateMode
-                ? "size-10 rounded-md p-0 shadow-sm sm:size-8"
-                : "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted sm:size-8"
-              : isCreateMode
-                ? "w-full sm:w-auto"
-                : "bg-background text-foreground hover:bg-muted"
-          }
-        >
-          {triggerIcon ??
-            (triggerLabel ?? (isCreateMode ? "Add Group" : "Edit Group"))}
-        </ThemedButton>
-      </ThemedSheetTrigger>
+    <ThemedSheet open={currentOpen} onOpenChange={handleOpenChange}>
+      {open === undefined ? (
+        <ThemedSheetTrigger asChild>
+          <ThemedButton
+            type="button"
+            variant={isCreateMode ? "default" : "outline"}
+            size={triggerIcon ? "icon" : "default"}
+            aria-label={triggerAriaLabel}
+            className={
+              triggerIcon
+                ? isCreateMode
+                  ? "size-10 rounded-md p-0 shadow-sm sm:size-8"
+                  : "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted sm:size-8"
+                : isCreateMode
+                  ? "w-full sm:w-auto"
+                  : "bg-background text-foreground hover:bg-muted"
+            }
+          >
+            {triggerIcon ??
+              (triggerLabel ?? (isCreateMode ? "Add Group" : "Edit Group"))}
+          </ThemedButton>
+        </ThemedSheetTrigger>
+      ) : null}
 
       <ThemedSheetContent
         side="bottom"
         className={MODIFIER_FORM_SHEET_CONTENT_CLASS}
       >
-        <ThemedSheetHeader className="shrink-0">
-          <ThemedSheetTitle>{title}</ThemedSheetTitle>
+        <ThemedSheetHeader className="shrink-0 border-b pb-3">
+          <ThemedSheetTitle className="text-2xl leading-tight">
+            {title}
+          </ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
@@ -142,44 +151,42 @@ export function ModifierGroupFormDialog({
               <input type="hidden" name="modifierGroupId" value={group.id} />
             ) : null}
 
-            {!isCreateMode && group ? (
-              <ModifierStatusToggleControl
-                enabled={group.is_enabled}
-                name={group.name}
-                entityLabel="modifier group"
-                onToggle={() => void handleEnabledChange()}
-              />
-            ) : null}
+            <input type="hidden" name="categoryId" value={categoryId} />
 
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium">Category</span>
-              <select
-                name="categoryId"
-                value={categoryId}
-                onChange={(event) => setCategoryId(event.target.value)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                required
-              >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <label className="block min-w-0 space-y-1.5 text-sm">
+                <span className="font-medium">Subgroup name</span>
+                <input
+                  name="name"
+                  defaultValue={group?.name ?? ""}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  placeholder="Example: Pizza Cheese"
+                  required
+                />
+              </label>
 
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium">Group name</span>
-              <input
-                name="name"
-                defaultValue={group?.name ?? ""}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                placeholder="Example: Pizza Cheese"
-                required
-              />
-            </label>
+              {!isCreateMode && group ? (
+                <ThemedButton
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label={`${group.is_enabled ? "Disable" : "Enable"} modifier subgroup ${group.name}`}
+                  className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                  onClick={() => void handleEnabledChange()}
+                >
+                  {group.is_enabled ? (
+                    <ThumbsUp aria-hidden="true" />
+                  ) : (
+                    <ThumbsDown aria-hidden="true" />
+                  )}
+                  <span className="sr-only">
+                    {group.is_enabled ? "Disable" : "Enable"} modifier subgroup
+                  </span>
+                </ThemedButton>
+              ) : null}
+            </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <label className="block space-y-1.5 text-sm">
                 <span className="font-medium">Selection</span>
                 <select
@@ -206,7 +213,7 @@ export function ModifierGroupFormDialog({
                 </select>
               </label>
 
-              <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+              <div className="col-span-2 grid grid-cols-2 gap-3">
                 <label className="block space-y-1.5 text-sm">
                   <span className="font-medium">Min</span>
                   <input
@@ -251,7 +258,7 @@ export function ModifierGroupFormDialog({
               size="icon"
               aria-label="Close"
               className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() => setOpen(false)}
+              onClick={() => setCurrentOpen(false)}
             >
               <X aria-hidden="true" />
               <span className="sr-only">Close</span>

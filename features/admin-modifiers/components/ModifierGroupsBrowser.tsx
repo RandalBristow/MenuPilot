@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronRight, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
+import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ModifierCategoryFormDialog } from "@/features/admin-modifiers/components/ModifierCategoryFormDialog"
@@ -28,6 +30,8 @@ export function ModifierGroupsBrowser({
   categories,
 }: ModifierGroupsBrowserProps) {
   const router = useRouter()
+  const [activeCategory, setActiveCategory] =
+    useState<ModifierGroupCategory | null>(null)
   const sortedCategories = sortCategories(categories)
 
   return (
@@ -49,59 +53,49 @@ export function ModifierGroupsBrowser({
             </ThemedCard>
           ) : (
             sortedCategories.map((category) => (
-              <button
+              <ThemedCard
                 key={category.id}
-                type="button"
-                aria-label={`Open modifier group ${category.name}`}
-                onClick={() =>
-                  router.push(`/admin/modifiers/groups/${category.id}`)
-                }
                 className={
                   category.is_enabled
-                    ? "block w-full text-left"
-                    : "block w-full text-left opacity-75"
+                    ? "gap-0 overflow-hidden p-0"
+                    : "gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
                 }
               >
-                <ThemedCard
-                  className={
-                    category.is_enabled
-                      ? "overflow-hidden p-0"
-                      : "overflow-hidden bg-muted/30 p-0"
-                  }
+                <button
+                  type="button"
+                  aria-label={`Edit modifier group ${category.name}`}
+                  onClick={() => setActiveCategory(category)}
+                  className="block w-full px-3 pt-2.5 text-left"
                 >
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <CompactRecordStatusIcon enabled={category.is_enabled} />
-                        <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
-                          {category.name}
-                        </div>
-                      </div>
-
-                      {category.description ? (
-                        <p className="text-xs leading-5 text-muted-foreground">
-                          {category.description}
-                        </p>
-                      ) : null}
-
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>
-                          {category.modifier_groups.length}{" "}
-                          {category.modifier_groups.length === 1
-                            ? "subgroup"
-                            : "subgroups"}
-                        </span>
-                        <span>Sort {category.sort_order}</span>
+                  <div className="space-y-1.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <CompactRecordStatusIcon enabled={category.is_enabled} />
+                      <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
+                        {category.name}
                       </div>
                     </div>
 
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="size-4 shrink-0 text-muted-foreground"
-                    />
+                    {category.description ? (
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        {category.description}
+                      </p>
+                    ) : null}
                   </div>
-                </ThemedCard>
-              </button>
+                </button>
+
+                <div className="flex justify-end px-3 pb-2.5 pt-1.5">
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                    onClick={() =>
+                      router.push(`/admin/modifiers/groups/${category.id}`)
+                    }
+                  >
+                    Manage Subgroups
+                  </ThemedButton>
+                </div>
+              </ThemedCard>
             ))
           )}
         </div>
@@ -114,6 +108,17 @@ export function ModifierGroupsBrowser({
             />
           </div>
         </div>
+
+        {activeCategory ? (
+          <ModifierCategoryFormDialog
+            open={Boolean(activeCategory)}
+            onOpenChange={(open) => {
+              if (!open) setActiveCategory(null)
+            }}
+            mode="edit"
+            category={activeCategory}
+          />
+        ) : null}
       </div>
     </main>
   )

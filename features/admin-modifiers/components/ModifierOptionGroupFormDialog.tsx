@@ -2,7 +2,7 @@
 
 import { useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Check, X } from "lucide-react"
+import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { createModifierOptionGroup } from "@/features/admin-modifiers/actions/create-modifier-option-group"
 import { setModifierOptionGroupEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-group-enabled"
 import { updateModifierOptionGroup } from "@/features/admin-modifiers/actions/update-modifier-option-group"
@@ -20,7 +20,6 @@ import {
   MODIFIER_FORM_FOOTER_CLASS,
   MODIFIER_FORM_SHEET_CONTENT_CLASS,
 } from "@/features/admin-modifiers/components/modifier-form-panel-styles"
-import { ModifierStatusToggleControl } from "@/features/admin-modifiers/components/ModifierStatusToggleControl"
 import type { RawModifierOptionGroup } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierOptionGroupFormMode = "create" | "edit"
@@ -45,11 +44,13 @@ export function ModifierOptionGroupFormDialog({
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const isCreateMode = mode === "create"
-  const title = isCreateMode ? "Create subgroup" : "Edit subgroup"
+  const title = isCreateMode
+    ? "Create option group"
+    : modifierGroupName
   const description = isCreateMode
-    ? `Add a subgroup to ${modifierGroupName}.`
-    : `Update a subgroup in ${modifierGroupName}.`
-  const submitLabel = isCreateMode ? "Create subgroup" : "Save subgroup"
+    ? `Add an option group to ${modifierGroupName}.`
+    : "Update this option group."
+  const submitLabel = isCreateMode ? "Create option group" : "Save option group"
 
   async function handleSubmit(formData: FormData) {
     if (isCreateMode) {
@@ -82,8 +83,10 @@ export function ModifierOptionGroupFormDialog({
         side="bottom"
         className={MODIFIER_FORM_SHEET_CONTENT_CLASS}
       >
-        <ThemedSheetHeader className="shrink-0">
-          <ThemedSheetTitle>{title}</ThemedSheetTitle>
+        <ThemedSheetHeader className="shrink-0 border-b pb-3">
+          <ThemedSheetTitle className="text-2xl leading-tight">
+            {title}
+          </ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
@@ -108,31 +111,45 @@ export function ModifierOptionGroupFormDialog({
             ) : null}
 
             {!isCreateMode && optionGroup ? (
-              <>
-                <input
-                  type="hidden"
-                  name="isEnabled"
-                  value={String(optionGroup.is_enabled)}
-                />
-                <ModifierStatusToggleControl
-                  enabled={optionGroup.is_enabled}
-                  name={optionGroup.name}
-                  entityLabel="modifier subgroup"
-                  onToggle={() => void handleEnabledChange()}
-                />
-              </>
+              <input
+                type="hidden"
+                name="isEnabled"
+                value={String(optionGroup.is_enabled)}
+              />
             ) : null}
 
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium">Subgroup name</span>
-              <input
-                name="name"
-                defaultValue={optionGroup?.name ?? ""}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                placeholder="Example: Sauce"
-                required
-              />
-            </label>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <label className="block min-w-0 space-y-1.5 text-sm">
+                <span className="font-medium">Option group name</span>
+                <input
+                  name="name"
+                  defaultValue={optionGroup?.name ?? ""}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  placeholder="Example: Sauce"
+                  required
+                />
+              </label>
+
+              {!isCreateMode && optionGroup ? (
+                <ThemedButton
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label={`${optionGroup.is_enabled ? "Disable" : "Enable"} option group ${optionGroup.name}`}
+                  className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                  onClick={() => void handleEnabledChange()}
+                >
+                  {optionGroup.is_enabled ? (
+                    <ThumbsUp aria-hidden="true" />
+                  ) : (
+                    <ThumbsDown aria-hidden="true" />
+                  )}
+                  <span className="sr-only">
+                    {optionGroup.is_enabled ? "Disable" : "Enable"} option group
+                  </span>
+                </ThemedButton>
+              ) : null}
+            </div>
 
             <label className="block space-y-1.5 text-sm">
               <span className="font-medium">Description</span>
