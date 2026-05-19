@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Plus, X } from "lucide-react"
+import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -110,6 +110,9 @@ function OptionFormPanel({
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const [isEnabled, setIsEnabled] = useState(
+    panelState?.option?.is_enabled ?? true
+  )
 
   if (!panelState) return null
 
@@ -120,7 +123,7 @@ function OptionFormPanel({
     ? "Edit Override"
     : isCreateMode
       ? "New Option"
-      : "Edit Option"
+      : group.name
   const description = isProductOverrideMode
     ? `Update product-specific settings for ${productContext?.name}.`
     : isCreateMode
@@ -162,7 +165,7 @@ function OptionFormPanel({
             <X aria-hidden="true" />
             <span className="sr-only">Close</span>
           </ThemedButton>
-          <ThemedSheetTitle className="text-3xl font-bold text-foreground">
+          <ThemedSheetTitle className="text-3xl font-bold leading-tight text-foreground">
             {title}
           </ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
@@ -276,15 +279,45 @@ function OptionFormPanel({
                 </>
               ) : (
                 <>
-              <label className="grid gap-2">
-                <span className="text-sm font-medium">Name</span>
+              {!isCreateMode ? (
                 <input
-                  name="name"
-                  required
-                  defaultValue={option?.name ?? ""}
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  type="hidden"
+                  name="isEnabled"
+                  value={String(isEnabled)}
                 />
-              </label>
+              ) : null}
+
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                <label className="grid min-w-0 gap-2">
+                  <span className="text-sm font-medium">Option name</span>
+                  <input
+                    name="name"
+                    required
+                    defaultValue={option?.name ?? ""}
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  />
+                </label>
+
+                {!isCreateMode && option ? (
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={`${isEnabled ? "Disable" : "Enable"} variant option ${option.name}`}
+                    className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                    onClick={() => setIsEnabled((current) => !current)}
+                  >
+                    {isEnabled ? (
+                      <ThumbsUp aria-hidden="true" />
+                    ) : (
+                      <ThumbsDown aria-hidden="true" />
+                    )}
+                    <span className="sr-only">
+                      {isEnabled ? "Disable" : "Enable"} variant option
+                    </span>
+                  </ThemedButton>
+                ) : null}
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="grid gap-2">
@@ -327,17 +360,19 @@ function OptionFormPanel({
                   </select>
                 </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Status</span>
-                  <select
-                    name="isEnabled"
-                    defaultValue={option?.is_enabled === false ? "false" : "true"}
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="true">Enabled</option>
-                    <option value="false">Disabled</option>
-                  </select>
-                </label>
+                {isCreateMode ? (
+                  <label className="grid gap-2">
+                    <span className="text-sm font-medium">Status</span>
+                    <select
+                      name="isEnabled"
+                      defaultValue="true"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="true">Enabled</option>
+                      <option value="false">Disabled</option>
+                    </select>
+                  </label>
+                ) : null}
               </div>
                 </>
               )}
@@ -386,26 +421,24 @@ export function VariantGroupDetailClient({
     ? `Product-specific options for ${data.businessName}.`
     : isPreviewMode
       ? `Preview reusable variant options for ${data.businessName}.`
-    : `Reusable variant group for ${data.businessName}.`
+    : "Variant options inside this variant group."
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Variant Group Options"
+            title={group.name}
             description={description}
           />
-
-          <div>
-            <p className="text-sm font-semibold">
-              {isProductScopedMode ? "Variant Group For" : "Variant Group"}
-            </p>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              {productContext
-                ? `${productContext.name} -> ${group.name}`
-                : group.name}
-            </p>
+          {isProductScopedMode ? (
+            <div>
+              <p className="text-sm font-semibold">Variant Group For</p>
+              <p className="mt-1 truncate text-sm text-muted-foreground">
+                {productContext
+                  ? `${productContext.name} -> ${group.name}`
+                  : group.name}
+              </p>
             {isProductMode ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 Changes here are product overrides. Group defaults stay
@@ -418,12 +451,12 @@ export function VariantGroupDetailClient({
                 read-only here.
               </p>
             ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
-          <div className="pt-2">
-            <h2 className="mb-2 text-sm font-semibold">Options</h2>
+          <div>
             <div className="space-y-2">
               {group.options.length === 0 ? (
                 <ThemedCard className="p-5 text-center">
@@ -505,6 +538,7 @@ export function VariantGroupDetailClient({
       </div>
 
       <OptionFormPanel
+        key={`${optionPanelState?.mode ?? "closed"}-${optionPanelState?.option?.id ?? "new"}`}
         open={optionPanelState !== null}
         onOpenChange={(open) => {
           if (!open) setOptionPanelState(null)

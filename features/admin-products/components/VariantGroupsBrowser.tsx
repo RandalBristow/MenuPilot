@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronRight, Plus, X } from "lucide-react"
+import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -40,13 +40,22 @@ function VariantGroupFormPanel({
   open,
   onOpenChange,
   nextSortOrder,
+  group,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   nextSortOrder: number
+  group?: VariantGroupListItem | null
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isEditMode = Boolean(group)
+  const [isEnabled, setIsEnabled] = useState(group?.is_enabled ?? true)
+  const title = isEditMode ? (group?.name ?? "Edit Variant Group") : "New Variant Group"
+  const description = isEditMode
+    ? "Update this variant group."
+    : "Create a reusable variant group."
+  const submitLabel = isEditMode ? "Save Variant Group" : "Create Variant Group"
 
   async function handleSubmit(formData: FormData) {
     await saveVariantGroup(formData)
@@ -74,12 +83,10 @@ function VariantGroupFormPanel({
             <X aria-hidden="true" />
             <span className="sr-only">Close</span>
           </ThemedButton>
-          <ThemedSheetTitle className="text-3xl font-bold text-foreground">
-            New Variant Group
+          <ThemedSheetTitle className="text-3xl font-bold leading-tight text-foreground">
+            {title}
           </ThemedSheetTitle>
-          <ThemedSheetDescription>
-            Create a reusable variant group.
-          </ThemedSheetDescription>
+          <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
         <form
@@ -89,20 +96,56 @@ function VariantGroupFormPanel({
         >
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             <div className="grid gap-4">
-              <label className="grid gap-2">
-                <span className="text-sm font-medium">Name</span>
+              {group ? (
+                <input type="hidden" name="groupId" value={group.id} />
+              ) : null}
+
+              {isEditMode ? (
                 <input
-                  name="name"
-                  required
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  type="hidden"
+                  name="isEnabled"
+                  value={String(isEnabled)}
                 />
-              </label>
+              ) : null}
+
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                <label className="grid min-w-0 gap-2">
+                  <span className="text-sm font-medium">Variant group name</span>
+                  <input
+                    name="name"
+                    required
+                    defaultValue={group?.name ?? ""}
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  />
+                </label>
+
+                {isEditMode ? (
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={`${isEnabled ? "Disable" : "Enable"} variant group ${group?.name ?? ""}`}
+                    className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                    onClick={() => setIsEnabled((current) => !current)}
+                  >
+                    {isEnabled ? (
+                      <ThumbsUp aria-hidden="true" />
+                    ) : (
+                      <ThumbsDown aria-hidden="true" />
+                    )}
+                    <span className="sr-only">
+                      {isEnabled ? "Disable" : "Enable"} variant group
+                    </span>
+                  </ThemedButton>
+                ) : null}
+              </div>
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium">Description</span>
                 <textarea
                   name="description"
                   rows={3}
+                  defaultValue={group?.description ?? ""}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 />
               </label>
@@ -116,22 +159,24 @@ function VariantGroupFormPanel({
                     min="0"
                     step="1"
                     required
-                    defaultValue={String(nextSortOrder)}
+                    defaultValue={String(group?.sort_order ?? nextSortOrder)}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   />
                 </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Status</span>
-                  <select
-                    name="isEnabled"
-                    defaultValue="true"
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="true">Enabled</option>
-                    <option value="false">Disabled</option>
-                  </select>
-                </label>
+                {!isEditMode ? (
+                  <label className="grid gap-2">
+                    <span className="text-sm font-medium">Status</span>
+                    <select
+                      name="isEnabled"
+                      defaultValue="true"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="true">Enabled</option>
+                      <option value="false">Disabled</option>
+                    </select>
+                  </label>
+                ) : null}
               </div>
             </div>
           </div>
@@ -151,11 +196,11 @@ function VariantGroupFormPanel({
             <ThemedButton
               type="submit"
               size="icon"
-              aria-label="Create Variant Group"
+              aria-label={submitLabel}
               className="size-10"
             >
               <Check aria-hidden="true" />
-              <span className="sr-only">Create Variant Group</span>
+              <span className="sr-only">{submitLabel}</span>
             </ThemedButton>
           </div>
         </form>
@@ -167,6 +212,9 @@ function VariantGroupFormPanel({
 export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
+  const [activeGroup, setActiveGroup] = useState<VariantGroupListItem | null>(
+    null
+  )
   const nextSortOrder = getNextSortOrder(data.groups)
 
   return (
@@ -188,56 +236,53 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
             </ThemedCard>
           ) : (
             data.groups.map((group) => (
-              <button
+              <ThemedCard
                 key={group.id}
-                type="button"
-                aria-label={`Open variant group ${group.name}`}
-                onClick={() =>
-                  router.push(`/admin/products/variant-groups/${group.id}`)
-                }
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit variant group ${group.name}`}
+                onClick={() => setActiveGroup(group)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    setActiveGroup(group)
+                  }
+                }}
                 className={
                   group.is_enabled
-                    ? "block w-full text-left"
-                    : "block w-full text-left opacity-75"
+                    ? "cursor-pointer gap-0 overflow-hidden p-0"
+                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
                 }
-                >
-                  <ThemedCard
-                    className={
-                      group.is_enabled
-                        ? "overflow-hidden p-0"
-                        : "overflow-hidden bg-muted/30 p-0"
-                    }
-                  >
-                    <div className="flex items-center gap-2 px-3 py-2.5">
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <CompactRecordStatusIcon
-                            enabled={group.is_enabled}
-                          />
-                          <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
-                            {group.name}
-                          </div>
-                        </div>
-
-                        {group.description ? (
-                          <p className="text-xs leading-5 text-muted-foreground">
-                            {group.description}
-                          </p>
-                        ) : null}
-
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                          <span>{group.optionCount} options</span>
-                          <span>Sort {group.sort_order}</span>
-                        </div>
-                      </div>
-
-                      <ChevronRight
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
+              >
+                <div className="px-3 pt-2.5 text-left">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <CompactRecordStatusIcon enabled={group.is_enabled} />
+                    <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
+                      {group.name}
                     </div>
-                </ThemedCard>
-              </button>
+                  </div>
+
+                  {group.description ? (
+                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                      {group.description}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex justify-end px-3 pb-2.5 pt-1.5">
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      router.push(`/admin/products/variant-groups/${group.id}`)
+                    }}
+                  >
+                    Manage Options
+                  </ThemedButton>
+                </div>
+              </ThemedCard>
             ))
           )}
         </div>
@@ -263,6 +308,17 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
         onOpenChange={setIsCreating}
         nextSortOrder={nextSortOrder}
       />
+
+      {activeGroup ? (
+        <VariantGroupFormPanel
+          open={Boolean(activeGroup)}
+          onOpenChange={(open) => {
+            if (!open) setActiveGroup(null)
+          }}
+          nextSortOrder={nextSortOrder}
+          group={activeGroup}
+        />
+      ) : null}
     </main>
   )
 }
