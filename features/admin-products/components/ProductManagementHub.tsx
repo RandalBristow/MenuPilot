@@ -26,9 +26,9 @@ const productHubLinks = [
     description: "Manage reusable size, drink, and count groups.",
   },
   {
-    title: "Product Modifier Groups",
-    href: "/admin/products/modifier-groups",
-    description: "Attach modifier groups to products.",
+    title: "Modifier Groups",
+    href: "/admin/modifiers/groups",
+    description: "Manage reusable product modifier groups.",
   },
 ]
 

@@ -6,12 +6,7 @@ const adminLinks = [
   {
     title: "Products",
     href: "/admin/products",
-    description: "Create and manage products, categories, variants, and modifiers.",
-  },
-  {
-    title: "Modifiers",
-    href: "/admin/modifiers",
-    description: "Review modifier groups, options, subgroups, and enabled states.",
+    description: "Create and manage products, categories, variants, and modifier groups.",
   },
   {
     title: "Staff Orders",

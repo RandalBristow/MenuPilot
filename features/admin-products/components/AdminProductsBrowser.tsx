@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Plus } from "lucide-react"
+import { ListTree, Plus, SlidersHorizontal } from "lucide-react"
 import { useMemo, useState } from "react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
@@ -174,18 +174,34 @@ export function AdminProductsBrowser({
                               }
                               description={product.description}
                               rightAction={
-                                <ThemedButton
-                                  asChild
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 bg-background px-2 text-xs text-foreground hover:bg-muted"
-                                >
-                                  <Link
-                                    href={`/admin/products/variant-assignments?productId=${product.id}`}
+                                <>
+                                  <ThemedButton
+                                    asChild
+                                    size="icon-sm"
+                                    variant="outline"
+                                    aria-label={`Manage variant assignment for ${product.name}`}
+                                    className="size-8 bg-background text-foreground hover:bg-muted"
                                   >
-                                    Variant Assignment
-                                  </Link>
-                                </ThemedButton>
+                                    <Link
+                                      href={`/admin/products/variant-assignments?productId=${product.id}`}
+                                    >
+                                      <ListTree aria-hidden="true" />
+                                    </Link>
+                                  </ThemedButton>
+                                  <ThemedButton
+                                    asChild
+                                    size="icon-sm"
+                                    variant="outline"
+                                    aria-label={`Manage modifier groups for ${product.name}`}
+                                    className="size-8 bg-background text-foreground hover:bg-muted"
+                                  >
+                                    <Link
+                                      href={`/admin/products/modifier-groups?productId=${product.id}`}
+                                    >
+                                      <SlidersHorizontal aria-hidden="true" />
+                                    </Link>
+                                  </ThemedButton>
+                                </>
                               }
                             />
                           </ThemedCard>

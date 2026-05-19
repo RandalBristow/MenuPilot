@@ -9,6 +9,10 @@ import type { CartItem, CartModifier } from "@/features/cart/types/cart"
 import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety"
 import { filterEnabledModifierOptions } from "@/features/product-configurator/utils/filter-enabled-modifier-options"
 import { filterEnabledProductVariants } from "@/features/product-configurator/utils/filter-enabled-product-variants"
+import {
+  filterModifierOptionsByVariant,
+  removeUnavailableSelectedModifiers,
+} from "@/features/product-configurator/utils/filter-modifier-options-by-variant"
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation"
 import {
   Dialog,
@@ -103,7 +107,7 @@ export function StandardItemBuilder({
     (variant) => variant.id === variantId
   )
 
-  const modifierGroups = useMemo(
+  const baseModifierGroups = useMemo(
     () =>
       [...(product.product_modifier_groups ?? [])]
         .sort((first, second) => first.sort_order - second.sort_order)
@@ -128,6 +132,41 @@ export function StandardItemBuilder({
         }),
     [product.product_modifier_groups, product.product_included_modifier_groups]
   )
+
+  const modifierGroups = useMemo(
+    () =>
+      filterModifierOptionsByVariant({
+        selectedVariantId: selectedVariant?.id,
+        modifierGroups: baseModifierGroups,
+        availabilityRules:
+          product.product_variant_modifier_option_availability_rules ?? [],
+      }),
+    [
+      baseModifierGroups,
+      selectedVariant?.id,
+      product.product_variant_modifier_option_availability_rules,
+    ]
+  )
+
+  function handleVariantChange(nextVariantId: string) {
+    const nextVariant = sortedVariants.find(
+      (variant) => variant.id === nextVariantId
+    )
+    const nextModifierGroups = filterModifierOptionsByVariant({
+      selectedVariantId: nextVariant?.id,
+      modifierGroups: baseModifierGroups,
+      availabilityRules:
+        product.product_variant_modifier_option_availability_rules ?? [],
+    })
+
+    setVariantId(nextVariantId)
+    setSelectedModifiers((current) =>
+      removeUnavailableSelectedModifiers({
+        selectedModifiers: current,
+        modifierGroups: nextModifierGroups,
+      })
+    )
+  }
 
   const unitTotal = useMemo(() => {
     const basePrice = selectedVariant?.base_price ?? product.base_price ?? 0
@@ -285,7 +324,7 @@ export function StandardItemBuilder({
                   <button
                     key={variant.id}
                     type="button"
-                    onClick={() => setVariantId(variant.id)}
+                    onClick={() => handleVariantChange(variant.id)}
                     className={`flex min-h-12 items-center justify-between rounded-lg border p-3 text-left ${
                       variantId === variant.id
                         ? "border-primary bg-primary/5"

@@ -205,10 +205,9 @@ export async function getProductFormData(
 }
 
 export async function ProductForm({ productId }: ProductFormProps) {
-  const { businessName, menuGroups, modifierGroups, product } =
+  const { businessName, menuGroups, product } =
     await getProductFormData(productId)
   const isEditMode = product !== null
-  const selectedModifierGroupIds = new Set(product?.modifierGroupIds ?? [])
 
   return (
     <main className={PRODUCT_ADMIN_PANEL_PAGE_CLASS}>
@@ -254,6 +253,14 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   name="isEnabled"
                   value={String(product.is_enabled)}
                 />
+                {product.modifierGroupIds.map((modifierGroupId) => (
+                  <input
+                    key={modifierGroupId}
+                    type="hidden"
+                    name="modifierGroupIds"
+                    value={modifierGroupId}
+                  />
+                ))}
               </>
             ) : null}
 
@@ -322,47 +329,6 @@ export async function ProductForm({ productId }: ProductFormProps) {
                 </select>
               </label>
             </div>
-
-            <section className="space-y-3">
-              <div>
-                <h2 className="text-base font-semibold">Modifier groups</h2>
-                <p className="text-sm text-muted-foreground">
-                  Attach any modifier groups this product should use.
-                </p>
-              </div>
-
-              {modifierGroups.length === 0 ? (
-                <p className="rounded-md border p-3 text-sm text-muted-foreground">
-                  No modifier groups are available yet.
-                </p>
-              ) : (
-                <div className="grid gap-2">
-                  {modifierGroups.map((group) => (
-                    <label
-                      key={group.id}
-                      className="flex items-start gap-3 rounded-md border p-3"
-                    >
-                      <input
-                        type="checkbox"
-                        name="modifierGroupIds"
-                        value={group.id}
-                        defaultChecked={selectedModifierGroupIds.has(group.id)}
-                        className="mt-1"
-                      />
-                      <span>
-                        <span className="block text-sm font-medium">
-                          {group.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {group.is_required ? "Required" : "Optional"} •{" "}
-                          {group.selection_type}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </section>
 
           </div>
 

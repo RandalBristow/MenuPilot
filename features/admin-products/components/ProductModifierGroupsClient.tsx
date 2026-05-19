@@ -1,17 +1,17 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Plus, X } from "lucide-react"
-import { CompactRecordActionButton } from "@/components/themed/CompactRecordActionButton"
-import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
+import { LinkIcon, SlidersHorizontal, Unlink } from "lucide-react"
+import { useState } from "react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
-import { ThemedHeading } from "@/components/themed/ThemedHeading"
-import { updateProduct } from "@/features/admin-products/actions/update-product"
-import { ProductUpdateHiddenFields } from "@/features/admin-products/components/ProductAdminFormParts"
-import type { ExistingProduct } from "@/features/admin-products/components/ProductForm"
+import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
+import {
+  attachProductModifierGroup,
+  detachProductModifierGroup,
+} from "@/features/admin-products/actions/save-product-modifier-group-assignment"
 import type {
   ProductModifierGroupManagementData,
   ProductModifierGroupOption,
@@ -21,80 +21,118 @@ type ProductModifierGroupsClientProps = {
   data: ProductModifierGroupManagementData
 }
 
-function RelationshipForm({
-  product,
-  modifierGroupId,
-  mode,
-}: {
-  product: ExistingProduct
-  modifierGroupId: string
-  mode: "attach" | "detach"
-}) {
-  const nextModifierGroupIds =
-    mode === "attach"
-      ? [...new Set([...product.modifierGroupIds, modifierGroupId])]
-      : product.modifierGroupIds.filter((id) => id !== modifierGroupId)
-
-  return (
-    <form action={updateProduct}>
-      <ProductUpdateHiddenFields
-        product={product}
-        redirectTo={`/admin/products/modifier-groups?productId=${product.id}`}
-        includeModifierGroups={false}
-      />
-      {nextModifierGroupIds.map((id) => (
-        <input key={id} type="hidden" name="modifierGroupIds" value={id} />
-      ))}
-      <CompactRecordActionButton
-        type="submit"
-        aria-label={
-          mode === "attach"
-            ? "Attach modifier group"
-            : "Detach modifier group"
-        }
-      >
-        {mode === "attach" ? (
-          <Plus aria-hidden="true" />
-        ) : (
-          <X aria-hidden="true" />
-        )}
-      </CompactRecordActionButton>
-    </form>
-  )
+type ModifierGroupCardProps = {
+  group: ProductModifierGroupOption
+  activeProductId: string
+  assignmentId?: string
+  selected?: boolean
+  onAttach: (formData: FormData) => void
+  onDetach: (formData: FormData) => void
 }
 
-function ModifierGroupRow({
-  product,
+function getGroupDescription(group: ProductModifierGroupOption) {
+  const requiredLabel = group.is_required ? "Required" : "Optional"
+
+  return `${requiredLabel} - ${group.selection_type}`
+}
+
+function getModifierGroupHref(groupId: string, productId?: string) {
+  const baseHref = `/admin/modifiers/${groupId}`
+
+  if (!productId) return baseHref
+
+  return `${baseHref}?productId=${encodeURIComponent(productId)}`
+}
+
+function ModifierGroupCard({
   group,
-  mode,
-}: {
-  product: ExistingProduct
-  group: ProductModifierGroupOption
-  mode: "attach" | "detach"
-}) {
+  activeProductId,
+  assignmentId,
+  selected = false,
+  onAttach,
+  onDetach,
+}: ModifierGroupCardProps) {
+  const groupHref = getModifierGroupHref(group.id, activeProductId)
+
   return (
     <ThemedCard
       className={
         group.is_enabled
-          ? "overflow-hidden py-0"
-          : "overflow-hidden bg-muted/30 py-0 opacity-75"
+          ? "relative overflow-hidden p-0"
+          : "relative overflow-hidden bg-muted/30 p-0 opacity-75"
       }
     >
-      <CompactRecordRow
-        title={group.name}
-        statusIcon={<CompactRecordStatusIcon enabled={group.is_enabled} />}
-        description={`${group.is_required ? "Required" : "Optional"} - ${
-          group.selection_type
-        }`}
-        className="space-y-1.5 px-2.5 py-2"
-        rightAction={
-          <RelationshipForm
-            product={product}
-            modifierGroupId={group.id}
-            mode={mode}
-          />
-        }
+      <Link
+        href={groupHref}
+        aria-label={`Open modifier group ${group.name}`}
+        className="absolute inset-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       />
+      <div className="px-3 py-2.5">
+        <div>
+          <div className="flex min-w-0 items-center gap-2">
+            <CompactRecordStatusIcon
+              enabled={group.is_enabled}
+              enabledLabel={
+                selected
+                  ? "Assigned modifier group"
+                  : "Modifier group enabled"
+              }
+              disabledLabel="Modifier group disabled"
+            />
+            <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
+              {group.name}
+            </div>
+          </div>
+
+          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+            {getGroupDescription(group)}
+          </p>
+        </div>
+
+        <div className="mt-1.5 flex items-end justify-between gap-3">
+          <span className="inline-flex items-center gap-1 text-xs leading-5 text-muted-foreground">
+            <SlidersHorizontal aria-hidden="true" className="size-3.5" />
+            Product choices
+          </span>
+
+          {selected ? (
+            <form action={onDetach} className="relative z-10">
+              <input type="hidden" name="productId" value={activeProductId} />
+              <input
+                type="hidden"
+                name="assignmentId"
+                value={assignmentId ?? ""}
+              />
+              <ThemedButton
+                type="submit"
+                size="icon-sm"
+                aria-label={`Remove ${group.name} from this product`}
+                className="size-8"
+              >
+                <Unlink aria-hidden="true" />
+                <span className="sr-only">
+                  Remove {group.name} from this product
+                </span>
+              </ThemedButton>
+            </form>
+          ) : (
+            <form action={onAttach} className="relative z-10">
+              <input type="hidden" name="productId" value={activeProductId} />
+              <input type="hidden" name="modifierGroupId" value={group.id} />
+              <ThemedButton
+                type="submit"
+                size="icon-sm"
+                variant="outline"
+                aria-label={`Attach ${group.name}`}
+                className="size-8 bg-background text-foreground hover:bg-muted"
+              >
+                <LinkIcon aria-hidden="true" />
+                <span className="sr-only">Attach {group.name}</span>
+              </ThemedButton>
+            </form>
+          )}
+        </div>
+      </div>
     </ThemedCard>
   )
 }
@@ -103,138 +141,148 @@ export function ProductModifierGroupsClient({
   data,
 }: ProductModifierGroupsClientProps) {
   const router = useRouter()
-  const { products, product, businessName, modifierCategories } = data
-  const [selectedCategoryId, setSelectedCategoryId] = useState(
-    modifierCategories[0]?.id ?? ""
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const {
+    selectedProductId,
+    selectedProductName,
+    modifierCategories,
+    modifierAssignments,
+  } = data
+  const activeProductId = selectedProductId ?? ""
+  const activeProductName = selectedProductName ?? "this product"
+  const allGroups = modifierCategories.flatMap((category) =>
+    category.modifier_groups.map((group) => ({
+      ...group,
+      categoryName: category.name,
+    }))
   )
-  const attachedIds = useMemo(
-    () => new Set(product?.modifierGroupIds ?? []),
-    [product?.modifierGroupIds]
+  const assignmentsByGroupId = new Map(
+    modifierAssignments.map((assignment) => [
+      assignment.modifier_group_id,
+      assignment,
+    ])
   )
-  const selectedCategory =
-    modifierCategories.find((category) => category.id === selectedCategoryId) ??
-    modifierCategories[0] ??
-    null
-  const allModifierGroups = modifierCategories.flatMap(
-    (category) => category.modifier_groups
+  const attachedGroups = allGroups.filter((group) =>
+    assignmentsByGroupId.has(group.id)
   )
-  const attachedGroups = product
-    ? allModifierGroups.filter((group) => attachedIds.has(group.id))
-    : []
-  const availableGroups =
-    selectedCategory?.modifier_groups.filter((group) => !attachedIds.has(group.id)) ??
-    []
+  const availableGroups = allGroups.filter(
+    (group) => !assignmentsByGroupId.has(group.id)
+  )
 
-  function handleProductChange(productId: string) {
-    router.push(`/admin/products/modifier-groups?productId=${productId}`)
+  async function handleAttach(formData: FormData) {
+    setSubmitError(null)
+
+    try {
+      await attachProductModifierGroup(formData)
+      router.refresh()
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Could not attach modifier group."
+      )
+    }
+  }
+
+  async function handleDetach(formData: FormData) {
+    setSubmitError(null)
+
+    try {
+      await detachProductModifierGroup(formData)
+      router.refresh()
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Could not remove modifier group."
+      )
+    }
   }
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col">
-        <div className="shrink-0 space-y-3 border-b pb-1.5">
-          <div className="space-y-2">
-            <ThemedHeading>Product Modifier Groups</ThemedHeading>
-            <p className="text-sm text-muted-foreground">
-              Manage modifier group attachments for {businessName}.
+      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
+        <div className="shrink-0 space-y-3 border-b pb-3">
+          <ThemedPageHeader
+            title="Modifier Groups"
+            description={`Attach reusable modifier groups for ${data.businessName}.`}
+          />
+
+          <div>
+            <p className="text-sm font-semibold">Product</p>
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              {activeProductName}
             </p>
-          </div>
-          <label className="grid gap-1.5 text-sm">
-            <span className="font-medium">Product</span>
-            <select
-              value={product?.id ?? ""}
-              onChange={(event) => handleProductChange(event.target.value)}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              {products.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="no-scrollbar flex gap-2 overflow-x-auto">
-            {modifierCategories.map((category) => (
-              <ThemedButton
-                key={category.id}
-                type="button"
-                size="sm"
-                onClick={() => setSelectedCategoryId(category.id)}
-                className={
-                  category.id === selectedCategory?.id
-                    ? "shrink-0 rounded-full"
-                    : "shrink-0 rounded-full border bg-background text-foreground hover:bg-muted"
-                }
-              >
-                {category.name}
-              </ThemedButton>
-            ))}
           </div>
         </div>
 
-        <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pb-4 pt-3">
-          {!product ? (
+        <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pb-3">
+          {!activeProductId ? (
             <ThemedCard className="p-5 text-center">
-              <p className="font-semibold">No products yet</p>
+              <p className="font-semibold">No product selected</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Create a product before managing modifier groups.
+                Open this page from a product card to manage choices.
               </p>
             </ThemedCard>
           ) : (
             <>
               <section className="space-y-2">
-                <div>
-                  <h2 className="text-base font-semibold">Attached</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Modifier groups currently assigned to this product.
-                  </p>
-                </div>
+                <h2 className="text-sm font-semibold">Assigned Modifier Groups</h2>
                 {attachedGroups.length === 0 ? (
-                  <ThemedCard className="p-4 text-sm text-muted-foreground">
-                    No modifier groups attached.
+                  <ThemedCard className="p-5 text-center">
+                    <p className="font-semibold">No choice groups attached</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Attach reusable modifier groups before this product can
+                      offer choices.
+                    </p>
                   </ThemedCard>
                 ) : (
-                  <div className="space-y-2">
-                    {attachedGroups.map((group) => (
-                      <ModifierGroupRow
-                        key={group.id}
-                        product={product}
-                        group={group}
-                        mode="detach"
-                      />
-                    ))}
-                  </div>
+                  attachedGroups.map((group) => (
+                    <ModifierGroupCard
+                      key={group.id}
+                      group={group}
+                      activeProductId={activeProductId}
+                      assignmentId={assignmentsByGroupId.get(group.id)?.id}
+                      selected
+                      onAttach={handleAttach}
+                      onDetach={handleDetach}
+                    />
+                  ))
                 )}
               </section>
 
               <section className="space-y-2">
-                <div>
-                  <h2 className="text-base font-semibold">Available</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Filter by modifier category, then attach what this product
-                    should use.
-                  </p>
-                </div>
+                <h2 className="text-sm font-semibold">Available Modifier Groups</h2>
                 {availableGroups.length === 0 ? (
-                  <ThemedCard className="p-4 text-sm text-muted-foreground">
-                    No available modifier groups in this category.
+                  <ThemedCard className="p-5 text-center">
+                    <p className="font-semibold">No groups available</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      All reusable modifier groups are already attached.
+                    </p>
                   </ThemedCard>
                 ) : (
-                  <div className="space-y-2">
-                    {availableGroups.map((group) => (
-                      <ModifierGroupRow
-                        key={group.id}
-                        product={product}
-                        group={group}
-                        mode="attach"
-                      />
-                    ))}
-                  </div>
+                  availableGroups.map((group) => (
+                    <ModifierGroupCard
+                      key={group.id}
+                      group={group}
+                      activeProductId={activeProductId}
+                      onAttach={handleAttach}
+                      onDetach={handleDetach}
+                    />
+                  ))
                 )}
               </section>
+
+              {submitError ? (
+                <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  {submitError}
+                </p>
+              ) : null}
             </>
           )}
         </div>
+
+        <div className="shrink-0 border-t" aria-hidden="true" />
       </div>
     </main>
   )

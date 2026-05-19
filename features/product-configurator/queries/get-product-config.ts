@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client"
+import { applyEffectiveModifierGroups } from "@/features/product-configurator/utils/apply-effective-modifier-groups"
 import { applyEffectiveVariants } from "@/features/product-configurator/utils/apply-effective-product-variants"
 
 export async function getProductConfig(productId: string) {
@@ -33,6 +34,21 @@ export async function getProductConfig(productId: string) {
         price_override,
         is_enabled,
         is_default,
+        sort_order
+      ),
+      product_variant_modifier_option_availability_rules (
+        product_id,
+        variant_group_option_id,
+        modifier_group_id,
+        modifier_option_id,
+        is_available,
+        is_enabled
+      ),
+      product_modifier_option_overrides (
+        modifier_option_id,
+        price_delta_override,
+        prep_time_delta_minutes_override,
+        is_enabled,
         sort_order
       ),
       product_modifier_groups (
@@ -85,5 +101,5 @@ export async function getProductConfig(productId: string) {
     throw new Error(`Failed to load product config: ${error.message}`)
   }
 
-  return applyEffectiveVariants(data)
+  return applyEffectiveModifierGroups(applyEffectiveVariants(data))
 }

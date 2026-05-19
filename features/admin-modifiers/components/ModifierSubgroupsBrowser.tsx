@@ -71,20 +71,23 @@ export function ModifierSubgroupsBrowser({
           ))}
         </div>
 
-        <label className="block space-y-1.5 text-sm">
-          <span className="font-medium">Modifier group</span>
-          <select
-            value={selectedGroup?.id ?? ""}
-            onChange={(event) => setSelectedGroupId(event.target.value)}
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-          >
-            {visibleGroups.map(({ group }) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="no-scrollbar flex gap-2 overflow-x-auto">
+          {visibleGroups.map(({ group }) => (
+            <ThemedButton
+              key={group.id}
+              type="button"
+              size="sm"
+              onClick={() => setSelectedGroupId(group.id)}
+              className={
+                group.id === selectedGroup?.id
+                  ? "shrink-0 rounded-full"
+                  : "shrink-0 rounded-full bg-muted text-foreground hover:bg-muted/80"
+              }
+            >
+              {group.name}
+            </ThemedButton>
+          ))}
+        </div>
       </div>
 
       {selectedGroup ? (

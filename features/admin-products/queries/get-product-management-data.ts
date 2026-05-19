@@ -16,6 +16,7 @@ export type ProductOption = {
 export type ProductManagementData = ProductFormData & {
   products: ProductOption[]
   selectedProductId: string | null
+  selectedProductName: string | null
 }
 
 export type ProductModifierGroupOption = {
@@ -38,6 +39,13 @@ export type ProductModifierGroupCategory = {
 
 export type ProductModifierGroupManagementData = ProductManagementData & {
   modifierCategories: ProductModifierGroupCategory[]
+  modifierAssignments: {
+    id: string
+    product_id: string
+    modifier_group_id: string
+    is_enabled: boolean
+    sort_order: number
+  }[]
 }
 
 async function getBusinessId() {
@@ -116,6 +124,9 @@ export async function getProductManagementData(
     ...formData,
     products,
     selectedProductId,
+    selectedProductName:
+      products.find((product) => product.id === selectedProductId)?.name ??
+      null,
   }
 }
 
@@ -138,7 +149,8 @@ export async function getProductModifierGroupManagementData(
     getProductManagementData(requestedProductId),
     getBusinessId(),
   ])
-  const { data, error } = await supabaseAdmin
+  const [{ data, error }, assignmentsResult] = await Promise.all([
+    supabaseAdmin
     .from("modifier_group_categories")
     .select(
       `
@@ -158,10 +170,24 @@ export async function getProductModifierGroupManagementData(
     `
     )
     .eq("business_id", businessId)
-    .order("sort_order", { ascending: true })
+    .order("sort_order", { ascending: true }),
+    productData.selectedProductId
+      ? supabaseAdmin
+          .from("product_modifier_groups")
+          .select("id, product_id, modifier_group_id, is_enabled, sort_order")
+          .eq("business_id", businessId)
+          .eq("product_id", productData.selectedProductId)
+      : Promise.resolve({ data: [], error: null }),
+  ])
 
   if (error) {
     throw new Error(`Could not load modifier categories: ${error.message}`)
+  }
+
+  if (assignmentsResult.error) {
+    throw new Error(
+      `Could not load modifier assignments: ${assignmentsResult.error.message}`
+    )
   }
 
   const modifierCategories = ((data ?? []) as ProductModifierGroupCategory[]).map(
@@ -174,5 +200,6 @@ export async function getProductModifierGroupManagementData(
   return {
     ...productData,
     modifierCategories: sortBySortOrder(modifierCategories),
+    modifierAssignments: (assignmentsResult.data ?? []) as ProductModifierGroupManagementData["modifierAssignments"],
   }
 }

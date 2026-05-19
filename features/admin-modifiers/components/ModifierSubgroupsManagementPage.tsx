@@ -9,7 +9,7 @@ export async function ModifierSubgroupsManagementPage() {
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-2">
-          <ThemedHeading>Modifier Subgroups</ThemedHeading>
+          <ThemedHeading>Modifier Group Subgroups</ThemedHeading>
           <p className="text-sm text-muted-foreground">
             Manage option grouping inside modifier groups for {businessName}.
           </p>

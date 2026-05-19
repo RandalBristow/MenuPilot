@@ -1,6 +1,6 @@
 # MenuPilot Completion Checklist
 
-_Last updated: 2026-05-15_
+_Last updated: 2026-05-19_
 
 This file is the step-by-step project itinerary. The project is considered complete when every required checklist item is complete or intentionally deferred with a documented reason.
 
@@ -26,7 +26,19 @@ Completed:
 - [x] Reusable variant groups schema and seed data
 - [x] Product-to-variant-group assignment admin flow
 - [x] Per-product variant option overrides
+- [x] Checkout pickup order creation
+- [x] Staff order queue and status updates
+- [x] Modifier group hierarchy redesign
+- [x] Product-to-modifier-group assignment admin flow
+- [x] Per-product modifier option overrides
+- [x] Variant-specific modifier option availability filtering
 - [x] Pricing tests passing
+
+Next focus:
+- [ ] Verify modifier group/subgroup/option pages across mobile widths
+- [ ] Add server-side checkout price recalculation and validation
+- [ ] Move checkout order creation to a transaction/RPC-style pattern
+- [ ] Add auth/role protection for admin and staff routes
 
 ---
 
@@ -61,7 +73,7 @@ Completed:
 - [x] Configure path alias `@/*`
 - [x] Confirm app runs locally
 - [x] Clean default starter files
-- [ ] Add base README
+- [x] Add base README
 - [x] Add `.env.local.example`
 - [ ] Add `.gitignore` review
 - [x] Add formatter/linting configuration
@@ -250,34 +262,38 @@ For each feature:
 
 ## 3.6 Modifiers
 
-- [ ] Create `modifier_groups`
-- [ ] Create `modifier_options`
-- [ ] Create `product_modifier_groups`
-- [ ] Add fields for required/min/max selection
-- [ ] Add support for placement
-- [ ] Add support for multiplier
-- [ ] Add support for min/max multiplier
-- [ ] Add support for option prep-time deltas
-- [ ] Add sort order fields
+- [x] Create `modifier_group_categories`
+- [x] Create `modifier_groups`
+- [x] Create `modifier_option_groups`
+- [x] Create `modifier_options`
+- [x] Create `product_modifier_groups`
+- [x] Create `product_modifier_option_overrides`
+- [x] Add fields for required/min/max selection
+- [x] Add support for placement
+- [x] Add support for multiplier
+- [x] Add support for min/max multiplier
+- [x] Add support for option prep-time deltas
+- [x] Add sort order fields
 
 ## 3.7 Modifier rules
 
-- [ ] Create `product_modifier_option_price_rules`
-- [ ] Create `product_modifier_option_availability_rules`
-- [ ] Create `modifier_option_dependency_rules`
+- [x] Create `product_modifier_option_price_rules`
+- [x] Create `product_modifier_option_availability_rules`
+- [x] Create `modifier_option_dependency_rules`
+- [x] Create `product_variant_modifier_option_availability_rules`
 - [ ] Add location-specific rule support
-- [ ] Add variant-specific rule support
-- [ ] Add product-specific rule support
+- [x] Add variant-specific rule support
+- [x] Add product-specific rule support
 - [ ] Add selected-option dependency support
-- [ ] Add indexes for configuration queries
+- [x] Add indexes for configuration queries
 
 ## 3.8 Included modifiers
 
-- [ ] Create `product_included_modifier_groups`
-- [ ] Create `product_default_modifier_options`
-- [ ] Add included quantity field
-- [ ] Add swappable flag
-- [ ] Add removable flag
+- [x] Create `product_included_modifier_groups`
+- [x] Create `product_default_modifier_options`
+- [x] Add included quantity field
+- [x] Add swappable flag
+- [x] Add removable flag
 - [ ] Add variant-specific support
 - [ ] Add indexes
 
@@ -294,25 +310,25 @@ For each feature:
 
 ## 3.10 Orders
 
-- [ ] Create `orders`
-- [ ] Create `order_items`
-- [ ] Create `order_item_modifiers`
-- [ ] Add order number
-- [ ] Add customer fields
-- [ ] Add fulfillment fields
-- [ ] Add status fields
-- [ ] Add pricing totals
-- [ ] Add prep estimate fields
-- [ ] Add requested/accepted/ready/completed/cancelled timestamps
-- [ ] Add product snapshot fields
-- [ ] Add modifier snapshot fields
-- [ ] Add parent order item relationship for add-ons
+- [x] Create `orders`
+- [x] Create `order_items`
+- [x] Create `order_item_modifiers`
+- [x] Add order number
+- [x] Add customer fields
+- [x] Add fulfillment fields
+- [x] Add status fields
+- [x] Add pricing totals
+- [x] Add prep estimate fields
+- [x] Add requested/accepted/ready/completed/cancelled timestamps
+- [x] Add product snapshot fields
+- [x] Add modifier snapshot fields
+- [x] Add parent order item relationship for add-ons
 - [ ] Add indexes for order search
-- [ ] Add indexes for staff live order queue
+- [x] Add indexes for staff live order queue
 
 ## 3.11 Payments
 
-- [ ] Create `payments`
+- [x] Create `payments`
 - [ ] Create `payment_refunds`
 - [ ] Add provider fields
 - [ ] Add Stripe payment intent/session fields
@@ -699,45 +715,50 @@ For each feature:
 
 ## 13.1 Modifier groups
 
-- [ ] Build modifier group list
-- [ ] Add modifier group
-- [ ] Edit modifier group
-- [ ] Enable/disable group
-- [ ] Set selection type
-- [ ] Set required flag
-- [ ] Set min required
-- [ ] Set max allowed
-- [ ] Set placement support
-- [ ] Set multiplier support
-- [ ] Set min multiplier
-- [ ] Set max multiplier
-- [ ] Set multiplier step
-- [ ] Reorder groups
+- [x] Build top-level modifier group list from `modifier_group_categories`
+- [x] Add top-level modifier group
+- [x] Edit top-level modifier group
+- [x] Build modifier subgroup list from `modifier_groups`
+- [x] Add modifier subgroup
+- [x] Edit modifier subgroup
+- [x] Enable/disable subgroup
+- [x] Set selection type
+- [x] Set required flag
+- [x] Set min required
+- [x] Set max allowed
+- [x] Set placement support
+- [x] Set multiplier support
+- [x] Set min multiplier
+- [x] Set max multiplier
+- [x] Set multiplier step
+- [x] Reorder groups
+- [x] Show modifier subgroups with chip filters instead of dropdowns
 
 ## 13.2 Modifier options
 
-- [ ] Add modifier option
-- [ ] Edit modifier option
-- [ ] Enable/disable option
-- [ ] Set default price delta
-- [ ] Set prep time delta
-- [ ] Reorder options
+- [x] Build option group list from `modifier_option_groups`
+- [x] Add modifier option
+- [x] Edit modifier option
+- [x] Enable/disable option
+- [x] Set default price delta
+- [x] Set prep time delta
+- [x] Reorder options
 
 ## 13.3 Assign modifiers to products
 
-- [ ] Build product modifier assignment UI
-- [ ] Assign modifier group to product
+- [x] Build product modifier assignment UI
+- [x] Assign modifier group to product
 - [ ] Reorder product modifier groups
-- [ ] Enable/disable modifier group per product
+- [x] Enable/disable modifier group per product
 - [ ] Configure required behavior per product if needed
 
 ## 13.4 Modifier price rules
 
-- [ ] Build price rule editor
-- [ ] Set product-specific option price
+- [x] Build product-specific option override editor
+- [x] Set product-specific option price
 - [ ] Set variant-specific option price
 - [ ] Set location-specific option price
-- [ ] Set prep-time override
+- [x] Set prep-time override
 - [ ] Display resolved price in admin preview
 - [ ] Test ham pizza/salad/sub example
 
@@ -745,10 +766,10 @@ For each feature:
 
 - [ ] Build availability rule editor
 - [ ] Set option available by product
-- [ ] Set option available by variant
+- [x] Set option available by variant
 - [ ] Set option available by location
 - [ ] Set dependency on another modifier option
-- [ ] Test gluten-free only on 10 inch pizza
+- [x] Test gluten-free only on 10 inch pizza
 - [ ] Test crust style filtered by crust type
 
 ---
@@ -1367,7 +1388,8 @@ For each feature:
 - [x] Test pricing resolver
 - [x] Test effective reusable variant resolver
 - [x] Test one-enabled-variant-group assignment rule
-- [ ] Test modifier availability resolver
+- [x] Test modifier availability resolver
+- [x] Test effective modifier override resolver
 - [ ] Test dependency resolver
 - [x] Test included credits
 - [ ] Test related add-on removal
@@ -1430,7 +1452,9 @@ The MVP is complete when:
 - [x] Reusable variant groups/options can be created
 - [x] Reusable variant groups can be assigned to products
 - [x] Product-specific variant option overrides can be created
-- [ ] Modifier groups/options can be created
+- [x] Modifier groups/options can be created
+- [x] Reusable modifier groups can be assigned to products
+- [x] Product-specific modifier option overrides can be created
 - [x] Product configuration works for pizza
 - [x] Customer can browse menu
 - [x] Customer can configure item
