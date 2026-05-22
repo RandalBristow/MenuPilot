@@ -5,6 +5,17 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 
 const BUSINESS_SLUG = "pronto-demo"
 
+function isMissingModifierOverrideTableError(error: {
+  code?: string
+  message: string
+}) {
+  return (
+    error.code === "PGRST205" ||
+    error.message.includes("product_modifier_option_overrides") ||
+    error.message.includes("schema cache")
+  )
+}
+
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new Error(`${fieldName} is required.`)
@@ -107,6 +118,10 @@ async function deleteProductModifierOptionOverrides({
     .in("modifier_option_id", optionIds)
 
   if (error) {
+    if (isMissingModifierOverrideTableError(error)) {
+      return
+    }
+
     throw new Error(`Could not remove product modifier overrides: ${error.message}`)
   }
 }

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { X } from "lucide-react"
+import { LinkIcon, Unlink, X } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -83,11 +83,7 @@ function VariantGroupCard({
           </p>
         </div>
 
-        <div className="mt-1.5 flex items-end justify-end gap-3">
-          <span className="text-xs leading-5 text-muted-foreground">
-            {group.optionCount} options
-          </span>
-
+        <div className="mt-1.5 flex justify-end">
           {selected ? (
             <form action={onDetach} className="relative z-10">
               <input type="hidden" name="productId" value={activeProductId} />
@@ -98,11 +94,12 @@ function VariantGroupCard({
               />
               <ThemedButton
                 type="submit"
-                size="sm"
+                size="icon"
                 aria-label={`Remove ${group.name} from this product`}
-                className="h-8 px-3 text-xs"
+                className="size-8"
               >
-                Remove Group
+                <Unlink aria-hidden="true" />
+                <span className="sr-only">Remove {group.name}</span>
               </ThemedButton>
             </form>
           ) : (
@@ -111,12 +108,13 @@ function VariantGroupCard({
               <input type="hidden" name="variantGroupId" value={group.id} />
               <ThemedButton
                 type="submit"
-                size="sm"
+                size="icon"
                 variant="outline"
                 aria-label={`Select ${group.name}`}
-                className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                className="size-8 bg-background text-foreground hover:bg-muted"
               >
-                Select Group
+                <LinkIcon aria-hidden="true" />
+                <span className="sr-only">Select {group.name}</span>
               </ThemedButton>
             </form>
           )}
@@ -177,16 +175,9 @@ export function ProductVariantAssignmentsClient({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Variant Assignments"
+            title={`${activeProductName} Variant Assignments`}
             description={`Attach reusable variant groups for ${data.businessName}.`}
           />
-
-          <div>
-            <p className="text-sm font-semibold">Product</p>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              {activeProductName}
-            </p>
-          </div>
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pb-3">

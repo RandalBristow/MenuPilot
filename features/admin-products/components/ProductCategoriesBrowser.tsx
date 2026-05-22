@@ -242,34 +242,50 @@ export function ProductCategoriesBrowser({
             </ThemedCard>
           ) : (
             categories.map((category) => (
-              <button
+              <ThemedCard
                 key={category.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 aria-label={`Edit product category ${category.name}`}
                 onClick={() => setPanelState({ mode: "edit", category })}
+                onKeyDown={(event) => {
+                  if (
+                    event.target === event.currentTarget &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
+                    event.preventDefault()
+                    setPanelState({ mode: "edit", category })
+                  }
+                }}
                 className={
                   category.is_enabled
-                    ? "block w-full text-left"
-                    : "block w-full text-left opacity-75"
+                    ? "cursor-pointer gap-0 overflow-hidden py-0"
+                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 py-0 opacity-75"
                 }
               >
-                <ThemedCard
-                  className={
-                    category.is_enabled
-                      ? "overflow-hidden py-0"
-                      : "overflow-hidden bg-muted/30 py-0"
+                <CompactRecordRow
+                  title={category.name}
+                  statusIcon={
+                    <CompactRecordStatusIcon enabled={category.is_enabled} />
                   }
-                >
-                  <CompactRecordRow
-                    title={category.name}
-                    statusIcon={
-                      <CompactRecordStatusIcon enabled={category.is_enabled} />
-                    }
-                    description={category.description}
-                    metadata={<span>Sort {category.sort_order}</span>}
-                  />
-                </ThemedCard>
-              </button>
+                  description={category.description}
+                  rightAction={
+                    <ThemedButton
+                      type="button"
+                      variant="outline"
+                      className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        router.push(
+                          `/admin/products/subcategories?categoryId=${category.id}`
+                        )
+                      }}
+                    >
+                      Manage Subcategories
+                    </ThemedButton>
+                  }
+                />
+              </ThemedCard>
             ))
           )}
         </div>

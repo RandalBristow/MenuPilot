@@ -1,7 +1,13 @@
 import { ProductSubcategoriesBrowser } from "@/features/admin-products/components/ProductSubcategoriesBrowser"
 import { getProductSubcategories } from "@/features/admin-products/queries/get-product-subcategories"
 
-export async function ProductSubcategoriesManagementPage() {
+type ProductSubcategoriesManagementPageProps = {
+  categoryId?: string
+}
+
+export async function ProductSubcategoriesManagementPage({
+  categoryId,
+}: ProductSubcategoriesManagementPageProps) {
   const { businessName, categories, subcategories } =
     await getProductSubcategories()
 
@@ -10,6 +16,7 @@ export async function ProductSubcategoriesManagementPage() {
       businessName={businessName}
       categories={categories}
       subcategories={subcategories}
+      initialCategoryId={categoryId}
     />
   )
 }

@@ -5,13 +5,15 @@ import { getModifierGroupDetail } from "@/features/admin-modifiers/queries/get-m
 type ModifierSubgroupOptionsPageProps = {
   groupId: string
   subgroupId: string
+  productId?: string
 }
 
 export async function ModifierSubgroupOptionsPage({
   groupId,
   subgroupId,
+  productId,
 }: ModifierSubgroupOptionsPageProps) {
-  const data = await getModifierGroupDetail(groupId)
+  const data = await getModifierGroupDetail(groupId, productId)
 
   if (!data) {
     notFound()

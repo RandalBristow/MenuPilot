@@ -181,11 +181,23 @@ async function getProductOptionOverrides(
     .eq("business_id", businessId)
     .eq("product_id", productId)
 
+  if (error && isMissingOverrideTableError(error)) {
+    return []
+  }
+
   if (error) {
     throw new Error(`Could not load modifier option overrides: ${error.message}`)
   }
 
   return (data ?? []) as ProductModifierOptionOverride[]
+}
+
+function isMissingOverrideTableError(error: { code?: string; message: string }) {
+  return (
+    error.code === "PGRST205" ||
+    error.message.includes("product_modifier_option_overrides") ||
+    error.message.includes("schema cache")
+  )
 }
 
 export async function getModifierGroupDetail(

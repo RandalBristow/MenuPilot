@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
@@ -63,6 +63,45 @@ function getNullableSelectValue(value: boolean | null | undefined) {
   return "inherit"
 }
 
+function OverrideSegmentedControl({
+  label,
+  name,
+  defaultValue,
+  options,
+}: {
+  label: string
+  name: string
+  defaultValue: string
+  options: Array<{
+    value: string
+    label: ReactNode
+    ariaLabel?: string
+  }>
+}) {
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="text-sm font-medium">{label}</legend>
+      <div className="grid grid-cols-3 overflow-hidden rounded-md border bg-background p-1">
+        {options.map((option) => (
+          <label key={option.value} className="min-w-0">
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              aria-label={option.ariaLabel}
+              defaultChecked={defaultValue === option.value}
+              className="peer sr-only"
+            />
+            <span className="flex h-8 items-center justify-center gap-1 truncate rounded-sm px-2 text-center text-xs text-muted-foreground transition-colors peer-checked:bg-foreground peer-checked:text-background peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2">
+              {option.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
 function getEffectiveOption(option: VariantGroupOption) {
   return {
     price: option.override?.price_override ?? option.base_price,
@@ -83,15 +122,12 @@ function getOptionDescription(
 ) {
   const effectiveOption = getEffectiveOption(option)
   const defaultLabel = effectiveOption.isDefault ? "Default" : "Not default"
-  const enabledLabel = effectiveOption.isEnabled ? "Enabled" : "Disabled"
 
   if (productContext) {
-    return `${formatMoney(effectiveOption.price)} - ${
-      effectiveOption.priceSource
-    } - ${enabledLabel} - ${defaultLabel} - sort ${effectiveOption.sortOrder}`
+    return `${formatMoney(effectiveOption.price)} - ${effectiveOption.priceSource} - ${defaultLabel}`
   }
 
-  return `${formatMoney(option.base_price)} - ${defaultLabel} - sort ${option.sort_order}`
+  return `${formatMoney(option.base_price)} - ${defaultLabel}`
 }
 
 function getBackHref({
@@ -133,7 +169,7 @@ function OptionFormPanel({
   const isCreateMode = panelState.mode === "create"
   const isProductOverrideMode = productContext !== null
   const title = isProductOverrideMode
-    ? "Edit Override"
+    ? (option?.name ?? "Edit Override")
     : isCreateMode
       ? "New Option"
       : group.name
@@ -192,15 +228,6 @@ function OptionFormPanel({
                     name="variantGroupOptionId"
                     value={option.id}
                   />
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold">{option.name}</p>
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      Group default: {formatMoney(option.base_price)}
-                      {option.is_default ? ", default" : ", not default"},{" "}
-                      {option.is_enabled ? "enabled" : "disabled"}, sort{" "}
-                      {option.sort_order}
-                    </p>
-                  </div>
 
                   <label className="grid gap-2">
                     <span className="text-sm font-medium">Price override</span>
@@ -216,35 +243,52 @@ function OptionFormPanel({
                   </label>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium">Status</span>
-                      <select
-                        name="isEnabled"
-                        defaultValue={getNullableSelectValue(
-                          option.override?.is_enabled
-                        )}
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      >
-                        <option value="inherit">Inherit</option>
-                        <option value="true">Enabled</option>
-                        <option value="false">Disabled</option>
-                      </select>
-                    </label>
+                    <OverrideSegmentedControl
+                      label="Status"
+                      name="isEnabled"
+                      defaultValue={getNullableSelectValue(
+                        option.override?.is_enabled
+                      )}
+                      options={[
+                        { value: "inherit", label: "Inherit" },
+                        {
+                          value: "true",
+                          label: (
+                            <>
+                              <ThumbsUp aria-hidden="true" className="size-4" />
+                              <span className="sr-only">Enabled</span>
+                            </>
+                          ),
+                          ariaLabel: "Enabled",
+                        },
+                        {
+                          value: "false",
+                          label: (
+                            <>
+                              <ThumbsDown
+                                aria-hidden="true"
+                                className="size-4"
+                              />
+                              <span className="sr-only">Disabled</span>
+                            </>
+                          ),
+                          ariaLabel: "Disabled",
+                        },
+                      ]}
+                    />
 
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium">Default</span>
-                      <select
-                        name="isDefault"
-                        defaultValue={getNullableSelectValue(
-                          option.override?.is_default
-                        )}
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      >
-                        <option value="inherit">Inherit</option>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                      </select>
-                    </label>
+                    <OverrideSegmentedControl
+                      label="Default"
+                      name="isDefault"
+                      defaultValue={getNullableSelectValue(
+                        option.override?.is_default
+                      )}
+                      options={[
+                        { value: "inherit", label: "Inherit" },
+                        { value: "true", label: "Yes" },
+                        { value: "false", label: "No" },
+                      ]}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -419,40 +463,29 @@ export function VariantGroupDetailClient({
   const isProductScopedMode = mode !== "global"
   const backHref = getBackHref({ productContext })
   const description = isProductMode
-    ? `Product-specific options for ${data.businessName}.`
+    ? `Product-specific options for ${productContext?.name ?? data.businessName}.`
     : isPreviewMode
-      ? `Preview reusable variant options for ${data.businessName}.`
-    : "Variant options inside this variant group."
+      ? `Preview reusable variant options for ${productContext?.name ?? data.businessName}.`
+    : `Options inside ${group.name}.`
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title={group.name}
+            title={`${group.name} Options`}
             description={description}
           />
-          {isProductScopedMode ? (
-            <div>
-              <p className="text-sm font-semibold">Variant Group For</p>
-              <p className="mt-1 truncate text-sm text-muted-foreground">
-                {productContext
-                  ? `${productContext.name} -> ${group.name}`
-                  : group.name}
-              </p>
-            {isProductMode ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Changes here are product overrides. Group defaults stay
-                unchanged.
-              </p>
-            ) : null}
-            {isPreviewMode ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                This group is not assigned to this product. Options are
-                read-only here.
-              </p>
-            ) : null}
-            </div>
+          {isProductMode ? (
+            <p className="text-xs text-muted-foreground">
+              Product overrides. Group defaults stay unchanged.
+            </p>
+          ) : null}
+          {isPreviewMode ? (
+            <p className="text-xs text-muted-foreground">
+              This group is not assigned to this product. Options are read-only
+              here.
+            </p>
           ) : null}
         </div>
 

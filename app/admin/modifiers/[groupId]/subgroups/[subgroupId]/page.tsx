@@ -5,14 +5,23 @@ type AdminModifierSubgroupOptionsRoutePageProps = {
     groupId: string
     subgroupId: string
   }>
+  searchParams: Promise<{
+    productId?: string
+  }>
 }
 
 export default async function AdminModifierSubgroupOptionsRoutePage({
   params,
+  searchParams,
 }: AdminModifierSubgroupOptionsRoutePageProps) {
   const { groupId, subgroupId } = await params
+  const { productId } = await searchParams
 
   return (
-    <ModifierSubgroupOptionsPage groupId={groupId} subgroupId={subgroupId} />
+    <ModifierSubgroupOptionsPage
+      groupId={groupId}
+      subgroupId={subgroupId}
+      productId={productId}
+    />
   )
 }

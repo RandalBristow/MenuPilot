@@ -10,12 +10,21 @@ import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ModifierOptionGroupFormDialog } from "@/features/admin-modifiers/components/ModifierOptionGroupFormDialog"
 import type { ModifierGroupDetail } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
+import type { ModifierGroupProductContext } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 
 type ModifierSubgroupListClientProps = {
   data: {
     businessName: string
+    mode: "global" | "product" | "preview"
     group: ModifierGroupDetail
+    productContext: ModifierGroupProductContext
   }
+}
+
+function getProductScopedHref(href: string, productId?: string) {
+  if (!productId) return href
+
+  return `${href}?productId=${encodeURIComponent(productId)}`
 }
 
 export function ModifierSubgroupListClient({
@@ -26,15 +35,20 @@ export function ModifierSubgroupListClient({
   const [activeOptionGroup, setActiveOptionGroup] = useState<
     ModifierGroupDetail["optionGroups"][number] | null
   >(null)
-  const { group } = data
+  const { group, mode, productContext } = data
+  const isProductScopedMode = mode !== "global"
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title={group.name}
-            description="Option groups inside this modifier subgroup."
+            title={`${group.name} Lists`}
+            description={
+              productContext
+                ? `Product-specific lists for ${productContext.name}.`
+                : `Lists inside ${group.name}.`
+            }
           />
         </div>
 
@@ -53,9 +67,15 @@ export function ModifierSubgroupListClient({
                 role="button"
                 tabIndex={0}
                 aria-label={`Edit option group ${subgroup.name}`}
-                onClick={() => setActiveOptionGroup(subgroup)}
+                onClick={() => {
+                  if (!isProductScopedMode) setActiveOptionGroup(subgroup)
+                }}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
+                  if (
+                    !isProductScopedMode &&
+                    event.target === event.currentTarget &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
                     event.preventDefault()
                     setActiveOptionGroup(subgroup)
                   }
@@ -80,7 +100,10 @@ export function ModifierSubgroupListClient({
                       onClick={(event) => {
                         event.stopPropagation()
                         router.push(
-                          `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`
+                          getProductScopedHref(
+                            `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`,
+                            productContext?.id
+                          )
                         )
                       }}
                     >
@@ -103,25 +126,29 @@ export function ModifierSubgroupListClient({
               className="size-10 bg-background text-foreground hover:bg-muted"
               onClick={() =>
                 router.push(
-                  group.modifier_group_category_id
-                    ? `/admin/modifiers/groups/${group.modifier_group_category_id}`
-                    : "/admin/modifiers/groups"
+                  productContext
+                    ? `/admin/products/modifier-groups?productId=${productContext.id}`
+                    : group.modifier_group_category_id
+                      ? `/admin/modifiers/groups/${group.modifier_group_category_id}`
+                      : "/admin/modifiers/groups"
                 )
               }
             >
               <X aria-hidden="true" />
               <span className="sr-only">Back to modifier groups</span>
             </ThemedButton>
-            <ThemedButton
-              type="button"
-              size="icon"
-              aria-label="New Option Group"
-              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus aria-hidden="true" />
-              <span className="sr-only">New Option Group</span>
-            </ThemedButton>
+            {isProductScopedMode ? null : (
+              <ThemedButton
+                type="button"
+                size="icon"
+                aria-label="New Option Group"
+                className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus aria-hidden="true" />
+                <span className="sr-only">New Option Group</span>
+              </ThemedButton>
+            )}
           </div>
         </div>
       </div>

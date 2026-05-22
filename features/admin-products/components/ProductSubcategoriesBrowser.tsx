@@ -41,6 +41,7 @@ type ProductSubcategoriesBrowserProps = {
   businessName: string
   categories: ProductSubcategoryParent[]
   subcategories: ProductSubcategory[]
+  initialCategoryId?: string
 }
 
 function getNextSortOrder(subcategories: ProductSubcategory[]) {
@@ -252,10 +253,13 @@ export function ProductSubcategoriesBrowser({
   businessName,
   categories,
   subcategories,
+  initialCategoryId,
 }: ProductSubcategoriesBrowserProps) {
   const router = useRouter()
-  const [selectedCategoryId, setSelectedCategoryId] = useState(
-    categories[0]?.id ?? ""
+  const [selectedCategoryId] = useState<string>(
+    categories.some((category) => category.id === initialCategoryId)
+      ? (initialCategoryId ?? "")
+      : (categories[0]?.id ?? "")
   )
   const [panelState, setPanelState] = useState<SubcategoryPanelState | null>(
     null
@@ -267,6 +271,8 @@ export function ProductSubcategoriesBrowser({
       ),
     [selectedCategoryId, subcategories]
   )
+  const selectedCategory =
+    categories.find((category) => category.id === selectedCategoryId) ?? null
   const nextSortOrder = getNextSortOrder(visibleSubcategories)
 
   return (
@@ -274,24 +280,17 @@ export function ProductSubcategoriesBrowser({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Product Subcategories"
-            description={`Child menu categories for ${businessName}.`}
+            title={
+              selectedCategory
+                ? `${selectedCategory.name} Subcategories`
+                : "Product Subcategories"
+            }
+            description={
+              selectedCategory
+                ? `Subcategories inside ${selectedCategory.name}.`
+                : `Child menu categories for ${businessName}.`
+            }
           />
-
-          <label className="block space-y-1.5 text-sm">
-            <span className="font-medium">Category</span>
-            <select
-              value={selectedCategoryId}
-              onChange={(event) => setSelectedCategoryId(event.target.value)}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
@@ -351,12 +350,12 @@ export function ProductSubcategoriesBrowser({
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Back to product management"
+              aria-label="Back to product categories"
               className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() => router.push("/admin/products")}
+              onClick={() => router.push("/admin/products/categories")}
             >
               <X aria-hidden="true" />
-              <span className="sr-only">Back to product management</span>
+              <span className="sr-only">Back to product categories</span>
             </ThemedButton>
             <ThemedButton
               type="button"

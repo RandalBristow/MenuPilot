@@ -55,18 +55,26 @@ export function ModifierGroupsBrowser({
             sortedCategories.map((category) => (
               <ThemedCard
                 key={category.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit modifier group ${category.name}`}
+                onClick={() => setActiveCategory(category)}
+                onKeyDown={(event) => {
+                  if (
+                    event.target === event.currentTarget &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
+                    event.preventDefault()
+                    setActiveCategory(category)
+                  }
+                }}
                 className={
                   category.is_enabled
-                    ? "gap-0 overflow-hidden p-0"
-                    : "gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
+                    ? "cursor-pointer gap-0 overflow-hidden p-0"
+                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
                 }
               >
-                <button
-                  type="button"
-                  aria-label={`Edit modifier group ${category.name}`}
-                  onClick={() => setActiveCategory(category)}
-                  className="block w-full px-3 pt-2.5 text-left"
-                >
+                <div className="px-3 pt-2.5">
                   <div className="space-y-1.5">
                     <div className="flex min-w-0 items-center gap-2">
                       <CompactRecordStatusIcon enabled={category.is_enabled} />
@@ -81,16 +89,17 @@ export function ModifierGroupsBrowser({
                       </p>
                     ) : null}
                   </div>
-                </button>
+                </div>
 
                 <div className="flex justify-end px-3 pb-2.5 pt-1.5">
                   <ThemedButton
                     type="button"
                     variant="outline"
                     className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
-                    onClick={() =>
+                    onClick={(event) => {
+                      event.stopPropagation()
                       router.push(`/admin/modifiers/groups/${category.id}`)
-                    }
+                    }}
                   >
                     Manage Subgroups
                   </ThemedButton>

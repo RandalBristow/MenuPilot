@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ThumbsDown, ThumbsUp, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
@@ -32,13 +32,19 @@ type ProductDetailClientProps = {
   data: ProductFormData
 }
 
-function getInitialCategoryId(
+function getProductPlacementLabel(
   menuGroups: ProductFormData["menuGroups"],
   menuGroupId: string
 ) {
-  const selectedGroup = menuGroups.find((group) => group.id === menuGroupId)
+  const group = menuGroups.find((item) => item.id === menuGroupId)
 
-  return selectedGroup?.parent_group_id ?? selectedGroup?.id ?? ""
+  if (!group) return "Unassigned"
+
+  const parent = menuGroups.find((item) => item.id === group.parent_group_id)
+
+  if (!parent) return group.name
+
+  return `${parent.name} / ${group.name}`
 }
 
 export function ProductDetailClient({ data }: ProductDetailClientProps) {
@@ -67,25 +73,8 @@ function ProductDetailEditor({
   businessName: string
 }) {
   const productPath = `/admin/products/${product.id}`
-  const parentGroups = useMemo(
-    () => menuGroups.filter((group) => !group.parent_group_id),
-    [menuGroups]
-  )
-  const [selectedCategoryId, setSelectedCategoryId] = useState(() =>
-    getInitialCategoryId(menuGroups, product.menuGroupId)
-  )
-  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(() => {
-    const selectedGroup = menuGroups.find(
-      (group) => group.id === product.menuGroupId
-    )
-
-    return selectedGroup?.parent_group_id ? selectedGroup.id : ""
-  })
-  const subcategoryGroups = menuGroups.filter(
-    (group) => group.parent_group_id === selectedCategoryId
-  )
   const [isEnabled, setIsEnabled] = useState(product.is_enabled)
-  const selectedMenuGroupId = selectedSubcategoryId || selectedCategoryId
+  const placementLabel = getProductPlacementLabel(menuGroups, product.menuGroupId)
 
   return (
     <main className={PRODUCT_ADMIN_PANEL_PAGE_CLASS}>
@@ -95,14 +84,17 @@ function ProductDetailEditor({
           showCloseButton={false}
           className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
         >
-          <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-            <ThemedSheetTitle>Edit Product</ThemedSheetTitle>
-            <ThemedSheetDescription>
-              Update product details for {businessName}.
-            </ThemedSheetDescription>
-          </ThemedSheetHeader>
-
           <form action={updateProduct} className="flex min-h-0 flex-1 flex-col">
+            <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
+              <ThemedSheetTitle>Edit Product</ThemedSheetTitle>
+              <ThemedSheetDescription>
+                Update product details for {businessName}.
+              </ThemedSheetDescription>
+              <p className="truncate text-sm text-muted-foreground">
+                {placementLabel}
+              </p>
+            </ThemedSheetHeader>
+
             <div className={cn(PRODUCT_ADMIN_PANEL_BODY_CLASS, "pb-4")}>
               <ProductUpdateHiddenFields
                 product={product}
@@ -111,48 +103,10 @@ function ProductDetailEditor({
                 includeMenuPlacement={false}
                 includeAvailability={false}
               />
-              <input type="hidden" name="menuGroupId" value={selectedMenuGroupId} />
+              <input type="hidden" name="menuGroupId" value={product.menuGroupId} />
               <input type="hidden" name="isEnabled" value={String(isEnabled)} />
 
               <div className="grid gap-4">
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Category</span>
-                  <select
-                    value={selectedCategoryId}
-                    onChange={(event) => {
-                      setSelectedCategoryId(event.target.value)
-                      setSelectedSubcategoryId("")
-                    }}
-                    required
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="">Select a category</option>
-                    {parentGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Subcategory</span>
-                  <select
-                    value={selectedSubcategoryId}
-                    onChange={(event) =>
-                      setSelectedSubcategoryId(event.target.value)
-                    }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="">No subcategory</option>
-                    {subcategoryGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Builder template</span>
                   <select
@@ -229,9 +183,9 @@ function ProductDetailEditor({
                   aria-label="Close"
                   className="size-10 bg-background text-foreground hover:bg-muted"
                 >
-                  <Link href="/admin/products">
+                  <Link href="/admin/products/list">
                     <X aria-hidden="true" />
-                    <span className="sr-only">Close</span>
+                    <span className="sr-only">Back to products</span>
                   </Link>
                 </ThemedButton>
               }

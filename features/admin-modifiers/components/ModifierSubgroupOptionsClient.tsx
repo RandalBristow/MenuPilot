@@ -1,24 +1,41 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, X } from "lucide-react"
+import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
+import {
+  ThemedSheet,
+  ThemedSheetContent,
+  ThemedSheetDescription,
+  ThemedSheetHeader,
+  ThemedSheetTitle,
+} from "@/components/themed/ThemedSheet"
+import { saveProductModifierOptionOverride } from "@/features/admin-modifiers/actions/save-product-modifier-option-override"
 import { ModifierOptionFormDialog } from "@/features/admin-modifiers/components/ModifierOptionFormDialog"
+import {
+  PRODUCT_ADMIN_PANEL_BODY_CLASS,
+  PRODUCT_ADMIN_PANEL_FOOTER_CLASS,
+  PRODUCT_ADMIN_PANEL_HEADER_CLASS,
+  PRODUCT_ADMIN_SHEET_PANEL_CLASS,
+} from "@/features/admin-products/components/product-admin-panel-styles"
 import type {
   ModifierGroupDetail,
   ModifierGroupDetailOption,
+  ModifierGroupProductContext,
   ModifierGroupDetailSubgroup,
 } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 
 type ModifierSubgroupOptionsClientProps = {
   data: {
     businessName: string
+    mode: "global" | "product" | "preview"
     group: ModifierGroupDetail
+    productContext: ModifierGroupProductContext
   }
   subgroup: ModifierGroupDetailSubgroup
 }
@@ -33,6 +50,217 @@ function formatPriceDelta(value: number) {
   }).format(value)
 }
 
+function getNullableSelectValue(value: boolean | null | undefined) {
+  if (value === true) return "true"
+  if (value === false) return "false"
+
+  return "inherit"
+}
+
+function getEffectiveOption(option: ModifierGroupDetailOption) {
+  return {
+    priceDelta: option.override?.price_delta_override ?? option.price_delta,
+    priceSource:
+      option.override?.price_delta_override === null ||
+      option.override?.price_delta_override === undefined
+        ? "Inherited"
+        : "Overridden",
+    isEnabled: option.override?.is_enabled ?? option.is_enabled,
+  }
+}
+
+function OverrideStatusControl({
+  defaultValue,
+}: {
+  defaultValue: string
+}) {
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="text-sm font-medium">Status</legend>
+      <div className="grid grid-cols-3 overflow-hidden rounded-md border bg-background p-1">
+        {[
+          { value: "inherit", label: "Inherit" },
+          {
+            value: "true",
+            label: (
+              <>
+                <ThumbsUp aria-hidden="true" className="size-4" />
+                <span className="sr-only">Enabled</span>
+              </>
+            ),
+            ariaLabel: "Enabled",
+          },
+          {
+            value: "false",
+            label: (
+              <>
+                <ThumbsDown aria-hidden="true" className="size-4" />
+                <span className="sr-only">Disabled</span>
+              </>
+            ),
+            ariaLabel: "Disabled",
+          },
+        ].map((option) => (
+          <label key={option.value} className="min-w-0">
+            <input
+              type="radio"
+              name="isEnabled"
+              value={option.value}
+              aria-label={option.ariaLabel}
+              defaultChecked={defaultValue === option.value}
+              className="peer sr-only"
+            />
+            <span className="flex h-8 items-center justify-center gap-1 truncate rounded-sm px-2 text-center text-xs text-muted-foreground transition-colors peer-checked:bg-foreground peer-checked:text-background peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2">
+              {option.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
+function getOptionDescription(
+  option: ModifierGroupDetailOption,
+  productContext: ModifierGroupProductContext
+) {
+  if (!productContext) return option.description
+
+  const effective = getEffectiveOption(option)
+
+  return `${formatPriceDelta(effective.priceDelta)} - ${effective.priceSource}`
+}
+
+function ModifierOptionOverridePanel({
+  open,
+  onOpenChange,
+  group,
+  productContext,
+  option,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  group: ModifierGroupDetail
+  productContext: NonNullable<ModifierGroupProductContext>
+  option: ModifierGroupDetailOption | null
+}) {
+  const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
+
+  if (!option) return null
+
+  async function handleSubmit(formData: FormData) {
+    await saveProductModifierOptionOverride(formData)
+    formRef.current?.reset()
+    onOpenChange(false)
+    router.refresh()
+  }
+
+  return (
+    <ThemedSheet open={open} onOpenChange={onOpenChange}>
+      <ThemedSheetContent
+        side="bottom"
+        showCloseButton={false}
+        className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
+      >
+        <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
+          <ThemedSheetTitle>{option.name}</ThemedSheetTitle>
+          <ThemedSheetDescription>
+            Override this default option for {productContext.name}.
+          </ThemedSheetDescription>
+        </ThemedSheetHeader>
+
+        <form
+          key={option.id}
+          ref={formRef}
+          action={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
+            <input type="hidden" name="productId" value={productContext.id} />
+            <input type="hidden" name="modifierGroupId" value={group.id} />
+            <input type="hidden" name="modifierOptionId" value={option.id} />
+
+            <div className="grid gap-4">
+              <label className="grid gap-2">
+                <span className="text-sm font-medium">Price override</span>
+                <input
+                  name="priceDeltaOverride"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder={String(option.price_delta)}
+                  defaultValue={option.override?.price_delta_override ?? ""}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                />
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <OverrideStatusControl
+                  defaultValue={getNullableSelectValue(
+                    option.override?.is_enabled
+                  )}
+                />
+
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium">Sort order</span>
+                  <input
+                    name="sortOrder"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder={String(option.sort_order)}
+                    defaultValue={option.override?.sort_order ?? ""}
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  />
+                </label>
+              </div>
+
+              <label className="grid gap-2">
+                <span className="text-sm font-medium">Prep time</span>
+                <input
+                  name="prepTimeDeltaMinutesOverride"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder={String(option.prep_time_delta_minutes)}
+                  defaultValue={
+                    option.override?.prep_time_delta_minutes_override ?? ""
+                  }
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
+            <ThemedButton
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Close"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+              onClick={() => onOpenChange(false)}
+            >
+              <X aria-hidden="true" />
+              <span className="sr-only">Close</span>
+            </ThemedButton>
+            <ThemedButton
+              type="submit"
+              size="icon"
+              aria-label="Save override"
+              className="size-10"
+            >
+              <Check aria-hidden="true" />
+              <span className="sr-only">Save override</span>
+            </ThemedButton>
+          </div>
+        </form>
+      </ThemedSheetContent>
+    </ThemedSheet>
+  )
+}
+
 export function ModifierSubgroupOptionsClient({
   data,
   subgroup,
@@ -41,7 +269,8 @@ export function ModifierSubgroupOptionsClient({
   const [createOpen, setCreateOpen] = useState(false)
   const [activeOption, setActiveOption] =
     useState<ModifierGroupDetailOption | null>(null)
-  const { group } = data
+  const { group, mode, productContext } = data
+  const isProductScopedMode = mode !== "global"
   const options = group.options.filter(
     (option) => option.modifier_option_group_id === subgroup.id
   )
@@ -51,12 +280,25 @@ export function ModifierSubgroupOptionsClient({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Modifier Options"
-            description={`Options for ${subgroup.name}.`}
+            title={`${subgroup.name} Options`}
+            description={
+              productContext
+                ? `Product-specific options for ${productContext.name}.`
+                : `Options inside ${subgroup.name}.`
+            }
           />
-          <p className="truncate text-sm text-muted-foreground">
-            {group.name} - {data.businessName}
-          </p>
+          {mode === "product" ? (
+            <p className="text-xs text-muted-foreground">
+              Changes here only affect {productContext?.name}; default modifier
+              lists stay unchanged.
+            </p>
+          ) : null}
+          {mode === "preview" ? (
+            <p className="text-xs text-muted-foreground">
+              This group is not assigned to this product. Options are read-only
+              here.
+            </p>
+          ) : null}
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
@@ -74,15 +316,16 @@ export function ModifierSubgroupOptionsClient({
                 type="button"
                 aria-label={`Edit option ${option.name}`}
                 onClick={() => setActiveOption(option)}
+                disabled={mode === "preview"}
                 className={
-                  option.is_enabled
+                  getEffectiveOption(option).isEnabled
                     ? "block w-full text-left"
                     : "block w-full text-left opacity-75"
                 }
               >
                 <ThemedCard
                   className={
-                    option.is_enabled
+                    getEffectiveOption(option).isEnabled
                       ? "overflow-hidden py-0"
                       : "overflow-hidden bg-muted/30 py-0"
                   }
@@ -90,14 +333,18 @@ export function ModifierSubgroupOptionsClient({
                   <CompactRecordRow
                     title={option.name}
                     statusIcon={
-                      <CompactRecordStatusIcon enabled={option.is_enabled} />
+                      <CompactRecordStatusIcon
+                        enabled={getEffectiveOption(option).isEnabled}
+                      />
                     }
-                    description={option.description}
+                    description={getOptionDescription(option, productContext)}
                     metadata={
-                      <>
+                      productContext ? undefined : (
+                        <>
                         <span>{formatPriceDelta(option.price_delta)}</span>
                         <span>Sort {option.sort_order}</span>
                       </>
+                      )
                     }
                   />
                 </ThemedCard>
@@ -114,21 +361,29 @@ export function ModifierSubgroupOptionsClient({
               size="icon"
               aria-label="Back to modifier subgroups"
               className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() => router.push(`/admin/modifiers/${group.id}`)}
+              onClick={() =>
+                router.push(
+                  productContext
+                    ? `/admin/modifiers/${group.id}?productId=${productContext.id}`
+                    : `/admin/modifiers/${group.id}`
+                )
+              }
             >
               <X aria-hidden="true" />
               <span className="sr-only">Back to modifier subgroups</span>
             </ThemedButton>
-            <ThemedButton
-              type="button"
-              size="icon"
-              aria-label="New Modifier Option"
-              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus aria-hidden="true" />
-              <span className="sr-only">New Modifier Option</span>
-            </ThemedButton>
+            {isProductScopedMode ? null : (
+              <ThemedButton
+                type="button"
+                size="icon"
+                aria-label="New Modifier Option"
+                className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus aria-hidden="true" />
+                <span className="sr-only">New Modifier Option</span>
+              </ThemedButton>
+            )}
           </div>
         </div>
       </div>
@@ -142,7 +397,17 @@ export function ModifierSubgroupOptionsClient({
         initialOptionGroupId={subgroup.id}
       />
 
-      {activeOption ? (
+      {activeOption && productContext && mode === "product" ? (
+        <ModifierOptionOverridePanel
+          open={Boolean(activeOption)}
+          onOpenChange={(open) => {
+            if (!open) setActiveOption(null)
+          }}
+          group={group}
+          productContext={productContext}
+          option={activeOption}
+        />
+      ) : activeOption ? (
         <ModifierOptionFormDialog
           open={Boolean(activeOption)}
           onOpenChange={(open) => {

@@ -35,6 +35,12 @@ function formatGroupRules(group: RawModifierGroup) {
   return `${requiredLabel} - ${group.selection_type} - min ${group.min_required} - max ${maxAllowed}`
 }
 
+function formatModifierGroupTitle(categoryName: string) {
+  const contextName = categoryName.replace(/\s+modifiers?$/i, "").trim()
+
+  return `${contextName || categoryName} Modifier Groups`
+}
+
 export function ModifierCategoryGroupsClient({
   categories,
   category,
@@ -49,12 +55,9 @@ export function ModifierCategoryGroupsClient({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Modifier Subgroups"
+            title={formatModifierGroupTitle(category.name)}
             description={`Reusable subgroups inside ${category.name}.`}
           />
-          <p className="truncate text-sm text-muted-foreground">
-            {category.name}
-          </p>
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
@@ -69,18 +72,26 @@ export function ModifierCategoryGroupsClient({
             groups.map((group) => (
               <ThemedCard
                 key={group.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit modifier subgroup ${group.name}`}
+                onClick={() => setActiveGroup(group)}
+                onKeyDown={(event) => {
+                  if (
+                    event.target === event.currentTarget &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
+                    event.preventDefault()
+                    setActiveGroup(group)
+                  }
+                }}
                 className={
                   group.is_enabled
-                    ? "gap-0 overflow-hidden p-0"
-                    : "gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
+                    ? "cursor-pointer gap-0 overflow-hidden p-0"
+                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
                 }
               >
-                <button
-                  type="button"
-                  aria-label={`Edit modifier subgroup ${group.name}`}
-                  onClick={() => setActiveGroup(group)}
-                  className="block w-full px-3 pt-2.5 text-left"
-                >
+                <div className="px-3 pt-2.5">
                   <div className="space-y-1.5">
                     <div className="flex min-w-0 items-center gap-2">
                       <CompactRecordStatusIcon enabled={group.is_enabled} />
@@ -93,14 +104,17 @@ export function ModifierCategoryGroupsClient({
                       {formatGroupRules(group)}
                     </p>
                   </div>
-                </button>
+                </div>
 
                 <div className="flex justify-end px-3 pb-2.5 pt-1.5">
                   <ThemedButton
                     type="button"
                     variant="outline"
                     className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
-                    onClick={() => router.push(`/admin/modifiers/${group.id}`)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      router.push(`/admin/modifiers/${group.id}`)
+                    }}
                   >
                     Manage Option Lists
                   </ThemedButton>

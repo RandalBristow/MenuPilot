@@ -4,12 +4,14 @@ import { getModifierGroupDetail } from "@/features/admin-modifiers/queries/get-m
 
 type ModifierGroupViewPageProps = {
   groupId: string
+  productId?: string
 }
 
 export async function ModifierGroupViewPage({
   groupId,
+  productId,
 }: ModifierGroupViewPageProps) {
-  const data = await getModifierGroupDetail(groupId)
+  const data = await getModifierGroupDetail(groupId, productId)
 
   if (!data) {
     notFound()

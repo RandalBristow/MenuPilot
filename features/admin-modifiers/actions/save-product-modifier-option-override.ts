@@ -52,6 +52,14 @@ function parseNullableBoolean(value: FormDataEntryValue | null) {
   return null
 }
 
+function isMissingOverrideTableError(error: { code?: string; message: string }) {
+  return (
+    error.code === "PGRST205" ||
+    error.message.includes("product_modifier_option_overrides") ||
+    error.message.includes("schema cache")
+  )
+}
+
 async function getBusinessId() {
   const { data: business, error } = await supabaseAdmin
     .from("businesses")
@@ -153,6 +161,12 @@ export async function saveProductModifierOptionOverride(formData: FormData) {
     )
 
   if (error) {
+    if (isMissingOverrideTableError(error)) {
+      throw new Error(
+        "Product modifier option overrides are not available because database migration 011_product_modifier_option_overrides.sql has not been applied."
+      )
+    }
+
     throw new Error(`Could not save modifier option override: ${error.message}`)
   }
 

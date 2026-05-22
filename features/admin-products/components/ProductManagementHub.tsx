@@ -8,17 +8,7 @@ const productHubLinks = [
   {
     title: "Product Categories",
     href: "/admin/products/categories",
-    description: "Manage top-level menu categories for products.",
-  },
-  {
-    title: "Product Subcategories",
-    href: "/admin/products/subcategories",
-    description: "Organize products inside parent categories.",
-  },
-  {
-    title: "Products",
-    href: "/admin/products/list",
-    description: "Browse and edit product records.",
+    description: "Manage product categories and their subcategories.",
   },
   {
     title: "Variant Groups",
@@ -29,6 +19,11 @@ const productHubLinks = [
     title: "Modifier Groups",
     href: "/admin/modifiers/groups",
     description: "Manage reusable product modifier groups.",
+  },
+  {
+    title: "Products",
+    href: "/admin/products/list",
+    description: "Browse and edit product records.",
   },
 ]
 

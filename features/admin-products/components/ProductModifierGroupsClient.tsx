@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { X } from "lucide-react"
+import { LinkIcon, Unlink, X } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -89,11 +89,7 @@ function ModifierGroupCard({
           </p>
         </div>
 
-        <div className="mt-1.5 flex items-end justify-end gap-3">
-          <span className="inline-flex items-center gap-1 text-xs leading-5 text-muted-foreground">
-            Product choices
-          </span>
-
+        <div className="mt-1.5 flex justify-end">
           {selected ? (
             <form action={onDetach} className="relative z-10">
               <input type="hidden" name="productId" value={activeProductId} />
@@ -104,11 +100,12 @@ function ModifierGroupCard({
               />
               <ThemedButton
                 type="submit"
-                size="sm"
+                size="icon"
                 aria-label={`Remove ${group.name} from this product`}
-                className="h-8 px-3 text-xs"
+                className="size-8"
               >
-                Remove Group
+                <Unlink aria-hidden="true" />
+                <span className="sr-only">Remove {group.name}</span>
               </ThemedButton>
             </form>
           ) : (
@@ -117,12 +114,13 @@ function ModifierGroupCard({
               <input type="hidden" name="modifierGroupId" value={group.id} />
               <ThemedButton
                 type="submit"
-                size="sm"
+                size="icon"
                 variant="outline"
                 aria-label={`Attach ${group.name}`}
-                className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                className="size-8 bg-background text-foreground hover:bg-muted"
               >
-                Attach Group
+                <LinkIcon aria-hidden="true" />
+                <span className="sr-only">Attach {group.name}</span>
               </ThemedButton>
             </form>
           )}
@@ -199,16 +197,9 @@ export function ProductModifierGroupsClient({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title="Modifier Groups"
+            title={`${activeProductName} Modifier Assignments`}
             description={`Attach reusable modifier groups for ${data.businessName}.`}
           />
-
-          <div>
-            <p className="text-sm font-semibold">Product</p>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              {activeProductName}
-            </p>
-          </div>
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pb-3">

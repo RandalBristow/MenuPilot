@@ -328,9 +328,9 @@ export async function ProductForm({ productId }: ProductFormProps) {
               aria-label="Close"
               className="size-10 bg-background text-foreground hover:bg-muted"
             >
-              <Link href="/admin/products">
+              <Link href="/admin/products/list">
                 <X aria-hidden="true" />
-                <span className="sr-only">Close</span>
+                <span className="sr-only">Back to products</span>
               </Link>
             </ThemedButton>
             <ThemedButton
