@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, X } from "lucide-react"
+import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -82,31 +83,23 @@ export function ModifierSubgroupOptionsClient({
                 <ThemedCard
                   className={
                     option.is_enabled
-                      ? "overflow-hidden p-0"
-                      : "overflow-hidden bg-muted/30 p-0"
+                      ? "overflow-hidden py-0"
+                      : "overflow-hidden bg-muted/30 py-0"
                   }
                 >
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <CompactRecordStatusIcon enabled={option.is_enabled} />
-                        <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
-                          {option.name}
-                        </div>
-                      </div>
-
-                      {option.description ? (
-                        <p className="text-xs leading-5 text-muted-foreground">
-                          {option.description}
-                        </p>
-                      ) : null}
-
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <CompactRecordRow
+                    title={option.name}
+                    statusIcon={
+                      <CompactRecordStatusIcon enabled={option.is_enabled} />
+                    }
+                    description={option.description}
+                    metadata={
+                      <>
                         <span>{formatPriceDelta(option.price_delta)}</span>
                         <span>Sort {option.sort_order}</span>
-                      </div>
-                    </div>
-                  </div>
+                      </>
+                    }
+                  />
                 </ThemedCard>
               </button>
             ))
@@ -114,7 +107,7 @@ export function ModifierSubgroupOptionsClient({
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-end gap-2">
             <ThemedButton
               type="button"
               variant="outline"

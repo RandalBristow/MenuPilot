@@ -119,20 +119,7 @@ function OverridePanel({
         className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
       >
         <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-          <ThemedButton
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close"
-            className="absolute right-3 top-3 bg-transparent text-foreground hover:bg-muted"
-            onClick={() => onOpenChange(false)}
-          >
-            <X aria-hidden="true" />
-            <span className="sr-only">Close</span>
-          </ThemedButton>
-          <ThemedSheetTitle className="text-3xl font-bold text-foreground">
-            Edit Override
-          </ThemedSheetTitle>
+          <ThemedSheetTitle>Edit Override</ThemedSheetTitle>
           <ThemedSheetDescription>
             Update product-specific settings for {productContext.name}.
           </ThemedSheetDescription>
@@ -288,26 +275,17 @@ export function ModifierGroupDetailClient({
                 This group is not assigned to this product. Options are read-only here.
               </p>
             ) : null}
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              {group.is_required ? "Required" : "Optional"} -{" "}
+              {group.selection_type} - min {group.min_required} - max{" "}
+              {group.max_allowed ?? "No max"} - placement{" "}
+              {group.supports_placement ? "on" : "off"} - multiplier{" "}
+              {group.supports_multiplier ? "on" : "off"}
+            </p>
           </div>
         </div>
 
-        <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pb-3">
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Rules</h2>
-            <ThemedCard className="p-3">
-              <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                <p>{group.is_required ? "Required" : "Optional"}</p>
-                <p className="capitalize">{group.selection_type}</p>
-                <p>Min {group.min_required}</p>
-                <p>Max {group.max_allowed ?? "No max"}</p>
-                <p>Placement {group.supports_placement ? "on" : "off"}</p>
-                <p>Multiplier {group.supports_multiplier ? "on" : "off"}</p>
-              </div>
-            </ThemedCard>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Options</h2>
+        <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
             {group.options.length === 0 ? (
               <ThemedCard className="p-5 text-center">
                 <p className="font-semibold">No options yet</p>
@@ -361,11 +339,10 @@ export function ModifierGroupDetailClient({
                 })}
               </div>
             )}
-          </section>
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-end gap-2">
             <ThemedButton
               asChild
               variant="outline"

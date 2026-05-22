@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { ListTree, Plus, SlidersHorizontal } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Plus, X } from "lucide-react"
 import { useMemo, useState } from "react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
@@ -60,6 +61,7 @@ function getProductGroups(group: AdminMenuGroup) {
 export function AdminProductsBrowser({
   menuGroups,
 }: ProductCategoryBrowserProps) {
+  const router = useRouter()
   const sortedGroups = useMemo(() => sortBySortOrder(menuGroups), [menuGroups])
   const parentGroups = sortedGroups.filter((group) => !group.parent_group_id)
   const [selectedCategoryId, setSelectedCategoryId] = useState(
@@ -155,18 +157,22 @@ export function AdminProductsBrowser({
                         return (
                           <ThemedCard
                             key={id}
-                            className="overflow-hidden border bg-background py-0"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Open product ${product.name}`}
+                            onClick={() =>
+                              router.push(`/admin/products/${product.id}`)
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                router.push(`/admin/products/${product.id}`)
+                              }
+                            }}
+                            className="cursor-pointer overflow-hidden border bg-background py-0"
                           >
                             <CompactRecordRow
-                              title={
-                                <Link
-                                  href={`/admin/products/${product.id}`}
-                                  aria-label={`Open product ${product.name}`}
-                                  className="block truncate rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                >
-                                  {product.name}
-                                </Link>
-                              }
+                              title={product.name}
                               statusIcon={
                                 <CompactRecordStatusIcon
                                   enabled={product.is_enabled}
@@ -176,30 +182,34 @@ export function AdminProductsBrowser({
                               rightAction={
                                 <>
                                   <ThemedButton
-                                    asChild
-                                    size="icon-sm"
+                                    type="button"
+                                    size="sm"
                                     variant="outline"
                                     aria-label={`Manage variant assignment for ${product.name}`}
-                                    className="size-8 bg-background text-foreground hover:bg-muted"
+                                    className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      router.push(
+                                        `/admin/products/variant-assignments?productId=${product.id}`
+                                      )
+                                    }}
                                   >
-                                    <Link
-                                      href={`/admin/products/variant-assignments?productId=${product.id}`}
-                                    >
-                                      <ListTree aria-hidden="true" />
-                                    </Link>
+                                    Manage Variants
                                   </ThemedButton>
                                   <ThemedButton
-                                    asChild
-                                    size="icon-sm"
+                                    type="button"
+                                    size="sm"
                                     variant="outline"
                                     aria-label={`Manage modifier groups for ${product.name}`}
-                                    className="size-8 bg-background text-foreground hover:bg-muted"
+                                    className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      router.push(
+                                        `/admin/products/modifier-groups?productId=${product.id}`
+                                      )
+                                    }}
                                   >
-                                    <Link
-                                      href={`/admin/products/modifier-groups?productId=${product.id}`}
-                                    >
-                                      <SlidersHorizontal aria-hidden="true" />
-                                    </Link>
+                                    Manage Modifiers
                                   </ThemedButton>
                                 </>
                               }
@@ -232,7 +242,19 @@ export function AdminProductsBrowser({
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl justify-end">
+        <div className="mx-auto flex max-w-6xl justify-end gap-2">
+          <ThemedButton
+            asChild
+            variant="outline"
+            size="icon"
+            aria-label="Back to product management"
+            className="size-10 bg-background text-foreground hover:bg-muted"
+          >
+            <Link href="/admin/products">
+              <X aria-hidden="true" />
+              <span className="sr-only">Back to product management</span>
+            </Link>
+          </ThemedButton>
           <ThemedButton
             asChild
             size="icon"

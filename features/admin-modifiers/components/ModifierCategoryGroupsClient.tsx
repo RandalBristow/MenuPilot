@@ -111,7 +111,7 @@ export function ModifierCategoryGroupsClient({
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-end gap-2">
             <ThemedButton
               type="button"
               variant="outline"

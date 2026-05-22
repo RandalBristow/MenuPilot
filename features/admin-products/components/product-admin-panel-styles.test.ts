@@ -32,8 +32,7 @@ describe("product admin panel styles", () => {
   it("keeps the same form panel sections for add, edit, and view", () => {
     expect(PRODUCT_ADMIN_PANEL_PAGE_CLASS).toContain("bg-muted/40")
     expect(PRODUCT_ADMIN_PANEL_HEADER_CLASS).toContain("border-b")
-    expect(PRODUCT_ADMIN_PANEL_HEADER_CLASS).toContain("relative")
-    expect(PRODUCT_ADMIN_PANEL_HEADER_CLASS).toContain("pr-12")
+    expect(PRODUCT_ADMIN_PANEL_HEADER_CLASS).toContain("p-4")
     expect(PRODUCT_ADMIN_PANEL_BODY_CLASS).toContain("overflow-y-auto")
     expect(PRODUCT_ADMIN_PANEL_FOOTER_CLASS).toContain("justify-end")
   })

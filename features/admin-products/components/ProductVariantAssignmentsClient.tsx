@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { LinkIcon, Unlink } from "lucide-react"
+import { X } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -83,7 +83,7 @@ function VariantGroupCard({
           </p>
         </div>
 
-        <div className="mt-1.5 flex items-end justify-between gap-3">
+        <div className="mt-1.5 flex items-end justify-end gap-3">
           <span className="text-xs leading-5 text-muted-foreground">
             {group.optionCount} options
           </span>
@@ -98,14 +98,11 @@ function VariantGroupCard({
               />
               <ThemedButton
                 type="submit"
-                size="icon-sm"
+                size="sm"
                 aria-label={`Remove ${group.name} from this product`}
-                className="size-8"
+                className="h-8 px-3 text-xs"
               >
-                <Unlink aria-hidden="true" />
-                <span className="sr-only">
-                  Remove {group.name} from this product
-                </span>
+                Remove Group
               </ThemedButton>
             </form>
           ) : (
@@ -114,13 +111,12 @@ function VariantGroupCard({
               <input type="hidden" name="variantGroupId" value={group.id} />
               <ThemedButton
                 type="submit"
-                size="icon-sm"
+                size="sm"
                 variant="outline"
                 aria-label={`Select ${group.name}`}
-                className="size-8 bg-background text-foreground hover:bg-muted"
+                className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
               >
-                <LinkIcon aria-hidden="true" />
-                <span className="sr-only">Select {group.name}</span>
+                Select Group
               </ThemedButton>
             </form>
           )}
@@ -256,7 +252,22 @@ export function ProductVariantAssignmentsClient({
           )}
         </div>
 
-        <div className="shrink-0 border-t" aria-hidden="true" />
+        <div className="shrink-0 border-t bg-background pt-3">
+          <div className="flex justify-end">
+            <ThemedButton
+              asChild
+              variant="outline"
+              size="icon"
+              aria-label="Back to products"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+            >
+              <Link href="/admin/products/list">
+                <X aria-hidden="true" />
+                <span className="sr-only">Back to products</span>
+              </Link>
+            </ThemedButton>
+          </div>
+        </div>
       </div>
     </main>
   )

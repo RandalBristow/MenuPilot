@@ -218,18 +218,6 @@ export async function ProductForm({ productId }: ProductFormProps) {
           className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
         >
           <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-          <ThemedButton
-            asChild
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close"
-            className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
-          >
-            <Link href="/admin/products">
-              <X aria-hidden="true" />
-              <span className="sr-only">Close</span>
-            </Link>
-          </ThemedButton>
           <ThemedSheetTitle>
             {isEditMode ? "Edit Product" : "New Product"}
           </ThemedSheetTitle>

@@ -81,12 +81,11 @@ export function ModifierOptionGroupFormDialog({
     <ThemedSheet open={open} onOpenChange={onOpenChange}>
       <ThemedSheetContent
         side="bottom"
+        showCloseButton={false}
         className={MODIFIER_FORM_SHEET_CONTENT_CLASS}
       >
-        <ThemedSheetHeader className="shrink-0 border-b pb-3">
-          <ThemedSheetTitle className="text-2xl leading-tight">
-            {title}
-          </ThemedSheetTitle>
+        <ThemedSheetHeader className="shrink-0 border-b p-4">
+          <ThemedSheetTitle>{title}</ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 

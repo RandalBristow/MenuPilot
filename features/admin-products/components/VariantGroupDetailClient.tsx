@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
@@ -93,6 +94,18 @@ function getOptionDescription(
   return `${formatMoney(option.base_price)} - ${defaultLabel} - sort ${option.sort_order}`
 }
 
+function getBackHref({
+  productContext,
+}: {
+  productContext: VariantGroupProductContext
+}) {
+  if (productContext) {
+    return `/admin/products/variant-assignments?productId=${productContext.id}`
+  }
+
+  return "/admin/products/variant-groups"
+}
+
 function OptionFormPanel({
   open,
   onOpenChange,
@@ -154,20 +167,7 @@ function OptionFormPanel({
         className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
       >
         <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-          <ThemedButton
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close"
-            className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
-            onClick={() => onOpenChange(false)}
-          >
-            <X aria-hidden="true" />
-            <span className="sr-only">Close</span>
-          </ThemedButton>
-          <ThemedSheetTitle className="text-3xl font-bold leading-tight text-foreground">
-            {title}
-          </ThemedSheetTitle>
+          <ThemedSheetTitle>{title}</ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
@@ -417,6 +417,7 @@ export function VariantGroupDetailClient({
   const isProductMode = mode === "product"
   const isPreviewMode = mode === "preview"
   const isProductScopedMode = mode !== "global"
+  const backHref = getBackHref({ productContext })
   const description = isProductMode
     ? `Product-specific options for ${data.businessName}.`
     : isPreviewMode
@@ -518,7 +519,19 @@ export function VariantGroupDetailClient({
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <ThemedButton
+              asChild
+              variant="outline"
+              size="icon"
+              aria-label="Back"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+            >
+              <Link href={backHref}>
+                <X aria-hidden="true" />
+                <span className="sr-only">Back</span>
+              </Link>
+            </ThemedButton>
             {isProductScopedMode ? null : (
               <ThemedButton
                 type="button"

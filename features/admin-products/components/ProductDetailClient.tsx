@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { X } from "lucide-react"
+import { ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -84,6 +84,7 @@ function ProductDetailEditor({
   const subcategoryGroups = menuGroups.filter(
     (group) => group.parent_group_id === selectedCategoryId
   )
+  const [isEnabled, setIsEnabled] = useState(product.is_enabled)
   const selectedMenuGroupId = selectedSubcategoryId || selectedCategoryId
 
   return (
@@ -95,21 +96,7 @@ function ProductDetailEditor({
           className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
         >
           <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-            <ThemedButton
-              asChild
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Close"
-              className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
-            >
-              <Link href="/admin/products">
-                <X aria-hidden="true" />
-                <span className="sr-only">Close</span>
-              </Link>
-            </ThemedButton>
-            <ThemedSheetTitle className="text-3xl font-bold text-foreground">
-              Edit Product
-            </ThemedSheetTitle>
+            <ThemedSheetTitle>Edit Product</ThemedSheetTitle>
             <ThemedSheetDescription>
               Update product details for {businessName}.
             </ThemedSheetDescription>
@@ -125,6 +112,7 @@ function ProductDetailEditor({
                 includeAvailability={false}
               />
               <input type="hidden" name="menuGroupId" value={selectedMenuGroupId} />
+              <input type="hidden" name="isEnabled" value={String(isEnabled)} />
 
               <div className="grid gap-4">
                 <label className="grid gap-2">
@@ -177,15 +165,35 @@ function ProductDetailEditor({
                   </select>
                 </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Product name</span>
-                  <input
-                    name="name"
-                    required
-                    defaultValue={product.name}
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  />
-                </label>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                  <label className="grid min-w-0 gap-2">
+                    <span className="text-sm font-medium">Product name</span>
+                    <input
+                      name="name"
+                      required
+                      defaultValue={product.name}
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    />
+                  </label>
+
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={`${isEnabled ? "Disable" : "Enable"} product ${product.name}`}
+                    className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                    onClick={() => setIsEnabled((current) => !current)}
+                  >
+                    {isEnabled ? (
+                      <ThumbsUp aria-hidden="true" />
+                    ) : (
+                      <ThumbsDown aria-hidden="true" />
+                    )}
+                    <span className="sr-only">
+                      {isEnabled ? "Disable" : "Enable"} product
+                    </span>
+                  </ThemedButton>
+                </div>
 
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Description</span>
@@ -197,32 +205,18 @@ function ProductDetailEditor({
                   />
                 </label>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium">Base price</span>
-                    <input
-                      name="basePrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                      defaultValue={product.base_price ?? ""}
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                    />
-                  </label>
-
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium">Status</span>
-                    <select
-                      name="isEnabled"
-                      defaultValue={product.is_enabled ? "true" : "false"}
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                    >
-                      <option value="true">Enabled</option>
-                      <option value="false">Disabled</option>
-                    </select>
-                  </label>
-                </div>
+                <label className="grid gap-2">
+                  <span className="text-sm font-medium">Base price</span>
+                  <input
+                    name="basePrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    defaultValue={product.base_price ?? ""}
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  />
+                </label>
               </div>
             </div>
 

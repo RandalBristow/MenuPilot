@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LinkIcon, SlidersHorizontal, Unlink } from "lucide-react"
 import { useState } from "react"
+import { X } from "lucide-react"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -89,9 +89,8 @@ function ModifierGroupCard({
           </p>
         </div>
 
-        <div className="mt-1.5 flex items-end justify-between gap-3">
+        <div className="mt-1.5 flex items-end justify-end gap-3">
           <span className="inline-flex items-center gap-1 text-xs leading-5 text-muted-foreground">
-            <SlidersHorizontal aria-hidden="true" className="size-3.5" />
             Product choices
           </span>
 
@@ -105,14 +104,11 @@ function ModifierGroupCard({
               />
               <ThemedButton
                 type="submit"
-                size="icon-sm"
+                size="sm"
                 aria-label={`Remove ${group.name} from this product`}
-                className="size-8"
+                className="h-8 px-3 text-xs"
               >
-                <Unlink aria-hidden="true" />
-                <span className="sr-only">
-                  Remove {group.name} from this product
-                </span>
+                Remove Group
               </ThemedButton>
             </form>
           ) : (
@@ -121,13 +117,12 @@ function ModifierGroupCard({
               <input type="hidden" name="modifierGroupId" value={group.id} />
               <ThemedButton
                 type="submit"
-                size="icon-sm"
+                size="sm"
                 variant="outline"
                 aria-label={`Attach ${group.name}`}
-                className="size-8 bg-background text-foreground hover:bg-muted"
+                className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
               >
-                <LinkIcon aria-hidden="true" />
-                <span className="sr-only">Attach {group.name}</span>
+                Attach Group
               </ThemedButton>
             </form>
           )}
@@ -282,7 +277,22 @@ export function ProductModifierGroupsClient({
           )}
         </div>
 
-        <div className="shrink-0 border-t" aria-hidden="true" />
+        <div className="shrink-0 border-t bg-background pt-3">
+          <div className="flex justify-end">
+            <ThemedButton
+              asChild
+              variant="outline"
+              size="icon"
+              aria-label="Back to products"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+            >
+              <Link href="/admin/products/list">
+                <X aria-hidden="true" />
+                <span className="sr-only">Back to products</span>
+              </Link>
+            </ThemedButton>
+          </div>
+        </div>
       </div>
     </main>
   )

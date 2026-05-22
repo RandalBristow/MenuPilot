@@ -6,7 +6,7 @@ export function ThemedHeading({ className, ...props }: Props) {
   return (
     <h1
       className={cn(
-        "text-3xl font-bold text-foreground",
+        "font-heading text-2xl font-medium leading-tight text-foreground",
         className
       )}
       {...props}

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, X } from "lucide-react"
+import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -61,47 +62,39 @@ export function ModifierSubgroupListClient({
                 }}
                 className={
                   subgroup.is_enabled
-                    ? "cursor-pointer gap-0 overflow-hidden p-0"
-                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 p-0 opacity-75"
+                    ? "cursor-pointer gap-0 overflow-hidden py-0"
+                    : "cursor-pointer gap-0 overflow-hidden bg-muted/30 py-0 opacity-75"
                 }
               >
-                <div className="px-3 pt-2.5 text-left">
-                  <div className="flex min-w-0 items-center gap-2">
+                <CompactRecordRow
+                  title={subgroup.name}
+                  statusIcon={
                     <CompactRecordStatusIcon enabled={subgroup.is_enabled} />
-                    <div className="min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground">
-                      {subgroup.name}
-                    </div>
-                  </div>
-
-                  {subgroup.description ? (
-                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-                      {subgroup.description}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="flex justify-end px-3 pb-2.5 pt-1.5">
-                  <ThemedButton
-                    type="button"
-                    variant="outline"
-                    className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      router.push(
-                        `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`
-                      )
-                    }}
-                  >
-                    Manage Options
-                  </ThemedButton>
-                </div>
+                  }
+                  description={subgroup.description}
+                  rightAction={
+                    <ThemedButton
+                      type="button"
+                      variant="outline"
+                      className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        router.push(
+                          `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`
+                        )
+                      }}
+                    >
+                      Manage Options
+                    </ThemedButton>
+                  }
+                />
               </ThemedCard>
             ))
           )}
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-end gap-2">
             <ThemedButton
               type="button"
               variant="outline"

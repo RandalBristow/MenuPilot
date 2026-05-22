@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Plus, X } from "lucide-react"
+import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -68,6 +68,9 @@ function SubcategoryFormPanel({
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const [isEnabled, setIsEnabled] = useState(
+    panelState?.subcategory?.is_enabled ?? true
+  )
 
   if (!panelState) return null
 
@@ -94,20 +97,7 @@ function SubcategoryFormPanel({
         className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
       >
         <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-          <ThemedButton
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close"
-            className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
-            onClick={() => onOpenChange(false)}
-          >
-            <X aria-hidden="true" />
-            <span className="sr-only">Close</span>
-          </ThemedButton>
-          <ThemedSheetTitle className="text-3xl font-bold text-foreground">
-            {title}
-          </ThemedSheetTitle>
+          <ThemedSheetTitle>{title}</ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
@@ -119,11 +109,18 @@ function SubcategoryFormPanel({
         >
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             {subcategory ? (
-              <input
-                type="hidden"
-                name="subcategoryId"
-                value={subcategory.id}
-              />
+              <>
+                <input
+                  type="hidden"
+                  name="subcategoryId"
+                  value={subcategory.id}
+                />
+                <input
+                  type="hidden"
+                  name="isEnabled"
+                  value={String(isEnabled)}
+                />
+              </>
             ) : null}
 
             <div className="grid gap-4">
@@ -146,15 +143,37 @@ function SubcategoryFormPanel({
                 </select>
               </label>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-medium">Name</span>
-                <input
-                  name="name"
-                  required
-                  defaultValue={subcategory?.name ?? ""}
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                />
-              </label>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                <label className="grid min-w-0 gap-2">
+                  <span className="text-sm font-medium">Name</span>
+                  <input
+                    name="name"
+                    required
+                    defaultValue={subcategory?.name ?? ""}
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  />
+                </label>
+
+                {!isCreateMode && subcategory ? (
+                  <ThemedButton
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={`${isEnabled ? "Disable" : "Enable"} product subcategory ${subcategory.name}`}
+                    className="size-10 shrink-0 bg-background text-foreground hover:bg-muted"
+                    onClick={() => setIsEnabled((current) => !current)}
+                  >
+                    {isEnabled ? (
+                      <ThumbsUp aria-hidden="true" />
+                    ) : (
+                      <ThumbsDown aria-hidden="true" />
+                    )}
+                    <span className="sr-only">
+                      {isEnabled ? "Disable" : "Enable"} product subcategory
+                    </span>
+                  </ThemedButton>
+                ) : null}
+              </div>
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium">Description</span>
@@ -166,7 +185,9 @@ function SubcategoryFormPanel({
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div
+                className={isCreateMode ? "grid grid-cols-2 gap-3" : "grid gap-3"}
+              >
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Sort order</span>
                   <input
@@ -182,19 +203,19 @@ function SubcategoryFormPanel({
                   />
                 </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium">Status</span>
-                  <select
-                    name="isEnabled"
-                    defaultValue={
-                      subcategory?.is_enabled === false ? "false" : "true"
-                    }
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  >
-                    <option value="true">Enabled</option>
-                    <option value="false">Disabled</option>
-                  </select>
-                </label>
+                {isCreateMode ? (
+                  <label className="grid gap-2">
+                    <span className="text-sm font-medium">Status</span>
+                    <select
+                      name="isEnabled"
+                      defaultValue="true"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="true">Enabled</option>
+                      <option value="false">Disabled</option>
+                    </select>
+                  </label>
+                ) : null}
               </div>
             </div>
           </div>
@@ -232,6 +253,7 @@ export function ProductSubcategoriesBrowser({
   categories,
   subcategories,
 }: ProductSubcategoriesBrowserProps) {
+  const router = useRouter()
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     categories[0]?.id ?? ""
   )
@@ -324,7 +346,18 @@ export function ProductSubcategoriesBrowser({
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <ThemedButton
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Back to product management"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+              onClick={() => router.push("/admin/products")}
+            >
+              <X aria-hidden="true" />
+              <span className="sr-only">Back to product management</span>
+            </ThemedButton>
             <ThemedButton
               type="button"
               size="icon"
@@ -343,6 +376,7 @@ export function ProductSubcategoriesBrowser({
       </div>
 
       <SubcategoryFormPanel
+        key={`${panelState?.mode ?? "closed"}-${panelState?.subcategory?.id ?? "new"}`}
         open={panelState !== null}
         onOpenChange={(open) => {
           if (!open) setPanelState(null)

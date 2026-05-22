@@ -1,7 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus } from "lucide-react"
+import Link from "next/link"
+import { Plus, X } from "lucide-react"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ModifierOptionGroupFormDialog } from "@/features/admin-modifiers/components/ModifierOptionGroupFormDialog"
@@ -159,7 +160,19 @@ function SubgroupRows({
       )}
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
-        <div className="mx-auto flex max-w-5xl justify-end">
+        <div className="mx-auto flex max-w-5xl justify-end gap-2">
+          <ThemedButton
+            asChild
+            variant="outline"
+            size="icon"
+            aria-label="Back to modifier management"
+            className="size-10 bg-background text-foreground hover:bg-muted"
+          >
+            <Link href="/admin/modifiers">
+              <X aria-hidden="true" />
+              <span className="sr-only">Back to modifier management</span>
+            </Link>
+          </ThemedButton>
           <ThemedButton
             type="button"
             size="icon"

@@ -22,7 +22,7 @@ export function ThemedPageHeader({
       {...props}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+        <h1 className="font-heading text-2xl font-medium leading-tight text-foreground">
           {title}
         </h1>
         {description ? (

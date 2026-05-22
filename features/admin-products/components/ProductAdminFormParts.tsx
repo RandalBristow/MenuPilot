@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { Check, X } from "lucide-react"
+import { Check } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   ThemedSheetDescription,
@@ -41,27 +41,12 @@ export function getMenuGroupLabelById(groupId: string, groups: MenuGroup[]) {
 export function ProductPanelHeader({
   title,
   description,
-  onClose,
 }: {
   title: string
   description: string
-  onClose?: () => void
 }) {
   return (
     <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-      {onClose ? (
-        <ThemedButton
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Close"
-          className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
-          onClick={onClose}
-        >
-          <X aria-hidden="true" />
-          <span className="sr-only">Close</span>
-        </ThemedButton>
-      ) : null}
       <ThemedSheetTitle>{title}</ThemedSheetTitle>
       <ThemedSheetDescription>{description}</ThemedSheetDescription>
     </ThemedSheetHeader>

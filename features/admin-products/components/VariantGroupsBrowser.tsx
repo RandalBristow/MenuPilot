@@ -72,20 +72,7 @@ function VariantGroupFormPanel({
         className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
       >
         <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-          <ThemedButton
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close"
-            className="absolute top-3 right-3 bg-transparent text-foreground hover:bg-muted"
-            onClick={() => onOpenChange(false)}
-          >
-            <X aria-hidden="true" />
-            <span className="sr-only">Close</span>
-          </ThemedButton>
-          <ThemedSheetTitle className="text-3xl font-bold leading-tight text-foreground">
-            {title}
-          </ThemedSheetTitle>
+          <ThemedSheetTitle>{title}</ThemedSheetTitle>
           <ThemedSheetDescription>{description}</ThemedSheetDescription>
         </ThemedSheetHeader>
 
@@ -288,7 +275,18 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
         </div>
 
         <div className="shrink-0 border-t bg-background pt-3">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <ThemedButton
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Back to product management"
+              className="size-10 bg-background text-foreground hover:bg-muted"
+              onClick={() => router.push("/admin/products")}
+            >
+              <X aria-hidden="true" />
+              <span className="sr-only">Back to product management</span>
+            </ThemedButton>
             <ThemedButton
               type="button"
               size="icon"
