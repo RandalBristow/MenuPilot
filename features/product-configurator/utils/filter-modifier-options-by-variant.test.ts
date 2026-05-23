@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest"
 import {
   filterModifierOptionsByVariant,
+  isModifierOptionAvailableForVariant,
   removeUnavailableSelectedModifiers,
   type VariantModifierOptionAvailabilityRule,
 } from "./filter-modifier-options-by-variant"
+import { filterEnabledModifierOptions } from "./filter-enabled-modifier-options"
 import { getModifierGroupValidationMessage } from "./modifier-group-validation"
 
 const crustGroup = {
@@ -38,6 +40,16 @@ describe("filterModifierOptionsByVariant", () => {
     ])
   })
 
+  it("reports an option available when no rule exists for the selected variant", () => {
+    expect(
+      isModifierOptionAvailableForVariant({
+        selectedVariantId: "size-12",
+        modifierOptionId: "gluten-free-crust",
+        availabilityRules: [],
+      })
+    ).toBe(true)
+  })
+
   it("hides an option when an enabled unavailable rule matches", () => {
     const filteredGroup = filterForVariant("size-12", [
       {
@@ -52,6 +64,24 @@ describe("filterModifierOptionsByVariant", () => {
     expect(filteredGroup.modifier_options.map((option) => option.id)).toEqual([
       "regular-crust",
     ])
+  })
+
+  it("reports an option unavailable when an enabled unavailable rule matches", () => {
+    expect(
+      isModifierOptionAvailableForVariant({
+        selectedVariantId: "size-12",
+        modifierOptionId: "gluten-free-crust",
+        availabilityRules: [
+          {
+            variant_group_option_id: "size-12",
+            modifier_group_id: "crust",
+            modifier_option_id: "gluten-free-crust",
+            is_available: false,
+            is_enabled: true,
+          },
+        ],
+      })
+    ).toBe(false)
   })
 
   it("ignores disabled rules", () => {
@@ -70,6 +100,24 @@ describe("filterModifierOptionsByVariant", () => {
     )
   })
 
+  it("reports disabled unavailable rules as available", () => {
+    expect(
+      isModifierOptionAvailableForVariant({
+        selectedVariantId: "size-12",
+        modifierOptionId: "gluten-free-crust",
+        availabilityRules: [
+          {
+            variant_group_option_id: "size-12",
+            modifier_group_id: "crust",
+            modifier_option_id: "gluten-free-crust",
+            is_available: false,
+            is_enabled: false,
+          },
+        ],
+      })
+    ).toBe(true)
+  })
+
   it("keeps an option when an enabled available rule matches", () => {
     const filteredGroup = filterForVariant("size-10", [
       {
@@ -82,6 +130,29 @@ describe("filterModifierOptionsByVariant", () => {
     ])
 
     expect(filteredGroup.modifier_options.map((option) => option.id)).toContain(
+      "gluten-free-crust"
+    )
+  })
+
+  it("keeps an option available for another variant when only the selected variant allows it", () => {
+    const size10Group = filterForVariant("size-10", [
+      {
+        variant_group_option_id: "size-10",
+        modifier_group_id: "crust",
+        modifier_option_id: "gluten-free-crust",
+        is_available: true,
+        is_enabled: true,
+      },
+      {
+        variant_group_option_id: "size-12",
+        modifier_group_id: "crust",
+        modifier_option_id: "gluten-free-crust",
+        is_available: false,
+        is_enabled: true,
+      },
+    ])
+
+    expect(size10Group.modifier_options.map((option) => option.id)).toContain(
       "gluten-free-crust"
     )
   })
@@ -129,5 +200,79 @@ describe("filterModifierOptionsByVariant", () => {
     ])
 
     expect(getModifierGroupValidationMessage(emptyRequiredGroup, [])).toBeNull()
+  })
+
+  it("still requires a selection when a required group has available options", () => {
+    const filteredGroup = filterForVariant("size-12", [
+      {
+        variant_group_option_id: "size-12",
+        modifier_group_id: "crust",
+        modifier_option_id: "gluten-free-crust",
+        is_available: false,
+        is_enabled: true,
+      },
+    ])
+
+    expect(getModifierGroupValidationMessage(filteredGroup, [])).toBe(
+      "Please choose at least 1."
+    )
+  })
+
+  it("filters mixed grouped and ungrouped options without crashing", () => {
+    const modifierGroups = [
+      {
+        id: "toppings",
+        is_required: false,
+        min_required: 0,
+        max_allowed: null,
+        modifier_options: filterEnabledModifierOptions([
+          {
+            id: "pepperoni",
+            name: "Pepperoni",
+            is_enabled: true,
+            modifier_option_group_id: "meats",
+            modifier_option_groups: {
+              id: "meats",
+              is_enabled: true,
+            },
+          },
+          {
+            id: "ranch",
+            name: "Ranch",
+            is_enabled: true,
+            modifier_option_group_id: null,
+            modifier_option_groups: null,
+          },
+          {
+            id: "hidden-cheese",
+            name: "Hidden Cheese",
+            is_enabled: true,
+            modifier_option_group_id: "disabled-cheeses",
+            modifier_option_groups: {
+              id: "disabled-cheeses",
+              is_enabled: false,
+            },
+          },
+        ]),
+      },
+    ]
+
+    const [filteredGroup] = filterModifierOptionsByVariant({
+      selectedVariantId: "size-12",
+      modifierGroups,
+      availabilityRules: [
+        {
+          variant_group_option_id: "size-12",
+          modifier_group_id: "toppings",
+          modifier_option_id: "pepperoni",
+          is_available: false,
+          is_enabled: true,
+        },
+      ],
+    })
+
+    expect(filteredGroup.modifier_options.map((option) => option.id)).toEqual([
+      "ranch",
+    ])
   })
 })

@@ -18,10 +18,11 @@
   - removing assignments removes overrides
   - unassigned objects are view-only in product context
 - Preserve modifier hierarchy terminology:
-  - `modifier_group_categories` are top-level Modifier Groups
-  - `modifier_groups` are Modifier Group Subgroups
-  - `modifier_option_groups` are Option Groups
-  - `modifier_options` are selectable choices
+  - `modifier_categories` are Modifier Categories for admin organization only
+  - `modifier_groups` are Modifier Groups and are the product-attached rule sets
+  - `modifier_option_groups` are Modifier Option Groups inside Modifier Groups
+  - `modifier_options` are Modifier Options, the selectable customer choices
+  - products attach Modifier Groups, not Modifier Categories or Modifier Option Groups
 
 ## UI Rules
 

@@ -42,7 +42,7 @@ export async function updateModifierCategory(formData: FormData) {
   const description = parseNullableString(formData.get("description"))
 
   const { error } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .update({ name, description })
     .eq("id", categoryId)
     .eq("business_id", businessId)

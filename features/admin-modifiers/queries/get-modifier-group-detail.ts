@@ -33,7 +33,7 @@ export type ModifierGroupDetailSubgroup = {
 
 export type ModifierGroupDetail = {
   id: string
-  modifier_group_category_id: string | null
+  modifier_category_id: string | null
   name: string
   description: string | null
   selection_type: string
@@ -210,7 +210,7 @@ export async function getModifierGroupDetail(
     .select(
       `
       id,
-      modifier_group_category_id,
+      modifier_category_id,
       name,
       description,
       selection_type,
@@ -264,7 +264,7 @@ export async function getModifierGroupDetail(
   )
   const group = data as {
     id: string
-    modifier_group_category_id: string | null
+    modifier_category_id: string | null
     name: string
     description: string | null
     selection_type: string
@@ -299,7 +299,7 @@ export async function getModifierGroupDetail(
     productContext: context.productContext,
     group: {
       id: group.id,
-      modifier_group_category_id: group.modifier_group_category_id,
+      modifier_category_id: group.modifier_category_id,
       name: group.name,
       description: group.description,
       selection_type: group.selection_type,

@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useMemo, useState } from "react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -243,18 +244,10 @@ export function AdminProductsBrowser({
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-6xl justify-end gap-2">
-          <ThemedButton
-            asChild
-            variant="outline"
-            size="icon"
-            aria-label="Back to product management"
-            className="size-10 bg-background text-foreground hover:bg-muted"
-          >
-            <Link href="/admin/products">
-              <X aria-hidden="true" />
-              <span className="sr-only">Back to product management</span>
-            </Link>
-          </ThemedButton>
+          <AdminBackButton
+            fallbackHref="/admin/products"
+            label="Back to product management"
+          />
           <ThemedButton
             asChild
             size="icon"

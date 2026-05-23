@@ -85,7 +85,7 @@ export async function updateModifierGroup(formData: FormData) {
   }
 
   const { data: category, error: categoryError } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .select("id")
     .eq("id", categoryId)
     .eq("business_id", businessId)
@@ -98,7 +98,7 @@ export async function updateModifierGroup(formData: FormData) {
   const { error } = await supabaseAdmin
     .from("modifier_groups")
     .update({
-      modifier_group_category_id: categoryId,
+      modifier_category_id: categoryId,
       name,
       selection_type: selectionType,
       min_required: minRequired,

@@ -1,9 +1,9 @@
 "use client"
 
-import Link from "next/link"
 import { useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -553,18 +553,7 @@ export function VariantGroupDetailClient({
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
-            <ThemedButton
-              asChild
-              variant="outline"
-              size="icon"
-              aria-label="Back"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-            >
-              <Link href={backHref}>
-                <X aria-hidden="true" />
-                <span className="sr-only">Back</span>
-              </Link>
-            </ThemedButton>
+            <AdminBackButton fallbackHref={backHref} label="Back" />
             {isProductScopedMode ? null : (
               <ThemedButton
                 type="button"

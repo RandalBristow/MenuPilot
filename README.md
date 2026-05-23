@@ -12,7 +12,7 @@ Implemented:
 - Staff order queue at `/staff/orders` with status updates.
 - Admin product management for categories, subcategories, products, reusable variant groups, product variant assignments, and modifier group assignments.
 - Admin modifier library flow using the current hierarchy:
-  - `modifier_group_categories` = top-level modifier groups
+  - `modifier_categories` = Modifier Categories for admin organization
   - `modifier_groups` = modifier subgroups
   - `modifier_option_groups` = option groups inside a subgroup
   - `modifier_options` = selectable options

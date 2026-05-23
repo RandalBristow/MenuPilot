@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -276,17 +277,10 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
-            <ThemedButton
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Back to product management"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() => router.push("/admin/products")}
-            >
-              <X aria-hidden="true" />
-              <span className="sr-only">Back to product management</span>
-            </ThemedButton>
+            <AdminBackButton
+              fallbackHref="/admin/products"
+              label="Back to product management"
+            />
             <ThemedButton
               type="button"
               size="icon"

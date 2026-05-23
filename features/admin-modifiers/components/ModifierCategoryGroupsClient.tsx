@@ -2,20 +2,21 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ModifierGroupFormDialog } from "@/features/admin-modifiers/components/ModifierGroupFormDialog"
 import type {
-  ModifierGroupCategory,
+  ModifierCategory,
   RawModifierGroup,
 } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierCategoryGroupsClientProps = {
-  categories: ModifierGroupCategory[]
-  category: ModifierGroupCategory
+  categories: ModifierCategory[]
+  category: ModifierCategory
 }
 
 function sortGroups(groups: RawModifierGroup[]) {
@@ -126,17 +127,10 @@ export function ModifierCategoryGroupsClient({
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
-            <ThemedButton
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Back to modifier groups"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() => router.push("/admin/modifiers/groups")}
-            >
-              <X aria-hidden="true" />
-              <span className="sr-only">Back to modifier groups</span>
-            </ThemedButton>
+            <AdminBackButton
+              fallbackHref="/admin/modifiers/groups"
+              label="Back to modifier groups"
+            />
             <ModifierGroupFormDialog
               categories={categories}
               selectedCategoryId={selectedCategoryId}

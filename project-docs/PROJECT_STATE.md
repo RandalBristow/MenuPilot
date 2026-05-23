@@ -1,6 +1,6 @@
 # MenuPilot Project State
 
-_Last updated: 2026-05-19_
+_Last updated: 2026-05-23_
 
 ## Purpose
 
@@ -116,23 +116,28 @@ The engine supports or is designed to support:
 Size/count/portion/weight choices are product variants, not ordinary modifiers. Reusable variant groups are defined globally, attached to products, and customized per product through overrides.
 
 ### Modifiers
-**Status:** UPDATED 2026-05-19
+**Status:** UPDATED 2026-05-23
 
 Modifiers represent configurable product options such as toppings, crust type, crust style, sauce, dressing, bread, cheese, or preparation choices.
 
 The current hierarchy is:
 
-- `modifier_group_categories` = top-level Modifier Groups
-- `modifier_groups` = Modifier Group Subgroups
-- `modifier_option_groups` = option groups inside a subgroup
-- `modifier_options` = selectable choices
+- Modifier Category = admin organization layer backed by `modifier_categories`.
+- Modifier Group = product-attached rule set backed by `modifier_groups`.
+- Modifier Option Group = subgroup/bucket inside a Modifier Group, such as Meats, Veggies, or Cheeses, backed by `modifier_option_groups`.
+- Modifier Option = actual selectable choice, such as Pepperoni, Ranch, or Gluten Free, backed by `modifier_options`.
 
 Modifier behavior should mirror variant behavior:
 
 - Reusable modifier structures are defined globally.
-- Products attach reusable modifier subgroups through `product_modifier_groups`.
+- Products attach reusable Modifier Groups through `product_modifier_groups`.
+- Products do not attach Modifier Categories.
+- Products do not attach Modifier Option Groups directly.
+- Products do not attach individual Modifier Options directly except through product-specific override/availability systems.
 - Product-specific differences live in override tables.
 - Per-product modifier option overrides currently support price delta, prep time delta, enabled state, and sort order.
+- Modifier Categories are for admin organization only.
+- Modifier Option Groups organize options inside a Modifier Group.
 
 ### Conditional modifier availability
 **Status:** PARTIALLY IMPLEMENTED
@@ -160,7 +165,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 | Admin dashboard | Working demo | Modifier access moved under product management |
 | Product admin | Working | Categories, subcategories, products, variant groups, assignments |
 | Variant admin | Working | Reusable groups/options and per-product overrides |
-| Modifier admin | In progress | Hierarchy redesigned to group/category -> subgroup -> option group -> options |
+| Modifier admin | In progress | Hierarchy standardized as Modifier Category -> Modifier Group -> Modifier Option Group -> Modifier Option |
 | Product modifier assignments | In progress | Attach/detach and option overrides exist |
 | Auth/roles | Planned | Admin/staff routes are not protected yet |
 | Payments | Planned | Stripe selected but not implemented |
@@ -184,12 +189,12 @@ Included topping credits and multiplier-aware included pricing are implemented f
 - `/admin/products/variant-groups/[groupId]` variant group options
 - `/admin/products/variant-assignments` product variant assignment browser
 - `/admin/products/modifier-groups` product modifier assignment browser
-- `/admin/modifiers/groups` top-level modifier groups
-- `/admin/modifiers/groups/[categoryId]` modifier group subgroups
-- `/admin/modifiers/[groupId]` option groups for one modifier subgroup
-- `/admin/modifiers/[groupId]/subgroups/[subgroupId]` options for one option group
-- `/admin/modifiers/subgroups` legacy/global subgroup management screen
-- `/admin/modifiers/options` legacy/global option management screen
+- `/admin/modifiers/groups` Modifier Categories displayed as the current Modifier Groups entry point
+- `/admin/modifiers/groups/[categoryId]` Modifier Groups for one Modifier Category
+- `/admin/modifiers/[groupId]` Modifier Option Groups for one Modifier Group
+- `/admin/modifiers/[groupId]/subgroups/[subgroupId]` Modifier Options for one Modifier Option Group
+- `/admin/modifiers/subgroups` legacy/global Modifier Group management screen
+- `/admin/modifiers/options` legacy/global Modifier Option management screen
 
 ## Known Problems and Current Solutions
 
@@ -206,7 +211,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 **Solution:** Use default modifiers plus included swappable modifier credits.
 
 ### Admin modifier terminology was confusing
-**Solution:** Treat `modifier_group_categories` as the top-level Modifier Groups page and `modifier_groups` as Modifier Group Subgroups.
+**Solution:** Standardize terminology around the database layers: `modifier_categories` are Modifier Categories for admin organization, `modifier_groups` are product-attached Modifier Groups, `modifier_option_groups` are Modifier Option Groups, and `modifier_options` are Modifier Options.
 
 ## High-Risk Gaps
 
@@ -221,8 +226,13 @@ Included topping credits and multiplier-aware included pricing are implemented f
 ### 2026-05-19
 
 - Updated project state to reflect checkout, staff orders, admin products, reusable variants, and the redesigned modifier hierarchy.
-- Recorded the modifier hierarchy decision: `modifier_group_categories` are top-level Modifier Groups; `modifier_groups` are Modifier Group Subgroups.
+- Recorded the initial modifier hierarchy redesign.
 - Recorded product-level modifier option overrides and variant-specific modifier availability as current implementation work.
+
+### 2026-05-23
+
+- Standardized modifier terminology: Modifier Category, Modifier Group, Modifier Option Group, and Modifier Option.
+- Clarified that products attach Modifier Groups only; categories and option groups are organizational layers.
 
 ### 2026-05-06
 

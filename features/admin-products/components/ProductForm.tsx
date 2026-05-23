@@ -1,5 +1,5 @@
-import Link from "next/link"
-import { Check, X } from "lucide-react"
+import { Check } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   ThemedSheet,
@@ -321,18 +321,10 @@ export async function ProductForm({ productId }: ProductFormProps) {
           </div>
 
           <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
-            <ThemedButton
-              asChild
-              variant="outline"
-              size="icon"
-              aria-label="Close"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-            >
-              <Link href="/admin/products/list">
-                <X aria-hidden="true" />
-                <span className="sr-only">Back to products</span>
-              </Link>
-            </ThemedButton>
+            <AdminBackButton
+              fallbackHref="/admin/products/list"
+              label="Back to products"
+            />
             <ThemedButton
               type="submit"
               size="icon"

@@ -1,9 +1,9 @@
 "use client"
 
-import Link from "next/link"
-import { ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { ThumbsDown, ThumbsUp } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   ThemedSheet,
@@ -176,18 +176,10 @@ function ProductDetailEditor({
 
             <ProductPanelFooter
               closeControl={
-                <ThemedButton
-                  asChild
-                  variant="outline"
-                  size="icon"
-                  aria-label="Close"
-                  className="size-10 bg-background text-foreground hover:bg-muted"
-                >
-                  <Link href="/admin/products/list">
-                    <X aria-hidden="true" />
-                    <span className="sr-only">Back to products</span>
-                  </Link>
-                </ThemedButton>
+                <AdminBackButton
+                  fallbackHref="/admin/products/list"
+                  label="Back to products"
+                />
               }
               submitLabel="Save product"
             />

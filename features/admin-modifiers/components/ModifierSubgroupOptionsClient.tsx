@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -265,7 +266,6 @@ export function ModifierSubgroupOptionsClient({
   data,
   subgroup,
 }: ModifierSubgroupOptionsClientProps) {
-  const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
   const [activeOption, setActiveOption] =
     useState<ModifierGroupDetailOption | null>(null)
@@ -355,23 +355,14 @@ export function ModifierSubgroupOptionsClient({
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
-            <ThemedButton
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Back to modifier subgroups"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() =>
-                router.push(
-                  productContext
-                    ? `/admin/modifiers/${group.id}?productId=${productContext.id}`
-                    : `/admin/modifiers/${group.id}`
-                )
+            <AdminBackButton
+              fallbackHref={
+                productContext
+                  ? `/admin/modifiers/${group.id}?productId=${productContext.id}`
+                  : `/admin/modifiers/${group.id}`
               }
-            >
-              <X aria-hidden="true" />
-              <span className="sr-only">Back to modifier subgroups</span>
-            </ThemedButton>
+              label="Back to modifier subgroups"
+            />
             {isProductScopedMode ? null : (
               <ThemedButton
                 type="button"

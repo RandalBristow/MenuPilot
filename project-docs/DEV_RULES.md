@@ -36,10 +36,12 @@
 - Unassigned objects may be viewed but not overridden.
 - Variants and modifiers should follow the same reusable-definition, product-assignment, product-override pattern.
 - Modifier hierarchy is:
-  - `modifier_group_categories` = top-level Modifier Groups
-  - `modifier_groups` = Modifier Group Subgroups
-  - `modifier_option_groups` = Option Groups
-  - `modifier_options` = selectable choices
+  - `modifier_categories` = Modifier Categories; admin organization only
+  - `modifier_groups` = Modifier Groups; product-attached rule sets
+  - `modifier_option_groups` = Modifier Option Groups; option buckets inside Modifier Groups
+  - `modifier_options` = Modifier Options; selectable customer choices
+- Products attach Modifier Groups through `product_modifier_groups`.
+- Products do not attach Modifier Categories or Modifier Option Groups directly.
 
 ## Philosophy
 

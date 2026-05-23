@@ -40,7 +40,7 @@ export async function setModifierCategoryEnabled(formData: FormData) {
   const isEnabled = parseEnabled(formData.get("isEnabled"))
 
   const { error } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .update({ is_enabled: isEnabled })
     .eq("id", categoryId)
     .eq("business_id", businessId)

@@ -22,7 +22,7 @@ import {
   MODIFIER_FORM_FOOTER_CLASS,
   MODIFIER_FORM_SHEET_CONTENT_CLASS,
 } from "@/features/admin-modifiers/components/modifier-form-panel-styles"
-import type { ModifierGroupCategory } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
+import type { ModifierCategory } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 import type { RawModifierGroup } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierGroupFormMode = "create" | "edit"
@@ -30,7 +30,7 @@ type ModifierGroupFormMode = "create" | "edit"
 type ModifierGroupFormDialogProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  categories: ModifierGroupCategory[]
+  categories: ModifierCategory[]
   selectedCategoryId: string
   mode?: ModifierGroupFormMode
   group?: RawModifierGroup

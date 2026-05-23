@@ -16,6 +16,11 @@ const productHubLinks = [
     description: "Manage reusable size, drink, and count groups.",
   },
   {
+    title: "Variant Assignments",
+    href: "/admin/products/variant-assignments",
+    description: "Attach reusable variant groups to products.",
+  },
+  {
     title: "Modifier Groups",
     href: "/admin/modifiers/groups",
     description: "Manage reusable product modifier groups.",

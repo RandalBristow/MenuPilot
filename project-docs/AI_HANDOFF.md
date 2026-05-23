@@ -1,6 +1,6 @@
 # MenuPilot AI Handoff
 
-_Last updated: 2026-05-19_
+_Last updated: 2026-05-23_
 
 ## Overview
 
@@ -44,20 +44,25 @@ Current gaps:
 
 The current modifier terminology is important:
 
-- `modifier_group_categories` are top-level Modifier Groups in the admin UI.
-- `modifier_groups` are Modifier Group Subgroups.
-- `modifier_option_groups` are option groups inside a modifier subgroup.
-- `modifier_options` are the selectable choices shown to customers.
-- `product_modifier_groups` attaches a reusable modifier subgroup to a product.
+- Modifier Category: admin organization layer backed by `modifier_categories`.
+- Modifier Group: product-attached rule set backed by `modifier_groups`.
+- Modifier Option Group: subgroup/bucket inside a Modifier Group, such as Meats, Veggies, or Cheeses, backed by `modifier_option_groups`.
+- Modifier Option: actual selectable choice, such as Pepperoni, Ranch, or Gluten Free, backed by `modifier_options`.
+- `product_modifier_groups` attaches a reusable Modifier Group to a product.
 - `product_modifier_option_overrides` stores product-specific option price, prep time, enabled, and sort overrides.
 
 Modifiers should behave like variants:
 
 - Define reusable objects globally.
-- Attach reusable objects to products.
+- Products attach Modifier Groups.
+- Products do not attach Modifier Categories.
+- Products do not attach Modifier Option Groups directly.
+- Products do not attach individual Modifier Options directly except through product-specific override/availability systems.
 - Store product-specific differences as overrides.
 - Remove assignment-specific overrides when the assignment is removed.
 - Keep unassigned reusable objects view-only in product context.
+- Modifier Categories are for admin organization only.
+- Modifier Option Groups organize options inside a Modifier Group.
 
 ## Key Architecture Rules
 
@@ -76,12 +81,12 @@ The active focus is stabilizing the mobile-first admin product/modifier flow:
 
 1. Keep Product Management focused on categories, subcategories, products, variant groups, and modifier groups.
 2. Keep modifier library management under the product flow instead of a separate admin dashboard card.
-3. Match the variant group flow for modifier group definition, assignment, and per-product overrides.
+3. Match the variant group flow for Modifier Group definition, assignment, and per-product overrides.
 4. Preserve public ordering correctness while admin data structures evolve.
 
 ## Suggested Next Steps
 
-1. Verify the modifier group/subgroup/options admin pages on 320px, 375px, 390px, 430px, tablet, and desktop.
+1. Verify Modifier Category, Modifier Group, Modifier Option Group, and Modifier Option admin pages on 320px, 375px, 390px, 430px, tablet, and desktop.
 2. Add or tighten tests for modifier overrides and variant-based modifier availability.
 3. Add server-side checkout price validation before Stripe.
 4. Move order creation to a transaction/RPC-style pattern.

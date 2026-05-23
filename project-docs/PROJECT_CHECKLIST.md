@@ -262,7 +262,7 @@ For each feature:
 
 ## 3.6 Modifiers
 
-- [x] Create `modifier_group_categories`
+- [x] Create `modifier_categories`
 - [x] Create `modifier_groups`
 - [x] Create `modifier_option_groups`
 - [x] Create `modifier_options`
@@ -715,7 +715,7 @@ For each feature:
 
 ## 13.1 Modifier groups
 
-- [x] Build top-level modifier group list from `modifier_group_categories`
+- [x] Build top-level modifier group list from `modifier_categories`
 - [x] Add top-level modifier group
 - [x] Edit top-level modifier group
 - [x] Build modifier subgroup list from `modifier_groups`

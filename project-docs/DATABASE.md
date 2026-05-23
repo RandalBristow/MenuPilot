@@ -1,6 +1,6 @@
 # Database
 
-_Last updated: 2026-05-19_
+_Last updated: 2026-05-23_
 
 All schema changes must be made through files in `database/migrations/`.
 
@@ -13,12 +13,13 @@ All schema changes must be made through files in `database/migrations/`.
 | `003_seed_data.sql` | Seeded Pronto Demo Pizza & Carryout demo data. |
 | `004_modifier_option_groups.sql` | Adds option-group structure under modifier groups. |
 | `005_seed_modifier_option_groups.sql` | Seeds modifier option group data. |
-| `006_modifier_group_categories.sql` | Adds top-level modifier group categories. |
+| `006_modifier_group_categories.sql` | Adds Modifier Categories in `modifier_categories` for admin organization. |
 | `007_reusable_variant_groups.sql` | Adds reusable variant groups/options, product assignments, and variant option overrides. |
 | `008_remove_product_variants.sql` | Removes the older product-specific variant table after reusable variants replaced it. |
 | `009_one_enabled_variant_group_per_product.sql` | Enforces one enabled variant group per product. |
 | `010_product_variant_modifier_option_availability_rules.sql` | Adds variant-specific modifier option availability rules. |
 | `011_product_modifier_option_overrides.sql` | Adds per-product modifier option overrides. |
+| `012_rename_modifier_group_categories.sql` | Renames the old Modifier Category table/foreign key to `modifier_categories` and `modifier_category_id` for existing databases. |
 
 ## Core Tenant Tables
 
@@ -61,16 +62,18 @@ Current behavior:
 
 Current terminology:
 
-- `modifier_group_categories` = top-level Modifier Groups in the admin UI.
-- `modifier_groups` = Modifier Group Subgroups.
-- `modifier_option_groups` = option groups inside a subgroup.
-- `modifier_options` = selectable modifier choices.
+- `modifier_categories` = Modifier Categories, the admin organization layer.
+- `modifier_groups` = Modifier Groups, the product-attached rule sets.
+- `modifier_option_groups` = Modifier Option Groups, buckets inside Modifier Groups.
+- `modifier_options` = Modifier Options, the selectable customer choices.
 
 Assignment and override tables:
 
-- `product_modifier_groups` attaches modifier subgroups to products.
+- `product_modifier_groups` attaches Modifier Groups to products.
 - `product_modifier_option_overrides` stores product-specific option price, prep-time, enabled, and sort overrides.
 - `product_variant_modifier_option_availability_rules` controls option availability by selected variant option.
+
+Products do not attach Modifier Categories, Modifier Option Groups, or individual Modifier Options directly except through product-specific override/availability systems.
 
 Existing foundation tables:
 

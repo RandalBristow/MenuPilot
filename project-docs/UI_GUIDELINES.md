@@ -67,7 +67,12 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 
 ## Mobile Compact Record Rows
 
-- Compact record rows are the standard mobile layout for dense admin records such as products, categories, modifier groups, modifier subgroups, modifier options, menus, locations, pages, settings records, and similar management items.
+- Compact record rows are the standard mobile layout for dense admin records such as products, categories, Modifier Groups, Modifier Option Groups, Modifier Options, menus, locations, pages, settings records, and similar management items.
+- In modifier admin/product UI, use the current terminology consistently:
+  - Modifier Category for the admin organization layer.
+  - Modifier Group for the product-attached rule set.
+  - Modifier Option Group for buckets/lists inside a Modifier Group.
+  - Modifier Option for the selectable customer choice.
 - The first row must contain only:
   - a passive status icon when the record has enabled/disabled state
   - the record name/title
@@ -97,7 +102,7 @@ Do not change colors randomly. Color changes should be intentional, requested, a
   - view = eye
   - edit = pencil
 - Status may appear as a small passive badge/icon near the record name.
-- Action row layout should be consistent across products, modifiers, groups, subgroups, variants, and other admin records.
+- Action row layout should be consistent across products, modifiers, Modifier Groups, Modifier Option Groups, variants, and other admin records.
 
 ## Sticky Headers
 

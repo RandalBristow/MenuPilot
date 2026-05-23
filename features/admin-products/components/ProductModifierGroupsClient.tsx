@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { LinkIcon, Unlink, X } from "lucide-react"
+import { LinkIcon, Unlink } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
@@ -270,18 +271,10 @@ export function ProductModifierGroupsClient({
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end">
-            <ThemedButton
-              asChild
-              variant="outline"
-              size="icon"
-              aria-label="Back to products"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-            >
-              <Link href="/admin/products/list">
-                <X aria-hidden="true" />
-                <span className="sr-only">Back to products</span>
-              </Link>
-            </ThemedButton>
+            <AdminBackButton
+              fallbackHref="/admin/products/list"
+              label="Back to products"
+            />
           </div>
         </div>
       </div>

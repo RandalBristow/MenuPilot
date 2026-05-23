@@ -1,6 +1,6 @@
 begin;
 
-create table if not exists public.modifier_group_categories (
+create table if not exists public.modifier_categories (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses(id) on delete cascade,
   name text not null,
@@ -13,14 +13,14 @@ create table if not exists public.modifier_group_categories (
 );
 
 alter table public.modifier_groups
-add column if not exists modifier_group_category_id uuid
-references public.modifier_group_categories(id) on delete set null;
+add column if not exists modifier_category_id uuid
+references public.modifier_categories(id) on delete set null;
 
-create index if not exists idx_modifier_group_categories_business_id
-on public.modifier_group_categories(business_id);
+create index if not exists idx_modifier_categories_business_id
+on public.modifier_categories(business_id);
 
-create index if not exists idx_modifier_groups_category_id
-on public.modifier_groups(modifier_group_category_id);
+create index if not exists idx_modifier_groups_modifier_category_id
+on public.modifier_groups(modifier_category_id);
 
 -- Seed categories for pronto-demo
 with b as (
@@ -28,7 +28,7 @@ with b as (
   from public.businesses
   where slug = 'pronto-demo'
 )
-insert into public.modifier_group_categories (
+insert into public.modifier_categories (
   business_id,
   name,
   description,
@@ -61,11 +61,11 @@ with b as (
 ),
 cats as (
   select mgc.*
-  from public.modifier_group_categories mgc
+  from public.modifier_categories mgc
   join b on b.business_id = mgc.business_id
 )
 update public.modifier_groups mg
-set modifier_group_category_id = cats.id
+set modifier_category_id = cats.id
 from cats
 where mg.business_id = cats.business_id
   and (
@@ -120,14 +120,14 @@ with b as (
 ),
 general_cat as (
   select mgc.id, mgc.business_id
-  from public.modifier_group_categories mgc
+  from public.modifier_categories mgc
   join b on b.business_id = mgc.business_id
   where mgc.name = 'General modifiers'
 )
 update public.modifier_groups mg
-set modifier_group_category_id = general_cat.id
+set modifier_category_id = general_cat.id
 from general_cat
 where mg.business_id = general_cat.business_id
-  and mg.modifier_group_category_id is null;
+  and mg.modifier_category_id is null;
 
 commit;

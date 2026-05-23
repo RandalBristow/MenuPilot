@@ -67,7 +67,7 @@ async function getNextSortOrder(businessId: string, categoryId: string) {
     .from("modifier_groups")
     .select("sort_order")
     .eq("business_id", businessId)
-    .eq("modifier_group_category_id", categoryId)
+    .eq("modifier_category_id", categoryId)
     .order("sort_order", { ascending: false })
     .limit(1)
 
@@ -92,7 +92,7 @@ export async function createModifierGroup(formData: FormData) {
   }
 
   const { data: category, error: categoryError } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .select("id")
     .eq("id", categoryId)
     .eq("business_id", businessId)
@@ -106,7 +106,7 @@ export async function createModifierGroup(formData: FormData) {
 
   const { error } = await supabaseAdmin.from("modifier_groups").insert({
     business_id: businessId,
-    modifier_group_category_id: categoryId,
+    modifier_category_id: categoryId,
     name,
     selection_type: selectionType,
     min_required: minRequired,

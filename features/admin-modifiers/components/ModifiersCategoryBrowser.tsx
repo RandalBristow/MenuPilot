@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useState } from "react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ModifierGroupFormDialog } from "@/features/admin-modifiers/components/ModifierGroupFormDialog"
@@ -43,7 +44,7 @@ export type RawModifierGroup = {
   modifier_options: RawModifierOption[] | null
 }
 
-export type ModifierGroupCategory = {
+export type ModifierCategory = {
   id: string
   name: string
   description: string | null
@@ -53,7 +54,7 @@ export type ModifierGroupCategory = {
 }
 
 type ModifiersCategoryBrowserProps = {
-  categories: ModifierGroupCategory[]
+  categories: ModifierCategory[]
 }
 
 function formatSelectionType(value: string) {
@@ -77,7 +78,7 @@ function CategoryFilter({
   selectedCategoryId,
   onSelectCategory,
 }: {
-  categories: ModifierGroupCategory[]
+  categories: ModifierCategory[]
   selectedCategoryId: string | null
   onSelectCategory: (categoryId: string) => void
 }) {
@@ -185,18 +186,10 @@ export function ModifiersCategoryBrowser({
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-5xl justify-end gap-2">
-          <ThemedButton
-            asChild
-            variant="outline"
-            size="icon"
-            aria-label="Back to modifier management"
-            className="size-10 bg-background text-foreground hover:bg-muted"
-          >
-            <Link href="/admin/modifiers">
-              <X aria-hidden="true" />
-              <span className="sr-only">Back to modifier management</span>
-            </Link>
-          </ThemedButton>
+          <AdminBackButton
+            fallbackHref="/admin/modifiers"
+            label="Back to modifier management"
+          />
           <ModifierGroupFormDialog
             categories={categories}
             selectedCategoryId={selectedCategory.id}

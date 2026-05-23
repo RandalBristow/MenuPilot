@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -118,25 +119,16 @@ export function ModifierSubgroupListClient({
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
-            <ThemedButton
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Back to modifier groups"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-              onClick={() =>
-                router.push(
-                  productContext
-                    ? `/admin/products/modifier-groups?productId=${productContext.id}`
-                    : group.modifier_group_category_id
-                      ? `/admin/modifiers/groups/${group.modifier_group_category_id}`
-                      : "/admin/modifiers/groups"
-                )
+            <AdminBackButton
+              fallbackHref={
+                productContext
+                  ? `/admin/products/modifier-groups?productId=${productContext.id}`
+                  : group.modifier_category_id
+                    ? `/admin/modifiers/groups/${group.modifier_category_id}`
+                    : "/admin/modifiers/groups"
               }
-            >
-              <X aria-hidden="true" />
-              <span className="sr-only">Back to modifier groups</span>
-            </ThemedButton>
+              label="Back to modifier groups"
+            />
             {isProductScopedMode ? null : (
               <ThemedButton
                 type="button"

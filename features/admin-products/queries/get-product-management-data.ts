@@ -28,7 +28,7 @@ export type ProductModifierGroupOption = {
   sort_order: number
 }
 
-export type ProductModifierGroupCategory = {
+export type ProductModifierCategory = {
   id: string
   name: string
   description: string | null
@@ -38,7 +38,7 @@ export type ProductModifierGroupCategory = {
 }
 
 export type ProductModifierGroupManagementData = ProductManagementData & {
-  modifierCategories: ProductModifierGroupCategory[]
+  modifierCategories: ProductModifierCategory[]
   modifierAssignments: {
     id: string
     product_id: string
@@ -151,7 +151,7 @@ export async function getProductModifierGroupManagementData(
   ])
   const [{ data, error }, assignmentsResult] = await Promise.all([
     supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .select(
       `
       id,
@@ -190,7 +190,7 @@ export async function getProductModifierGroupManagementData(
     )
   }
 
-  const modifierCategories = ((data ?? []) as ProductModifierGroupCategory[]).map(
+  const modifierCategories = ((data ?? []) as ProductModifierCategory[]).map(
     (category) => ({
       ...category,
       modifier_groups: sortBySortOrder(category.modifier_groups ?? []),

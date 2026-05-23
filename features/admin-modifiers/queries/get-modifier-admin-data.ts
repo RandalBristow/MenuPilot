@@ -1,12 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type {
-  ModifierGroupCategory,
+  ModifierCategory,
   RawModifierGroup,
 } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 const BUSINESS_SLUG = "pronto-demo"
 
-type RawModifierGroupCategory = {
+type RawModifierCategory = {
   id: string
   name: string
   description: string | null
@@ -27,7 +27,7 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
   })
 }
 
-function mapCategory(category: RawModifierGroupCategory) {
+function mapCategory(category: RawModifierCategory) {
   return {
     id: category.id,
     name: category.name,
@@ -58,7 +58,7 @@ export async function getModifierAdminData() {
   }
 
   const { data, error } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .select(
       `
       id,
@@ -103,7 +103,7 @@ export async function getModifierAdminData() {
   return {
     businessName: business.name as string,
     categories: sortBySortOrder(
-      ((data ?? []) as RawModifierGroupCategory[]).map(mapCategory)
-    ) as ModifierGroupCategory[],
+      ((data ?? []) as RawModifierCategory[]).map(mapCategory)
+    ) as ModifierCategory[],
   }
 }

@@ -1,9 +1,9 @@
 "use client"
 
 import { useRef, useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Check, Plus, X } from "lucide-react"
+import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -343,24 +343,14 @@ export function ModifierGroupDetailClient({
 
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
-            <ThemedButton
-              asChild
-              variant="outline"
-              size="icon"
-              aria-label="Close"
-              className="size-10 bg-background text-foreground hover:bg-muted"
-            >
-              <Link
-                href={
-                  productContext
-                    ? `/admin/products/modifier-groups?productId=${productContext.id}`
-                    : "/admin/modifiers/groups"
-                }
-              >
-                <X aria-hidden="true" />
-                <span className="sr-only">Close</span>
-              </Link>
-            </ThemedButton>
+            <AdminBackButton
+              fallbackHref={
+                productContext
+                  ? `/admin/products/modifier-groups?productId=${productContext.id}`
+                  : "/admin/modifiers/groups"
+              }
+              label="Back"
+            />
 
             {isProductScopedMode ? null : (
               <ThemedButton

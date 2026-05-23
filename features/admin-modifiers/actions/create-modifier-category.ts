@@ -37,7 +37,7 @@ async function getBusinessId() {
 
 async function getNextSortOrder(businessId: string) {
   const { data, error } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .select("sort_order")
     .eq("business_id", businessId)
     .order("sort_order", { ascending: false })
@@ -57,7 +57,7 @@ export async function createModifierCategory(formData: FormData) {
   const sortOrder = await getNextSortOrder(businessId)
 
   const { error } = await supabaseAdmin
-    .from("modifier_group_categories")
+    .from("modifier_categories")
     .insert({
       business_id: businessId,
       name,
