@@ -126,6 +126,29 @@ async function deleteProductModifierOptionOverrides({
   }
 }
 
+async function deleteProductDefaultModifierOptions({
+  businessId,
+  productId,
+  modifierGroupId,
+}: {
+  businessId: string
+  productId: string
+  modifierGroupId: string
+}) {
+  const { error } = await supabaseAdmin
+    .from("product_default_modifier_options")
+    .delete()
+    .eq("business_id", businessId)
+    .eq("product_id", productId)
+    .eq("modifier_group_id", modifierGroupId)
+
+  if (error) {
+    throw new Error(
+      `Could not remove product modifier defaults: ${error.message}`
+    )
+  }
+}
+
 function revalidateProductModifierPaths(productId: string) {
   revalidatePath("/admin/products")
   revalidatePath("/admin/products/modifier-groups")
@@ -185,6 +208,11 @@ export async function detachProductModifierGroup(formData: FormData) {
   }
 
   await deleteProductModifierOptionOverrides({
+    businessId,
+    productId,
+    modifierGroupId: assignment.modifier_group_id as string,
+  })
+  await deleteProductDefaultModifierOptions({
     businessId,
     productId,
     modifierGroupId: assignment.modifier_group_id as string,

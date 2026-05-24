@@ -91,6 +91,16 @@ export async function getProductConfig(productId: string) {
         included_quantity,
         is_swappable,
         charge_for_extra
+      ),
+      product_default_modifier_options (
+        id,
+        modifier_group_id,
+        modifier_option_id,
+        placement,
+        multiplier,
+        quantity,
+        is_enabled,
+        sort_order
       )
     `)
     .eq("id", productId)

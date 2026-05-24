@@ -9,6 +9,7 @@ export type ProductCreationPayload = {
     builder_template: BuilderTemplate
     has_variants: boolean
     is_enabled: true
+    image_media_id: string | null
   }
   menuGroupId: string
   modifierGroupIds: string[]
@@ -71,6 +72,7 @@ export function buildProductPayload(
   const basePrice = parsePrice(formData.get("basePrice"))
   const builderTemplate = parseBuilderTemplate(formData.get("builderTemplate"))
   const menuGroupId = parseString(formData.get("menuGroupId"), "Category")
+  const imageMediaId = parseOptionalString(formData.get("imageMediaId"))
   const modifierGroupIds = parseStringList(formData.getAll("modifierGroupIds"))
 
   return {
@@ -82,6 +84,7 @@ export function buildProductPayload(
       builder_template: builderTemplate,
       has_variants: true,
       is_enabled: true,
+      image_media_id: imageMediaId,
     },
     menuGroupId,
     modifierGroupIds,

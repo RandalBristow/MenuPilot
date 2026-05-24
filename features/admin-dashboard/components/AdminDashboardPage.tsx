@@ -9,6 +9,11 @@ const adminLinks = [
     description: "Create and manage products, categories, variants, and modifier groups.",
   },
   {
+    title: "Media Library",
+    href: "/admin/media",
+    description: "Manage reusable image URLs and metadata for menu items.",
+  },
+  {
     title: "Staff Orders",
     href: "/staff/orders",
     description: "Open the staff order queue for fulfillment workflows.",

@@ -20,7 +20,10 @@ export function ThemedPageShell({
 }: ThemedPageShellProps) {
   return (
     <main
-      className={cn("min-h-screen bg-background px-4 py-5 sm:px-6 lg:px-8", className)}
+      className={cn(
+        "min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8",
+        className
+      )}
       {...props}
     >
       <div className={cn("mx-auto space-y-5", maxWidthClasses[maxWidth])}>

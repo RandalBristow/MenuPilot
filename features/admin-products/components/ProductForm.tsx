@@ -18,6 +18,7 @@ import {
   PRODUCT_ADMIN_PANEL_PAGE_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
 
 const BUSINESS_SLUG = "pronto-demo"
 
@@ -36,6 +37,14 @@ export type ModifierGroup = {
   sort_order: number
 }
 
+export type MediaAssetOption = {
+  id: string
+  public_url: string | null
+  file_name: string | null
+  alt_text: string | null
+  caption: string | null
+}
+
 export type ExistingProduct = {
   id: string
   name: string
@@ -43,6 +52,8 @@ export type ExistingProduct = {
   base_price: number | null
   builder_template: string
   is_enabled: boolean
+  image_media_id: string | null
+  imageMedia: MediaAssetOption | null
   menuGroupId: string
   modifierGroupIds: string[]
 }
@@ -50,6 +61,7 @@ export type ExistingProduct = {
 export type ProductFormData = {
   businessName: string
   menuGroups: MenuGroup[]
+  mediaAssets: MediaAssetOption[]
   modifierGroups: ModifierGroup[]
   product: ExistingProduct | null
 }
@@ -87,6 +99,8 @@ type RawExistingProduct = {
   base_price: number | null
   builder_template: string
   is_enabled: boolean
+  image_media_id: string | null
+  media_assets: MediaAssetOption | MediaAssetOption[] | null
   product_groups:
     | {
         menu_group_id: string
@@ -112,6 +126,10 @@ function mapExistingProduct(product: RawExistingProduct): ExistingProduct {
     base_price: product.base_price,
     builder_template: product.builder_template,
     is_enabled: product.is_enabled,
+    image_media_id: product.image_media_id,
+    imageMedia: Array.isArray(product.media_assets)
+      ? product.media_assets[0] ?? null
+      : product.media_assets,
     menuGroupId: primaryProductGroup?.menu_group_id ?? "",
     modifierGroupIds: (product.product_modifier_groups ?? []).map(
       (group) => group.modifier_group_id
@@ -135,6 +153,14 @@ async function getExistingProduct(
       base_price,
       builder_template,
       is_enabled,
+      image_media_id,
+      media_assets (
+        id,
+        public_url,
+        file_name,
+        alt_text,
+        caption
+      ),
       product_groups (
         menu_group_id,
         is_primary
@@ -168,12 +194,19 @@ export async function getProductFormData(
     throw new Error("Could not load product business.")
   }
 
-  const [menuGroupsResult, modifierGroupsResult, product] = await Promise.all([
+  const [menuGroupsResult, mediaAssetsResult, modifierGroupsResult, product] =
+    await Promise.all([
     supabaseAdmin
       .from("menu_groups")
       .select("id, name, parent_group_id, sort_order")
       .eq("business_id", business.id)
       .order("sort_order", { ascending: true }),
+    supabaseAdmin
+      .from("media_assets")
+      .select("id, public_url, file_name, alt_text, caption")
+      .eq("business_id", business.id)
+      .eq("is_archived", false)
+      .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("modifier_groups")
       .select("id, name, selection_type, is_required, sort_order")
@@ -194,9 +227,16 @@ export async function getProductFormData(
     )
   }
 
+  if (mediaAssetsResult.error) {
+    throw new Error(
+      `Could not load media assets: ${mediaAssetsResult.error.message}`
+    )
+  }
+
   return {
     businessName: business.name as string,
     menuGroups: sortBySortOrder((menuGroupsResult.data ?? []) as MenuGroup[]),
+    mediaAssets: (mediaAssetsResult.data ?? []) as MediaAssetOption[],
     modifierGroups: sortBySortOrder(
       (modifierGroupsResult.data ?? []) as ModifierGroup[]
     ),
@@ -205,7 +245,7 @@ export async function getProductFormData(
 }
 
 export async function ProductForm({ productId }: ProductFormProps) {
-  const { businessName, menuGroups, product } =
+  const { businessName, menuGroups, mediaAssets, product } =
     await getProductFormData(productId)
   const isEditMode = product !== null
 
@@ -297,6 +337,12 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   <option value="pizza">Pizza</option>
                 </select>
               </label>
+
+              <ProductImageSelector
+                mediaAssets={mediaAssets}
+                initialImageMediaId={product?.image_media_id ?? null}
+                productName={product?.name ?? "Product image"}
+              />
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium">

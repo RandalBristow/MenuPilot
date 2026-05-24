@@ -26,6 +26,23 @@ type MenuGroup = {
       has_variants: boolean;
       is_featured: boolean;
       is_enabled: boolean;
+      image_media_id?: string | null;
+      media_assets?:
+        | {
+            id: string;
+            public_url: string | null;
+            alt_text: string | null;
+            caption: string | null;
+            is_archived: boolean;
+          }
+        | {
+            id: string;
+            public_url: string | null;
+            alt_text: string | null;
+            caption: string | null;
+            is_archived: boolean;
+          }[]
+        | null;
       variants: {
         id: string;
         name: string;

@@ -116,6 +116,11 @@ export function ProductUpdateHiddenFields({
             name="builderTemplate"
             value={product.builder_template}
           />
+          <input
+            type="hidden"
+            name="imageMediaId"
+            value={product.image_media_id ?? ""}
+          />
         </>
       ) : null}
 

@@ -10,7 +10,7 @@ export function ThemedAdminCard({
   return (
     <Card
       className={cn(
-        "border border-border bg-card p-3 text-card-foreground sm:p-4",
+        "border border-border bg-card p-3 text-card-foreground shadow-sm shadow-foreground/5 sm:p-4",
         className
       )}
       {...props}

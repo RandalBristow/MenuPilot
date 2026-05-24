@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageIcon } from "lucide-react";
 import { ThemedCard } from "@/components/themed/ThemedCard";
 import { ThemedButton } from "@/components/themed/ThemedButton";
 
@@ -22,6 +23,23 @@ type Product = {
   has_variants: boolean;
   is_featured: boolean;
   is_enabled: boolean;
+  image_media_id?: string | null;
+  media_assets?:
+    | {
+        id: string;
+        public_url: string | null;
+        alt_text: string | null;
+        caption: string | null;
+        is_archived: boolean;
+      }
+    | {
+        id: string;
+        public_url: string | null;
+        alt_text: string | null;
+        caption: string | null;
+        is_archived: boolean;
+      }[]
+    | null;
   variants?: ProductVariant[];
 };
 
@@ -47,6 +65,21 @@ function getStartingPrice(product: Product) {
   return product.base_price;
 }
 
+function getProductImage(product: Product) {
+  const mediaAsset = Array.isArray(product.media_assets)
+    ? product.media_assets[0]
+    : product.media_assets;
+
+  if (!mediaAsset || mediaAsset.is_archived || !mediaAsset.public_url) {
+    return null;
+  }
+
+  return {
+    src: mediaAsset.public_url,
+    alt: mediaAsset.alt_text ?? mediaAsset.caption ?? product.name,
+  };
+}
+
 export function ProductCard({
   product,
   onCustomize,
@@ -55,6 +88,7 @@ export function ProductCard({
   const startingPrice = getStartingPrice(product);
   const canCustomize =
     !product.has_variants || (product.variants?.length ?? 0) > 0;
+  const image = getProductImage(product);
 
   function handleCustomize() {
     if (!canCustomize) return;
@@ -63,39 +97,60 @@ export function ProductCard({
   }
 
   return (
-    <ThemedCard className="flex h-full flex-col justify-between p-5">
-      <div>
-        <div className="mb-3 flex items-start justify-between gap-4">
-          <h3 className="text-xl font-semibold">{product.name}</h3>
+    <ThemedCard className="flex h-full overflow-hidden p-0">
+      <div className="flex h-full w-full flex-col">
+        {image ? (
+          <div className="border-b bg-muted/30">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image.src}
+              alt={image.alt}
+              className="aspect-[4/3] w-full object-cover"
+            />
+          </div>
+        ) : (
+          <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center border-b bg-muted/40 text-muted-foreground">
+            <ImageIcon className="size-8 opacity-60" />
+          </div>
+        )}
 
-          {product.is_featured ? (
-            <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-              Featured
-            </span>
-          ) : null}
+        <div className="flex flex-1 flex-col p-4">
+          <div className="min-h-14">
+            <h3 className="text-lg font-semibold leading-6 md:text-xl">
+              {product.name}
+            </h3>
+          </div>
+
+          {product.description ? (
+            <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">
+              {product.description}
+            </p>
+          ) : (
+            <div aria-hidden="true" className="mt-2 min-h-10" />
+          )}
+
+          <div className="mt-auto flex items-center justify-between gap-4 pt-5">
+            <p className="font-semibold">
+              {!canCustomize
+                ? "Unavailable"
+                : startingPrice !== null
+                  ? `Starting at $${startingPrice.toFixed(2)}`
+                  : "Price varies"}
+            </p>
+
+            <ThemedButton
+              size="sm"
+              disabled={isLoading || !canCustomize}
+              onClick={handleCustomize}
+            >
+              {!canCustomize
+                ? "Unavailable"
+                : isLoading
+                  ? "Loading..."
+                  : "Customize"}
+            </ThemedButton>
+          </div>
         </div>
-
-        {product.description ? (
-          <p className="text-sm text-muted-foreground">{product.description}</p>
-        ) : null}
-      </div>
-
-      <div className="mt-5 flex items-center justify-between gap-4">
-        <p className="font-semibold">
-          {!canCustomize
-            ? "Unavailable"
-            : startingPrice !== null
-            ? `Starting at $${startingPrice.toFixed(2)}`
-            : "Price varies"}
-        </p>
-
-        <ThemedButton
-          size="sm"
-          disabled={isLoading || !canCustomize}
-          onClick={handleCustomize}
-        >
-          {!canCustomize ? "Unavailable" : isLoading ? "Loading..." : "Customize"}
-        </ThemedButton>
       </div>
     </ThemedCard>
   );

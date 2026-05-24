@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { calculateProductTotal } from "@/lib/pricing/calculate-product-total"
@@ -13,6 +13,7 @@ import {
   filterModifierOptionsByVariant,
   removeUnavailableSelectedModifiers,
 } from "@/features/product-configurator/utils/filter-modifier-options-by-variant"
+import { getInitialSelectedModifiersFromDefaults } from "@/features/product-configurator/utils/product-default-modifiers"
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation"
 import {
   Dialog,
@@ -100,6 +101,7 @@ export function StandardItemBuilder({
   const [selectedModifiers, setSelectedModifiers] = useState<
     Record<string, SelectedModifier>
   >(() => getInitialSelectedModifiers(cartItem))
+  const hasAppliedDefaultModifiersRef = useRef(false)
 
   const { addItem, updateItem } = useCart()
 
@@ -147,6 +149,31 @@ export function StandardItemBuilder({
       product.product_variant_modifier_option_availability_rules,
     ]
   )
+
+  useEffect(() => {
+    if (!open) {
+      hasAppliedDefaultModifiersRef.current = false
+      return
+    }
+
+    if (mode === "edit" || cartItem || hasAppliedDefaultModifiersRef.current) {
+      return
+    }
+
+    hasAppliedDefaultModifiersRef.current = true
+    setSelectedModifiers(
+      getInitialSelectedModifiersFromDefaults({
+        defaults: product.product_default_modifier_options,
+        modifierGroups,
+      })
+    )
+  }, [
+    cartItem,
+    mode,
+    modifierGroups,
+    open,
+    product.product_default_modifier_options,
+  ])
 
   function handleVariantChange(nextVariantId: string) {
     const nextVariant = sortedVariants.find(
@@ -327,7 +354,7 @@ export function StandardItemBuilder({
                     onClick={() => handleVariantChange(variant.id)}
                     className={`flex min-h-12 items-center justify-between rounded-lg border p-3 text-left ${
                       variantId === variant.id
-                        ? "border-primary bg-primary/5"
+                        ? "border-accent bg-accent/20"
                         : ""
                     }`}
                   >
@@ -393,7 +420,7 @@ export function StandardItemBuilder({
                   ) : null}
                 </div>
                 {group.is_required ? (
-                  <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                  <span className="rounded-full bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
                     Required
                   </span>
                 ) : null}
@@ -412,7 +439,12 @@ export function StandardItemBuilder({
                     const selected = selectedModifiers[option.id]
 
                     return (
-                      <div key={option.id} className="rounded-lg border p-3">
+                      <div
+                        key={option.id}
+                        className={`rounded-lg border p-3 ${
+                          selected ? "border-accent bg-accent/20" : ""
+                        }`}
+                      >
                         <button
                           type="button"
                           onClick={() => toggleModifier(group, option)}

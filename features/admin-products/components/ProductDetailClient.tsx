@@ -23,6 +23,7 @@ import {
   PRODUCT_ADMIN_PANEL_PAGE_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
 import type {
   ExistingProduct,
   ProductFormData,
@@ -48,7 +49,7 @@ function getProductPlacementLabel(
 }
 
 export function ProductDetailClient({ data }: ProductDetailClientProps) {
-  const { product, menuGroups, businessName } = data
+  const { product, menuGroups, mediaAssets, businessName } = data
 
   if (!product) {
     return null
@@ -58,6 +59,7 @@ export function ProductDetailClient({ data }: ProductDetailClientProps) {
     <ProductDetailEditor
       product={product}
       menuGroups={menuGroups}
+      mediaAssets={mediaAssets}
       businessName={businessName}
     />
   )
@@ -66,10 +68,12 @@ export function ProductDetailClient({ data }: ProductDetailClientProps) {
 function ProductDetailEditor({
   product,
   menuGroups,
+  mediaAssets,
   businessName,
 }: {
   product: ExistingProduct
   menuGroups: ProductFormData["menuGroups"]
+  mediaAssets: ProductFormData["mediaAssets"]
   businessName: string
 }) {
   const productPath = `/admin/products/${product.id}`
@@ -171,6 +175,12 @@ function ProductDetailEditor({
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   />
                 </label>
+
+                <ProductImageSelector
+                  mediaAssets={mediaAssets}
+                  initialImageMediaId={product.image_media_id}
+                  productName={product.name}
+                />
               </div>
             </div>
 

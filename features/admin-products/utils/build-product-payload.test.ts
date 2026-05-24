@@ -38,6 +38,7 @@ describe("buildProductPayload", () => {
       builder_template: "pizza",
       has_variants: true,
       is_enabled: true,
+      image_media_id: null,
     })
   })
 
@@ -95,5 +96,29 @@ describe("buildProductPayload", () => {
     const payload = buildProductPayload(createProductFormData())
 
     expect(payload.product.has_variants).toBe(true)
+  })
+
+  it("preserves optional image media id", () => {
+    const payload = buildProductPayload(
+      createProductFormData({ imageMediaId: "media-pizza" })
+    )
+
+    expect(payload.product.image_media_id).toBe("media-pizza")
+  })
+
+  it("allows products without image media", () => {
+    const payload = buildProductPayload(
+      createProductFormData({ imageMediaId: "" })
+    )
+
+    expect(payload.product.image_media_id).toBeNull()
+  })
+
+  it("treats blank image media selection as no image", () => {
+    const payload = buildProductPayload(
+      createProductFormData({ imageMediaId: "   " })
+    )
+
+    expect(payload.product.image_media_id).toBeNull()
   })
 })

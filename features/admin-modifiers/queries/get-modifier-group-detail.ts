@@ -11,6 +11,16 @@ export type ProductModifierOptionOverride = {
   sort_order: number | null
 }
 
+export type ProductDefaultModifierOption = {
+  id: string
+  modifier_option_id: string
+  placement: "left" | "whole" | "right"
+  multiplier: number
+  quantity: number
+  is_enabled: boolean
+  sort_order: number
+}
+
 export type ModifierGroupDetailOption = {
   id: string
   name: string
@@ -21,6 +31,7 @@ export type ModifierGroupDetailOption = {
   sort_order: number
   modifier_option_group_id: string | null
   override: ProductModifierOptionOverride | null
+  defaultSelection: ProductDefaultModifierOption | null
 }
 
 export type ModifierGroupDetailSubgroup = {
@@ -192,6 +203,41 @@ async function getProductOptionOverrides(
   return (data ?? []) as ProductModifierOptionOverride[]
 }
 
+async function getProductDefaultModifierOptions(
+  businessId: string,
+  productId?: string,
+  modifierGroupId?: string
+) {
+  if (!productId || !modifierGroupId) return []
+
+  const { data, error } = await supabaseAdmin
+    .from("product_default_modifier_options")
+    .select(
+      `
+      id,
+      modifier_option_id,
+      placement,
+      multiplier,
+      quantity,
+      is_enabled,
+      sort_order
+    `
+    )
+    .eq("business_id", businessId)
+    .eq("product_id", productId)
+    .eq("modifier_group_id", modifierGroupId)
+
+  if (error) {
+    throw new Error(`Could not load product modifier defaults: ${error.message}`)
+  }
+
+  return (data ?? []).map((item) => ({
+    ...item,
+    multiplier: toNumber(item.multiplier as number | string),
+    quantity: toNumber(item.quantity as number | string),
+  })) as ProductDefaultModifierOption[]
+}
+
 function isMissingOverrideTableError(error: { code?: string; message: string }) {
   return (
     error.code === "PGRST205" ||
@@ -259,8 +305,18 @@ export async function getModifierGroupDetail(
     context.mode === "product"
       ? await getProductOptionOverrides(business.id, productId)
       : []
+  const defaultSelections =
+    context.mode === "product"
+      ? await getProductDefaultModifierOptions(business.id, productId, groupId)
+      : []
   const overridesByOptionId = new Map(
     overrides.map((override) => [override.modifier_option_id, override])
+  )
+  const defaultsByOptionId = new Map(
+    defaultSelections.map((defaultSelection) => [
+      defaultSelection.modifier_option_id,
+      defaultSelection,
+    ])
   )
   const group = data as {
     id: string
@@ -319,6 +375,7 @@ export async function getModifierGroupDetail(
           ...option,
           price_delta: toNumber(option.price_delta),
           override: overridesByOptionId.get(option.id) ?? null,
+          defaultSelection: defaultsByOptionId.get(option.id) ?? null,
         }))
       ),
     } satisfies ModifierGroupDetail,

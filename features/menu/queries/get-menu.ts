@@ -77,6 +77,14 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
             has_variants,
             is_featured,
             is_enabled,
+            image_media_id,
+            media_assets (
+              id,
+              public_url,
+              alt_text,
+              caption,
+              is_archived
+            ),
             product_variant_groups (
               id,
               is_enabled,

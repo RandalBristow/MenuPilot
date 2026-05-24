@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { Check, Plus, Star, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
@@ -17,6 +17,7 @@ import {
   ThemedSheetTitle,
 } from "@/components/themed/ThemedSheet"
 import { saveProductModifierOptionOverride } from "@/features/admin-modifiers/actions/save-product-modifier-option-override"
+import { setProductDefaultModifierOption } from "@/features/admin-products/actions/save-product-default-modifier-option"
 import { ModifierOptionFormDialog } from "@/features/admin-modifiers/components/ModifierOptionFormDialog"
 import {
   PRODUCT_ADMIN_PANEL_BODY_CLASS,
@@ -275,6 +276,10 @@ export function ModifierSubgroupOptionsClient({
     (option) => option.modifier_option_group_id === subgroup.id
   )
 
+  async function handleDefaultToggle(formData: FormData) {
+    await setProductDefaultModifierOption(formData)
+  }
+
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
@@ -310,24 +315,31 @@ export function ModifierSubgroupOptionsClient({
               </p>
             </ThemedCard>
           ) : (
-            options.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                aria-label={`Edit option ${option.name}`}
-                onClick={() => setActiveOption(option)}
-                disabled={mode === "preview"}
-                className={
-                  getEffectiveOption(option).isEnabled
-                    ? "block w-full text-left"
-                    : "block w-full text-left opacity-75"
-                }
-              >
+            options.map((option) => {
+              const isDefault = option.defaultSelection?.is_enabled === true
+
+              return (
                 <ThemedCard
+                  key={option.id}
+                  role={mode === "preview" ? undefined : "button"}
+                  tabIndex={mode === "preview" ? undefined : 0}
+                  aria-label={`Edit option ${option.name}`}
+                  onClick={() => {
+                    if (mode !== "preview") setActiveOption(option)
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      mode !== "preview" &&
+                      (event.key === "Enter" || event.key === " ")
+                    ) {
+                      event.preventDefault()
+                      setActiveOption(option)
+                    }
+                  }}
                   className={
                     getEffectiveOption(option).isEnabled
-                      ? "overflow-hidden py-0"
-                      : "overflow-hidden bg-muted/30 py-0"
+                      ? "cursor-pointer overflow-hidden py-0"
+                      : "cursor-pointer overflow-hidden bg-muted/30 py-0 opacity-75"
                   }
                 >
                   <CompactRecordRow
@@ -338,18 +350,67 @@ export function ModifierSubgroupOptionsClient({
                       />
                     }
                     description={getOptionDescription(option, productContext)}
+                    rightAction={
+                      productContext && mode === "product" ? (
+                        <form
+                          action={handleDefaultToggle}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <input
+                            type="hidden"
+                            name="productId"
+                            value={productContext.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="modifierGroupId"
+                            value={group.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="modifierOptionId"
+                            value={option.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="isDefault"
+                            value={String(!isDefault)}
+                          />
+                          <ThemedButton
+                            type="submit"
+                            size="icon"
+                            variant="outline"
+                            aria-label={
+                              isDefault
+                                ? `Remove ${option.name} as default`
+                                : `Make ${option.name} default`
+                            }
+                            className={
+                              isDefault
+                                ? "size-8 bg-foreground text-background hover:bg-foreground/90"
+                                : "size-8 bg-background text-foreground hover:bg-muted"
+                            }
+                          >
+                            <Star
+                              aria-hidden="true"
+                              className={isDefault ? "fill-current" : ""}
+                            />
+                          </ThemedButton>
+                        </form>
+                      ) : undefined
+                    }
                     metadata={
                       productContext ? undefined : (
                         <>
-                        <span>{formatPriceDelta(option.price_delta)}</span>
-                        <span>Sort {option.sort_order}</span>
-                      </>
+                          <span>{formatPriceDelta(option.price_delta)}</span>
+                          <span>Sort {option.sort_order}</span>
+                        </>
                       )
                     }
                   />
                 </ThemedCard>
-              </button>
-            ))
+              )
+            })
           )}
         </div>
 

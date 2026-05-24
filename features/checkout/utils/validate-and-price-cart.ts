@@ -486,7 +486,7 @@ function validateModifiers({
       errors.push(
         buildModifierError({
           code: "disabled_modifier_option",
-          message: `${configuredOption.name} is no longer available.`,
+          message: `${configuredOption.name} is no longer available for this item. Please update your cart.`,
           item,
           product,
         })
@@ -505,7 +505,7 @@ function validateModifiers({
       errors.push(
         buildModifierError({
           code: "unavailable_modifier_option",
-          message: `${effectiveOption.name} is unavailable for the selected variant.`,
+          message: `${effectiveOption.name} is no longer available for this item. Please update your cart.`,
           item,
           product,
         })

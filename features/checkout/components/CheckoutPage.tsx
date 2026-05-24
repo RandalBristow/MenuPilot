@@ -31,6 +31,11 @@ export function CheckoutPage() {
         items,
       });
 
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
+
       clearCart();
       setOrderNumber(result.orderNumber);
     } catch (error) {

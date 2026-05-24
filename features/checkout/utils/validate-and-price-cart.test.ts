@@ -109,6 +109,32 @@ const productWithModifiers = {
   ],
 } satisfies CheckoutProductConfig
 
+const productWithCrustStyle = {
+  ...enabledProduct,
+  modifierGroups: [
+    {
+      id: "crust-style",
+      name: "Crust Style",
+      isAssignmentEnabled: true,
+      isEnabled: true,
+      isRequired: false,
+      minRequired: 0,
+      maxAllowed: 1,
+      supportsPlacement: false,
+      supportsMultiplier: false,
+      options: [
+        {
+          id: "thin-crust",
+          name: "Thin",
+          priceDelta: 0,
+          isEnabled: true,
+          optionGroup: null,
+        },
+      ],
+    },
+  ],
+} satisfies CheckoutProductConfig
+
 describe("validateAndPriceCart", () => {
   it("rejects an empty cart", () => {
     const result = validateAndPriceCart({
@@ -403,6 +429,149 @@ describe("validateAndPriceCart", () => {
     expect(result.cart.items[0].lineSubtotal).toBe(28)
   })
 
+  it("accepts stale-cart Thin crust while it is still enabled", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          modifiers: [
+            buildModifier({
+              groupId: "crust-style",
+              groupName: "Client Crust Style",
+              optionId: "thin-crust",
+              optionName: "Client Thin",
+              priceDelta: 99,
+            }),
+          ],
+        }),
+      ],
+      products: [productWithCrustStyle],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers).toEqual([
+      {
+        optionId: "thin-crust",
+        optionName: "Thin",
+        groupId: "crust-style",
+        groupName: "Crust Style",
+        placement: "whole",
+        multiplier: 1,
+        priceDelta: 0,
+      },
+    ])
+  })
+
+  it("accepts a valid product default modifier selection", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          modifiers: [
+            buildModifier({
+              groupId: "crust-style",
+              groupName: "Client Crust Style",
+              optionId: "thin-crust",
+              optionName: "Client Thin",
+              priceDelta: 99,
+            }),
+          ],
+        }),
+      ],
+      products: [productWithCrustStyle],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers[0]).toMatchObject({
+      optionId: "thin-crust",
+      optionName: "Thin",
+      groupId: "crust-style",
+      groupName: "Crust Style",
+      priceDelta: 0,
+    })
+  })
+
+  it("rejects stale-cart Thin crust when disabled by product override", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          modifiers: [
+            buildModifier({
+              groupId: "crust-style",
+              optionId: "thin-crust",
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithCrustStyle,
+          modifierOptionOverrides: [
+            {
+              modifierOptionId: "thin-crust",
+              isEnabled: false,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toEqual([
+      {
+        code: "disabled_modifier_option",
+        message:
+          "Thin is no longer available for this item. Please update your cart.",
+        cartItemId: "cart-1",
+        productId: "product-pizza",
+      },
+    ])
+  })
+
+  it("rejects a product default modifier selection that later becomes unavailable", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          modifiers: [
+            buildModifier({
+              groupId: "crust-style",
+              optionId: "thin-crust",
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithCrustStyle,
+          modifierGroups: [
+            {
+              ...productWithCrustStyle.modifierGroups[0],
+              options: [
+                {
+                  ...productWithCrustStyle.modifierGroups[0].options[0],
+                  isEnabled: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toMatchObject([
+      {
+        code: "disabled_modifier_option",
+        message:
+          "Thin is no longer available for this item. Please update your cart.",
+        cartItemId: "cart-1",
+        productId: "product-pizza",
+      },
+    ])
+  })
+
   it("rejects a modifier group that is not attached", () => {
     const result = validateAndPriceCart({
       items: [
@@ -506,6 +675,48 @@ describe("validateAndPriceCart", () => {
     ])
   })
 
+  it("rejects stale-cart Thin crust when globally disabled", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          modifiers: [
+            buildModifier({
+              groupId: "crust-style",
+              optionId: "thin-crust",
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithCrustStyle,
+          modifierGroups: [
+            {
+              ...productWithCrustStyle.modifierGroups[0],
+              options: [
+                {
+                  ...productWithCrustStyle.modifierGroups[0].options[0],
+                  isEnabled: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toMatchObject([
+      {
+        code: "disabled_modifier_option",
+        message:
+          "Thin is no longer available for this item. Please update your cart.",
+        cartItemId: "cart-1",
+        productId: "product-pizza",
+      },
+    ])
+  })
+
   it("rejects a modifier option in a disabled option group", () => {
     const result = validateAndPriceCart({
       items: [buildCartItem({ modifiers: [buildModifier()] })],
@@ -584,6 +795,8 @@ describe("validateAndPriceCart", () => {
     expect(result.errors).toMatchObject([
       {
         code: "disabled_modifier_option",
+        message:
+          "Pepperoni is no longer available for this item. Please update your cart.",
         cartItemId: "cart-1",
         productId: "product-pizza",
       },

@@ -9,6 +9,7 @@ import {
 } from "@/features/checkout/utils/build-order-payload"
 import { loadCheckoutProductConfig } from "@/features/checkout/queries/load-checkout-product-config"
 import { validateAndPriceCart } from "@/features/checkout/utils/validate-and-price-cart"
+import { buildCheckoutValidationFailure } from "@/features/checkout/utils/checkout-action-result"
 
 type CreateOrderInput = {
   customerName: string
@@ -19,6 +20,17 @@ type CreateOrderInput = {
   items: CartItem[]
 }
 
+export type CreateOrderResult =
+  | {
+      ok: true
+      orderId: string
+      orderNumber: string
+    }
+  | {
+      ok: false
+      error: string
+    }
+
 function generateOrderNumber() {
   const now = Date.now().toString().slice(-6)
   const random = Math.floor(100 + Math.random() * 900)
@@ -26,31 +38,23 @@ function generateOrderNumber() {
   return `MP-${now}${random}`
 }
 
-function formatCheckoutValidationError(errors: { message: string }[]) {
-  const messages = errors.map((error) => error.message)
-  const visibleMessages = messages.slice(0, 3)
-  const remainingCount = messages.length - visibleMessages.length
-
-  if (remainingCount <= 0) {
-    return visibleMessages.join(" ")
-  }
-
-  return `${visibleMessages.join(" ")} ${remainingCount} more cart item issue${
-    remainingCount === 1 ? "" : "s"
-  } must be fixed.`
-}
-
-export async function createOrder(input: CreateOrderInput) {
+export async function createOrder(
+  input: CreateOrderInput
+): Promise<CreateOrderResult> {
   if (!input.customerName.trim()) {
-    throw new Error("Customer name is required.")
+    return buildCheckoutValidationFailure([
+      { message: "Customer name is required." },
+    ])
   }
 
   if (!input.customerPhone.trim()) {
-    throw new Error("Customer phone is required.")
+    return buildCheckoutValidationFailure([
+      { message: "Customer phone is required." },
+    ])
   }
 
   if (!input.items.length) {
-    throw new Error("Cart is empty.")
+    return buildCheckoutValidationFailure([{ message: "Cart is empty." }])
   }
 
   const { data: business, error: businessError } = await supabaseAdmin
@@ -84,7 +88,7 @@ export async function createOrder(input: CreateOrderInput) {
   })
 
   if (!validationResult.ok) {
-    throw new Error(formatCheckoutValidationError(validationResult.errors))
+    return buildCheckoutValidationFailure(validationResult.errors)
   }
 
   const validatedItems = validationResult.cart.items
@@ -148,6 +152,7 @@ export async function createOrder(input: CreateOrderInput) {
   }
 
   return {
+    ok: true,
     orderId: order.id,
     orderNumber: order.order_number,
   }

@@ -27,10 +27,21 @@ Use these widths when checking dense admin pages, dialogs, sheets, product cards
 - Warm restaurant feel.
 - Cream/light background.
 - Dark text.
-- Warm red accent.
-- Black primary buttons for now.
+- Soft cream/white cards with warm gray borders.
+- Warm tomato/red is reserved for destructive actions, errors, and unavailable warnings.
+- Primary actions use a dark warm neutral only where strong contrast is needed.
+- Accent states use warm non-red tints for selected controls, focused choices, and subtle emphasis.
+- Green/success is reserved for enabled, available, completed, or successful states.
 
 Do not change colors randomly. Color changes should be intentional, requested, and applied consistently.
+
+## Default Color Semantics
+
+- Primary action: dark warm neutral background with light text, used for important commits such as add, save, checkout, and confirm.
+- Accent: warm neutral/amber tint for selected options, active filters, and low-risk emphasis. Do not use accent as an error or success color.
+- Success/available: green token only for enabled, available, successful, or completed state indicators.
+- Destructive/error: tomato/red token only for remove, delete, unavailable, destructive, or validation/error states.
+- Backgrounds/cards/borders: warm cream page background, soft cream or white cards, and warm gray borders. Avoid pure black/white surfaces unless contrast requires it.
 
 ## Compact Admin Layout
 
@@ -125,6 +136,16 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 - Keep card headers concise.
 - Prefer one-line summaries over large detail blocks.
 - Keep action rows tight and close to the item they affect.
+
+## Public Product Cards
+
+- Product cards in the same menu section should use a consistent structure: media area, product name, description, and price/action row.
+- When product cards support media, every card in that section should reserve the same image area.
+- Products without images should show a warm themed placeholder area, not a collapsed or oversized blank space.
+- Product images should use a stable aspect ratio and `object-fit: cover`.
+- Image alt text should come from media `alt_text` when available, then fall back to the product name.
+- Placeholder media areas are decorative and should not announce misleading image text.
+- Featured badges must be intentional. Do not show Featured by default or from unverified placeholder data.
 
 ## Typography Hierarchy
 

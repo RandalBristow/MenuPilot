@@ -24,7 +24,7 @@ export function CompactRecordStatusIcon({
       aria-label={label}
       className={cn(
         "inline-flex h-5 w-5 shrink-0 items-center justify-center",
-        enabled ? "text-green-600" : "text-red-600",
+        enabled ? "text-success" : "text-destructive",
         className
       )}
     >

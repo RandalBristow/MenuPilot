@@ -55,6 +55,25 @@ async function assertModifierGroups(
   }
 }
 
+async function assertMediaAsset(
+  businessId: string,
+  mediaAssetId: string | null
+) {
+  if (!mediaAssetId) return
+
+  const { data, error } = await supabaseAdmin
+    .from("media_assets")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("id", mediaAssetId)
+    .eq("is_archived", false)
+    .single()
+
+  if (error || !data) {
+    throw new Error("Selected product image is invalid.")
+  }
+}
+
 export async function createProduct(formData: FormData) {
   const businessId = await getBusinessId()
   const { product: productPayload, menuGroupId, modifierGroupIds } =
@@ -62,6 +81,7 @@ export async function createProduct(formData: FormData) {
 
   await assertMenuGroup(businessId, menuGroupId)
   await assertModifierGroups(businessId, modifierGroupIds)
+  await assertMediaAsset(businessId, productPayload.image_media_id)
 
   const { data: product, error: productError } = await supabaseAdmin
     .from("products")

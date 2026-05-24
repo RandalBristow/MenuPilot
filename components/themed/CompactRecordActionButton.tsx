@@ -28,7 +28,7 @@ export function CompactRecordActionButton({
       variant={variant}
       size="icon"
       className={cn(
-        "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted sm:size-8",
+        "size-10 rounded-md border-border bg-card p-0 text-foreground shadow-sm shadow-foreground/5 hover:bg-muted sm:size-8",
         className
       )}
       {...props}
