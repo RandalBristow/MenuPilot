@@ -45,7 +45,6 @@ Status values:
 | `/admin/products/new` | current | Create product page. |
 | `/admin/products/[productId]` | current | Edit product page. |
 | `/admin/products/modifier-groups` | current | Product-to-Modifier Group assignment and per-product Modifier Option override flow. |
-| `/admin/products/variant-assignments` | current | Product-to-variant-group assignment and per-product variant override flow. Usually entered with `productId` query context. |
 | `/admin/products/variants` | legacy/remove | Removed from active navigation. Old product-specific variant route replaced by reusable Variant Groups and `/admin/products/variant-assignments`. Do not use for new work. |
 
 ## Reusable Variant Groups
@@ -59,6 +58,7 @@ Status values:
 
 | Route | Status | Purpose |
 | --- | --- | --- |
+| `/admin/products/variant-assignments` | hidden/internal | Product-to-variant-group assignment route. This is not a Product Management hub card; enter it from a Product card with `productId` context. |
 | `/admin/products/variant-assignments?productId=...` | hidden/internal | Product-scoped entry from a Product card for assigning reusable variant groups and managing product-specific variant overrides. |
 
 ## Modifier Management

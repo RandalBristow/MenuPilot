@@ -43,4 +43,35 @@ describe("cart safety helpers", () => {
       "small"
     )
   })
+
+  it("rehydrates reusable variant and selected modifiers that are still available", () => {
+    const enabledVariants = [
+      {
+        id: "size-10",
+        is_default: false,
+      },
+      {
+        id: "size-12",
+        is_default: true,
+      },
+    ]
+    const selectedModifiers = [
+      {
+        optionId: "pepperoni",
+      },
+      {
+        optionId: "ranch",
+      },
+    ]
+    const modifierGroups = [
+      {
+        modifier_options: [{ id: "pepperoni" }, { id: "ranch" }],
+      },
+    ]
+
+    expect(getSafeInitialVariantId(enabledVariants, "size-10")).toBe("size-10")
+    expect(
+      getResolvableSelectedModifiers(selectedModifiers, modifierGroups)
+    ).toEqual(selectedModifiers)
+  })
 })

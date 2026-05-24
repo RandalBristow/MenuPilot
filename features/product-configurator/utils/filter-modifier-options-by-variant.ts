@@ -24,12 +24,14 @@ type ModifierOptionWithId = {
 
 function getRuleKey({
   variantId,
+  modifierGroupId,
   modifierOptionId,
 }: {
   variantId: string
+  modifierGroupId: string
   modifierOptionId: string
 }) {
-  return `${variantId}:${modifierOptionId}`
+  return `${variantId}:${modifierGroupId}:${modifierOptionId}`
 }
 
 function getEnabledRulesByVariantOption(
@@ -41,6 +43,7 @@ function getEnabledRulesByVariantOption(
       .map((rule) => [
         getRuleKey({
           variantId: rule.variant_group_option_id,
+          modifierGroupId: rule.modifier_group_id,
           modifierOptionId: rule.modifier_option_id,
         }),
         rule,
@@ -50,10 +53,12 @@ function getEnabledRulesByVariantOption(
 
 export function isModifierOptionAvailableForVariant({
   selectedVariantId,
+  modifierGroupId,
   modifierOptionId,
   availabilityRules,
 }: {
   selectedVariantId: string | null | undefined
+  modifierGroupId: string
   modifierOptionId: string
   availabilityRules: VariantModifierOptionAvailabilityRule[]
 }) {
@@ -62,6 +67,7 @@ export function isModifierOptionAvailableForVariant({
   const rule = getEnabledRulesByVariantOption(availabilityRules).get(
     getRuleKey({
       variantId: selectedVariantId,
+      modifierGroupId,
       modifierOptionId,
     })
   )
@@ -91,6 +97,7 @@ export function filterModifierOptionsByVariant<
       const rule = rulesByVariantOption.get(
         getRuleKey({
           variantId: selectedVariantId,
+          modifierGroupId: group.id,
           modifierOptionId: option.id,
         })
       )

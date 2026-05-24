@@ -44,6 +44,7 @@ describe("filterModifierOptionsByVariant", () => {
     expect(
       isModifierOptionAvailableForVariant({
         selectedVariantId: "size-12",
+        modifierGroupId: "crust",
         modifierOptionId: "gluten-free-crust",
         availabilityRules: [],
       })
@@ -70,6 +71,7 @@ describe("filterModifierOptionsByVariant", () => {
     expect(
       isModifierOptionAvailableForVariant({
         selectedVariantId: "size-12",
+        modifierGroupId: "crust",
         modifierOptionId: "gluten-free-crust",
         availabilityRules: [
           {
@@ -104,6 +106,7 @@ describe("filterModifierOptionsByVariant", () => {
     expect(
       isModifierOptionAvailableForVariant({
         selectedVariantId: "size-12",
+        modifierGroupId: "crust",
         modifierOptionId: "gluten-free-crust",
         availabilityRules: [
           {
@@ -132,6 +135,72 @@ describe("filterModifierOptionsByVariant", () => {
     expect(filteredGroup.modifier_options.map((option) => option.id)).toContain(
       "gluten-free-crust"
     )
+  })
+
+  it("does not apply a rule to the same option in another modifier group", () => {
+    const [crust, sauces] = filterModifierOptionsByVariant({
+      selectedVariantId: "size-12",
+      modifierGroups: [
+        crustGroup,
+        {
+          id: "sauces",
+          is_required: false,
+          min_required: 0,
+          max_allowed: null,
+          modifier_options: [
+            { id: "gluten-free-crust", name: "Shared Option Id" },
+            { id: "ranch", name: "Ranch" },
+          ],
+        },
+      ],
+      availabilityRules: [
+        {
+          variant_group_option_id: "size-12",
+          modifier_group_id: "crust",
+          modifier_option_id: "gluten-free-crust",
+          is_available: false,
+          is_enabled: true,
+        },
+      ],
+    })
+
+    expect(crust.modifier_options.map((option) => option.id)).toEqual([
+      "regular-crust",
+    ])
+    expect(sauces.modifier_options.map((option) => option.id)).toEqual([
+      "gluten-free-crust",
+      "ranch",
+    ])
+  })
+
+  it("hides only the matching group option for the selected variant", () => {
+    const [size10Group, size12Group] = [
+      filterForVariant("size-10", [
+        {
+          variant_group_option_id: "size-12",
+          modifier_group_id: "crust",
+          modifier_option_id: "gluten-free-crust",
+          is_available: false,
+          is_enabled: true,
+        },
+      ]),
+      filterForVariant("size-12", [
+        {
+          variant_group_option_id: "size-12",
+          modifier_group_id: "crust",
+          modifier_option_id: "gluten-free-crust",
+          is_available: false,
+          is_enabled: true,
+        },
+      ]),
+    ]
+
+    expect(size10Group.modifier_options.map((option) => option.id)).toContain(
+      "gluten-free-crust"
+    )
+    expect(size12Group.modifier_options.map((option) => option.id)).toEqual([
+      "regular-crust",
+    ])
   })
 
   it("keeps an option available for another variant when only the selected variant allows it", () => {

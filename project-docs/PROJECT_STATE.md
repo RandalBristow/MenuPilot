@@ -187,7 +187,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 - `/admin/products/subcategories` product subcategories
 - `/admin/products/variant-groups` reusable variant groups
 - `/admin/products/variant-groups/[groupId]` variant group options
-- `/admin/products/variant-assignments` product variant assignment browser
+- `/admin/products/variant-assignments?productId=...` product-scoped variant assignment browser entered from Product cards
 - `/admin/products/modifier-groups` product modifier assignment browser
 - `/admin/modifiers/groups` Modifier Categories displayed as the current Modifier Groups entry point
 - `/admin/modifiers/groups/[categoryId]` Modifier Groups for one Modifier Category

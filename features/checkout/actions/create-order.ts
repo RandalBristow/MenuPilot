@@ -2,6 +2,11 @@
 
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { CartItem } from "@/features/cart/types/cart"
+import {
+  buildOrderInsertPayload,
+  buildOrderItemInsertPayload,
+  buildOrderModifierInsertPayload,
+} from "@/features/checkout/utils/build-order-payload"
 
 type CreateOrderInput = {
   customerName: string
@@ -53,29 +58,21 @@ export async function createOrder(input: CreateOrderInput) {
     throw new Error("Could not load location.")
   }
 
-  const subtotal = input.items.reduce((sum, item) => sum + item.totalPrice, 0)
-
   const { data: order, error: orderError } = await supabaseAdmin
     .from("orders")
-    .insert({
-      business_id: business.id,
-      location_id: location.id,
-      order_number: generateOrderNumber(),
-      customer_name: input.customerName.trim(),
-      customer_email: input.customerEmail?.trim() || null,
-      customer_phone: input.customerPhone.trim(),
-      fulfillment_type: input.fulfillmentType,
-      order_status: "new",
-      payment_status: "unpaid",
-      subtotal,
-      discount_total: 0,
-      tax_total: 0,
-      tip_total: 0,
-      charge_total: 0,
-      delivery_fee: 0,
-      total: subtotal,
-      special_instructions: input.specialInstructions?.trim() || null,
-    })
+    .insert(
+      buildOrderInsertPayload({
+        businessId: business.id,
+        locationId: location.id,
+        orderNumber: generateOrderNumber(),
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        customerEmail: input.customerEmail,
+        fulfillmentType: input.fulfillmentType,
+        specialInstructions: input.specialInstructions,
+        items: input.items,
+      })
+    )
     .select("id, order_number")
     .single()
 
@@ -86,17 +83,13 @@ export async function createOrder(input: CreateOrderInput) {
   for (const item of input.items) {
     const { data: orderItem, error: orderItemError } = await supabaseAdmin
       .from("order_items")
-      .insert({
-        business_id: business.id,
-        order_id: order.id,
-        product_id: item.productId,
-        product_variant_id: null,
-        product_name_snapshot: item.productName,
-        variant_name_snapshot: item.variantName,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        line_subtotal: item.totalPrice,
-      })
+      .insert(
+        buildOrderItemInsertPayload({
+          businessId: business.id,
+          orderId: order.id,
+          item,
+        })
+      )
       .select("id")
       .single()
 
@@ -105,16 +98,11 @@ export async function createOrder(input: CreateOrderInput) {
     }
 
     if (item.modifiers.length > 0) {
-      const modifierRows = item.modifiers.map((modifier) => ({
-        business_id: business.id,
-        order_item_id: orderItem.id,
-        group_name_snapshot: modifier.groupName,
-        option_name_snapshot: modifier.optionName,
-        placement: modifier.placement,
-        multiplier: modifier.multiplier,
-        price_delta: modifier.priceDelta,
-        quantity: 1,
-      }))
+      const modifierRows = buildOrderModifierInsertPayload({
+        businessId: business.id,
+        orderItemId: orderItem.id,
+        modifiers: item.modifiers,
+      })
 
       const { error: modifierError } = await supabaseAdmin
         .from("order_item_modifiers")
