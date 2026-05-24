@@ -92,23 +92,38 @@ function ModifierGroupCard({
 
         <div className="mt-1.5 flex justify-end">
           {selected ? (
-            <form action={onDetach} className="relative z-10">
-              <input type="hidden" name="productId" value={activeProductId} />
-              <input
-                type="hidden"
-                name="assignmentId"
-                value={assignmentId ?? ""}
-              />
+            <div className="relative z-10 flex items-center gap-2">
               <ThemedButton
-                type="submit"
-                size="icon"
-                aria-label={`Remove ${group.name} from this product`}
-                className="size-8"
+                asChild
+                size="sm"
+                variant="outline"
+                className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
               >
-                <Unlink aria-hidden="true" />
-                <span className="sr-only">Remove {group.name}</span>
+                <Link
+                  href={`/admin/products/modifier-groups/${group.id}/availability?productId=${activeProductId}`}
+                  aria-label="Manage modifier availability"
+                >
+                  Manage Availability
+                </Link>
               </ThemedButton>
-            </form>
+              <form action={onDetach}>
+                <input type="hidden" name="productId" value={activeProductId} />
+                <input
+                  type="hidden"
+                  name="assignmentId"
+                  value={assignmentId ?? ""}
+                />
+                <ThemedButton
+                  type="submit"
+                  size="icon"
+                  aria-label={`Remove ${group.name} from this product`}
+                  className="size-8"
+                >
+                  <Unlink aria-hidden="true" />
+                  <span className="sr-only">Remove {group.name}</span>
+                </ThemedButton>
+              </form>
+            </div>
           ) : (
             <form action={onAttach} className="relative z-10">
               <input type="hidden" name="productId" value={activeProductId} />
@@ -136,6 +151,8 @@ export function ProductModifierGroupsClient({
 }: ProductModifierGroupsClientProps) {
   const router = useRouter()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [selectedAvailableCategoryId, setSelectedAvailableCategoryId] =
+    useState("all")
   const {
     selectedProductId,
     selectedProductName,
@@ -147,6 +164,7 @@ export function ProductModifierGroupsClient({
   const allGroups = modifierCategories.flatMap((category) =>
     category.modifier_groups.map((group) => ({
       ...group,
+      categoryId: category.id,
       categoryName: category.name,
     }))
   )
@@ -162,6 +180,12 @@ export function ProductModifierGroupsClient({
   const availableGroups = allGroups.filter(
     (group) => !assignmentsByGroupId.has(group.id)
   )
+  const filteredAvailableGroups =
+    selectedAvailableCategoryId === "all"
+      ? availableGroups
+      : availableGroups.filter(
+          (group) => group.categoryId === selectedAvailableCategoryId
+        )
 
   async function handleAttach(formData: FormData) {
     setSubmitError(null)
@@ -201,6 +225,38 @@ export function ProductModifierGroupsClient({
             title={`${activeProductName} Modifier Assignments`}
             description={`Attach reusable modifier groups for ${data.businessName}.`}
           />
+
+          {activeProductId ? (
+            <div className="no-scrollbar flex gap-2 overflow-x-auto">
+              <ThemedButton
+                type="button"
+                size="sm"
+                onClick={() => setSelectedAvailableCategoryId("all")}
+                className={
+                  selectedAvailableCategoryId === "all"
+                    ? "shrink-0"
+                    : "shrink-0 bg-muted text-foreground hover:bg-muted/80"
+                }
+              >
+                All
+              </ThemedButton>
+              {modifierCategories.map((category) => (
+                <ThemedButton
+                  key={category.id}
+                  type="button"
+                  size="sm"
+                  onClick={() => setSelectedAvailableCategoryId(category.id)}
+                  className={
+                    selectedAvailableCategoryId === category.id
+                      ? "shrink-0"
+                      : "shrink-0 bg-muted text-foreground hover:bg-muted/80"
+                  }
+                >
+                  {category.name}
+                </ThemedButton>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pb-3">
@@ -239,7 +295,10 @@ export function ProductModifierGroupsClient({
               </section>
 
               <section className="space-y-2">
-                <h2 className="text-sm font-semibold">Available Modifier Groups</h2>
+                <h2 className="text-sm font-semibold">
+                  Available Modifier Groups
+                </h2>
+
                 {availableGroups.length === 0 ? (
                   <ThemedCard className="p-5 text-center">
                     <p className="font-semibold">No groups available</p>
@@ -247,8 +306,15 @@ export function ProductModifierGroupsClient({
                       All reusable modifier groups are already attached.
                     </p>
                   </ThemedCard>
+                ) : filteredAvailableGroups.length === 0 ? (
+                  <ThemedCard className="p-5 text-center">
+                    <p className="font-semibold">No groups in this category</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Choose another modifier category or show all categories.
+                    </p>
+                  </ThemedCard>
                 ) : (
-                  availableGroups.map((group) => (
+                  filteredAvailableGroups.map((group) => (
                     <ModifierGroupCard
                       key={group.id}
                       group={group}

@@ -7,6 +7,8 @@ import {
   buildOrderItemInsertPayload,
   buildOrderModifierInsertPayload,
 } from "@/features/checkout/utils/build-order-payload"
+import { loadCheckoutProductConfig } from "@/features/checkout/queries/load-checkout-product-config"
+import { validateAndPriceCart } from "@/features/checkout/utils/validate-and-price-cart"
 
 type CreateOrderInput = {
   customerName: string
@@ -22,6 +24,20 @@ function generateOrderNumber() {
   const random = Math.floor(100 + Math.random() * 900)
 
   return `MP-${now}${random}`
+}
+
+function formatCheckoutValidationError(errors: { message: string }[]) {
+  const messages = errors.map((error) => error.message)
+  const visibleMessages = messages.slice(0, 3)
+  const remainingCount = messages.length - visibleMessages.length
+
+  if (remainingCount <= 0) {
+    return visibleMessages.join(" ")
+  }
+
+  return `${visibleMessages.join(" ")} ${remainingCount} more cart item issue${
+    remainingCount === 1 ? "" : "s"
+  } must be fixed.`
 }
 
 export async function createOrder(input: CreateOrderInput) {
@@ -58,6 +74,21 @@ export async function createOrder(input: CreateOrderInput) {
     throw new Error("Could not load location.")
   }
 
+  const productConfigs = await loadCheckoutProductConfig({
+    businessId: business.id,
+    productIds: input.items.map((item) => item.productId),
+  })
+  const validationResult = validateAndPriceCart({
+    items: input.items,
+    products: productConfigs,
+  })
+
+  if (!validationResult.ok) {
+    throw new Error(formatCheckoutValidationError(validationResult.errors))
+  }
+
+  const validatedItems = validationResult.cart.items
+
   const { data: order, error: orderError } = await supabaseAdmin
     .from("orders")
     .insert(
@@ -70,7 +101,7 @@ export async function createOrder(input: CreateOrderInput) {
         customerEmail: input.customerEmail,
         fulfillmentType: input.fulfillmentType,
         specialInstructions: input.specialInstructions,
-        items: input.items,
+        items: validatedItems,
       })
     )
     .select("id, order_number")
@@ -80,7 +111,7 @@ export async function createOrder(input: CreateOrderInput) {
     throw new Error(`Could not create order: ${orderError?.message}`)
   }
 
-  for (const item of input.items) {
+  for (const item of validatedItems) {
     const { data: orderItem, error: orderItemError } = await supabaseAdmin
       .from("order_items")
       .insert(

@@ -1,4 +1,7 @@
-import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import type {
+  ValidatedPricedCartItem,
+  ValidatedPricedModifier,
+} from "@/features/checkout/utils/validate-and-price-cart"
 
 export type BuildOrderPayloadInput = {
   businessId: string
@@ -9,11 +12,11 @@ export type BuildOrderPayloadInput = {
   customerEmail?: string
   fulfillmentType: "pickup" | "delivery"
   specialInstructions?: string
-  items: CartItem[]
+  items: ValidatedPricedCartItem[]
 }
 
-export function getOrderSubtotal(items: CartItem[]) {
-  return items.reduce((sum, item) => sum + item.totalPrice, 0)
+export function getOrderSubtotal(items: ValidatedPricedCartItem[]) {
+  return items.reduce((sum, item) => sum + item.lineSubtotal, 0)
 }
 
 export function buildOrderInsertPayload({
@@ -57,7 +60,7 @@ export function buildOrderItemInsertPayload({
 }: {
   businessId: string
   orderId: string
-  item: CartItem
+  item: ValidatedPricedCartItem
 }) {
   return {
     business_id: businessId,
@@ -68,7 +71,7 @@ export function buildOrderItemInsertPayload({
     variant_name_snapshot: item.variantName,
     quantity: item.quantity,
     unit_price: item.unitPrice,
-    line_subtotal: item.totalPrice,
+    line_subtotal: item.lineSubtotal,
   }
 }
 
@@ -79,7 +82,7 @@ export function buildOrderModifierInsertPayload({
 }: {
   businessId: string
   orderItemId: string
-  modifiers: CartModifier[]
+  modifiers: ValidatedPricedModifier[]
 }) {
   return modifiers.map((modifier) => ({
     business_id: businessId,

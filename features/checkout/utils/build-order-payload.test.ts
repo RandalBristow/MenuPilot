@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import type { CartItem } from "@/features/cart/types/cart"
+import type { ValidatedPricedCartItem } from "./validate-and-price-cart"
+import { validateAndPriceCart } from "./validate-and-price-cart"
 import {
   buildOrderInsertPayload,
   buildOrderItemInsertPayload,
@@ -14,7 +15,7 @@ const cartItem = {
   variantName: '16"',
   quantity: 2,
   unitPrice: 19.49,
-  totalPrice: 38.98,
+  lineSubtotal: 38.98,
   modifiers: [
     {
       optionId: "pepperoni",
@@ -26,7 +27,7 @@ const cartItem = {
       priceDelta: 1.5,
     },
   ],
-} satisfies CartItem
+} satisfies ValidatedPricedCartItem
 
 const cartItemWithoutVariant = {
   cartItemId: "cart-2",
@@ -36,9 +37,9 @@ const cartItemWithoutVariant = {
   variantName: null,
   quantity: 1,
   unitPrice: 4.99,
-  totalPrice: 4.99,
+  lineSubtotal: 4.99,
   modifiers: [],
-} satisfies CartItem
+} satisfies ValidatedPricedCartItem
 
 describe("checkout order payload helpers", () => {
   it("builds order totals from resolved cart item values", () => {
@@ -54,6 +55,112 @@ describe("checkout order payload helpers", () => {
 
     expect(payload.subtotal).toBe(38.98)
     expect(payload.total).toBe(38.98)
+  })
+
+  it("uses validated priced values instead of client-submitted cart prices", () => {
+    const validationResult = validateAndPriceCart({
+      items: [
+        {
+          cartItemId: "cart-3",
+          productId: "product-pizza",
+          productName: "Tampered Product",
+          variantId: "variant-option-16",
+          variantName: "Tampered Variant",
+          quantity: 2,
+          unitPrice: 0.01,
+          totalPrice: 0.02,
+          modifiers: [
+            {
+              optionId: "pepperoni",
+              optionName: "Tampered Pepperoni",
+              groupId: "toppings",
+              groupName: "Tampered Toppings",
+              placement: "whole",
+              multiplier: 1,
+              priceDelta: 100,
+            },
+          ],
+        },
+      ],
+      products: [
+        {
+          id: "product-pizza",
+          name: "Build Your Own Pizza",
+          isEnabled: true,
+          basePrice: 12.5,
+          variants: [
+            {
+              id: "variant-option-16",
+              name: '16"',
+              basePrice: 19.49,
+              isEnabled: true,
+            },
+          ],
+          modifierGroups: [
+            {
+              id: "toppings",
+              name: "Pizza Toppings",
+              isAssignmentEnabled: true,
+              isEnabled: true,
+              isRequired: false,
+              minRequired: 0,
+              maxAllowed: null,
+              supportsPlacement: true,
+              supportsMultiplier: false,
+              options: [
+                {
+                  id: "pepperoni",
+                  name: "Pepperoni",
+                  priceDelta: 1.5,
+                  isEnabled: true,
+                  optionGroup: null,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(validationResult.ok).toBe(true)
+    if (!validationResult.ok) return
+
+    const payload = buildOrderInsertPayload({
+      businessId: "business-1",
+      locationId: "location-1",
+      orderNumber: "MP-123",
+      customerName: "Randy",
+      customerPhone: "555-0100",
+      fulfillmentType: "pickup",
+      items: validationResult.cart.items,
+    })
+    const itemPayload = buildOrderItemInsertPayload({
+      businessId: "business-1",
+      orderId: "order-1",
+      item: validationResult.cart.items[0],
+    })
+    const [modifierPayload] = buildOrderModifierInsertPayload({
+      businessId: "business-1",
+      orderItemId: "order-item-1",
+      modifiers: validationResult.cart.items[0].modifiers,
+    })
+
+    expect(payload.subtotal).toBe(41.98)
+    expect(payload.total).toBe(41.98)
+    expect(itemPayload).toMatchObject({
+      product_name_snapshot: "Build Your Own Pizza",
+      variant_group_option_id: "variant-option-16",
+      variant_name_snapshot: '16"',
+      unit_price: 20.99,
+      line_subtotal: 41.98,
+    })
+    expect(modifierPayload).toMatchObject({
+      modifier_group_id: "toppings",
+      modifier_option_id: "pepperoni",
+      group_name_snapshot: "Pizza Toppings",
+      option_name_snapshot: "Pepperoni",
+      price_delta: 1.5,
+    })
   })
 
   it("builds order item payload without legacy product_variant_id", () => {

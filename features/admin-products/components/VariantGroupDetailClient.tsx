@@ -454,9 +454,9 @@ function OptionFormPanel({
 export function VariantGroupDetailClient({
   data,
 }: VariantGroupDetailClientProps) {
+  const { group, mode, productContext } = data
   const [optionPanelState, setOptionPanelState] =
     useState<OptionPanelState | null>(null)
-  const { group, mode, productContext } = data
   const nextSortOrder = getNextSortOrder(group.options)
   const isProductMode = mode === "product"
   const isPreviewMode = mode === "preview"
