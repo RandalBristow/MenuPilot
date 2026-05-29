@@ -2,17 +2,25 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ThumbsDown, ThumbsUp } from "lucide-react"
+import { Check, Pencil, RotateCcw, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
-import { setProductVariantModifierOptionAvailability } from "@/features/admin-products/actions/save-product-variant-modifier-option-availability"
+import {
+  setProductVariantModifierOptionAvailability,
+  setProductVariantModifierOptionPriceOverride,
+} from "@/features/admin-products/actions/save-product-variant-modifier-option-availability"
 import { isModifierOptionAvailableForVariant } from "@/features/admin-products/utils/variant-modifier-availability"
 import type { ProductModifierAvailabilityData } from "@/features/admin-products/queries/get-product-modifier-availability"
+import { getVariantModifierOptionPriceOverride } from "@/features/product-configurator/utils/variant-modifier-pricing"
 
 type ProductModifierAvailabilityClientProps = {
   data: ProductModifierAvailabilityData
+}
+
+function formatPrice(value: number | string) {
+  return Number(value).toFixed(2)
 }
 
 export function ProductModifierAvailabilityClient({
@@ -22,6 +30,9 @@ export function ProductModifierAvailabilityClient({
   const [selectedVariantOptionId, setSelectedVariantOptionId] = useState(
     data.variantGroup?.options[0]?.id ?? ""
   )
+  const [editingPriceOptionId, setEditingPriceOptionId] = useState<
+    string | null
+  >(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const selectedVariantOption =
     data.variantGroup?.options.find(
@@ -45,12 +56,58 @@ export function ProductModifierAvailabilityClient({
     }
   }
 
+  async function handlePriceOverrideSubmit(formData: FormData) {
+    setSubmitError(null)
+
+    try {
+      await setProductVariantModifierOptionPriceOverride(formData)
+      setEditingPriceOptionId(null)
+      router.refresh()
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Could not update modifier price."
+      )
+    }
+  }
+
+  function renderRuleInputs({
+    optionId,
+  }: {
+    optionId: string
+  }) {
+    if (!selectedVariantOption) return null
+
+    return (
+      <>
+        <input type="hidden" name="productId" value={data.product.id} />
+        <input
+          type="hidden"
+          name="variantGroupId"
+          value={data.variantGroup?.id ?? ""}
+        />
+        <input
+          type="hidden"
+          name="variantGroupOptionId"
+          value={selectedVariantOption.id}
+        />
+        <input
+          type="hidden"
+          name="modifierGroupId"
+          value={data.modifierGroup.id}
+        />
+        <input type="hidden" name="modifierOptionId" value={optionId} />
+      </>
+    )
+  }
+
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
-            title={`${data.modifierGroup.name} Availability`}
+            title={`${data.modifierGroup.name} Variant Rules`}
             description={data.product.name}
           />
 
@@ -64,7 +121,10 @@ export function ProductModifierAvailabilityClient({
                     key={option.id}
                     type="button"
                     size="sm"
-                    onClick={() => setSelectedVariantOptionId(option.id)}
+                    onClick={() => {
+                      setSelectedVariantOptionId(option.id)
+                      setEditingPriceOptionId(null)
+                    }}
                     className={
                       isSelected
                         ? "shrink-0"
@@ -84,21 +144,21 @@ export function ProductModifierAvailabilityClient({
             <ThemedCard className="p-5 text-center">
               <p className="font-semibold">No variant group assigned</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Assign a reusable variant group before managing availability.
+                Assign a reusable variant group before managing variant rules.
               </p>
             </ThemedCard>
           ) : !selectedVariantOption ? (
             <ThemedCard className="p-5 text-center">
               <p className="font-semibold">No variant options available</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Add enabled variant options before managing availability.
+                Add enabled variant options before managing variant rules.
               </p>
             </ThemedCard>
           ) : data.modifierGroup.options.length === 0 ? (
             <ThemedCard className="p-5 text-center">
               <p className="font-semibold">No modifier options available</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Add enabled modifier options before managing availability.
+                Add enabled modifier options before managing variant rules.
               </p>
             </ThemedCard>
           ) : (
@@ -109,70 +169,137 @@ export function ProductModifierAvailabilityClient({
                 modifierOptionId: option.id,
                 availabilityRules: data.availabilityRules,
               })
+              const inheritedPrice =
+                option.price_delta_override ?? option.price_delta
+              const priceOverride = getVariantModifierOptionPriceOverride({
+                selectedVariantId: selectedVariantOption.id,
+                modifierGroupId: data.modifierGroup.id,
+                modifierOptionId: option.id,
+                priceOverrides: data.priceOverrides,
+              })
+              const effectivePrice =
+                priceOverride?.price_delta ?? inheritedPrice
+              const isPriceOverridden = Boolean(priceOverride)
+              const isEditingPrice = editingPriceOptionId === option.id
 
               return (
                 <ThemedCard key={option.id} className="overflow-hidden p-0">
-                  <div className="flex min-h-14 items-center justify-between gap-3 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">
-                        {option.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {isAvailable
-                          ? "Available"
-                          : "Unavailable for this variant"}
-                      </p>
+                  <div className="space-y-2 px-3 py-2.5">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">
+                          {option.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ${formatPrice(effectivePrice)} -{" "}
+                          {isPriceOverridden ? "Overridden" : "Inherited"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isAvailable
+                            ? "Available"
+                            : "Unavailable for this variant"}
+                        </p>
+                      </div>
+
+                      <form action={handleAvailabilityToggle} className="shrink-0">
+                        {renderRuleInputs({ optionId: option.id })}
+                        <input
+                          type="hidden"
+                          name="isAvailable"
+                          value={String(!isAvailable)}
+                        />
+                        <ThemedButton
+                          type="submit"
+                          size="icon"
+                          variant="outline"
+                          aria-label={
+                            isAvailable
+                              ? "Make unavailable for this variant"
+                              : "Make available for this variant"
+                          }
+                          className="size-9 bg-background text-foreground hover:bg-muted"
+                        >
+                          {isAvailable ? (
+                            <ThumbsUp aria-hidden="true" />
+                          ) : (
+                            <ThumbsDown aria-hidden="true" />
+                          )}
+                        </ThemedButton>
+                      </form>
                     </div>
 
-                    <form action={handleAvailabilityToggle} className="shrink-0">
-                      <input
-                        type="hidden"
-                        name="productId"
-                        value={data.product.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="variantGroupId"
-                        value={data.variantGroup?.id ?? ""}
-                      />
-                      <input
-                        type="hidden"
-                        name="variantGroupOptionId"
-                        value={selectedVariantOption.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="modifierGroupId"
-                        value={data.modifierGroup.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="modifierOptionId"
-                        value={option.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="isAvailable"
-                        value={String(!isAvailable)}
-                      />
-                      <ThemedButton
-                        type="submit"
-                        size="icon"
-                        variant="outline"
-                        aria-label={
-                          isAvailable
-                            ? "Make unavailable for this variant"
-                            : "Make available for this variant"
-                        }
-                        className="size-9 bg-background text-foreground hover:bg-muted"
+                    {isEditingPrice ? (
+                      <form
+                        action={handlePriceOverrideSubmit}
+                        className="flex items-end gap-2"
                       >
-                        {isAvailable ? (
-                          <ThumbsUp aria-hidden="true" />
-                        ) : (
-                          <ThumbsDown aria-hidden="true" />
-                        )}
-                      </ThemedButton>
-                    </form>
+                        {renderRuleInputs({ optionId: option.id })}
+                        <label className="grid min-w-0 flex-1 gap-1">
+                          <span className="text-xs font-medium">
+                            Price for {selectedVariantOption.name}
+                          </span>
+                          <input
+                            name="priceDelta"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={formatPrice(effectivePrice)}
+                            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                          />
+                        </label>
+                        <ThemedButton
+                          type="submit"
+                          size="icon"
+                          aria-label="Save price override"
+                          className="size-9"
+                        >
+                          <Check aria-hidden="true" />
+                        </ThemedButton>
+                        <ThemedButton
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          aria-label="Cancel price edit"
+                          className="size-9 bg-background text-foreground hover:bg-muted"
+                          onClick={() => setEditingPriceOptionId(null)}
+                        >
+                          <X aria-hidden="true" />
+                        </ThemedButton>
+                      </form>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          Inherited price: ${formatPrice(inheritedPrice)}
+                        </p>
+                        <div className="ml-auto flex items-center gap-1.5">
+                          {isPriceOverridden ? (
+                            <form action={handlePriceOverrideSubmit}>
+                              {renderRuleInputs({ optionId: option.id })}
+                              <input type="hidden" name="priceDelta" value="" />
+                              <ThemedButton
+                                type="submit"
+                                size="icon"
+                                variant="outline"
+                                aria-label="Clear price override"
+                                className="size-9 bg-background text-foreground hover:bg-muted"
+                              >
+                                <RotateCcw aria-hidden="true" />
+                              </ThemedButton>
+                            </form>
+                          ) : null}
+                          <ThemedButton
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            aria-label="Edit price override"
+                            className="size-9 bg-background text-foreground hover:bg-muted"
+                            onClick={() => setEditingPriceOptionId(option.id)}
+                          >
+                            <Pencil aria-hidden="true" />
+                          </ThemedButton>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ThemedCard>
               )

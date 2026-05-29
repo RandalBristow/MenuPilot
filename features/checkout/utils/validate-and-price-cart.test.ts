@@ -775,6 +775,148 @@ describe("validateAndPriceCart", () => {
     expect(result.cart.items[0].unitPrice).toBe(14.75)
   })
 
+  it("uses variant-specific modifier price before product-specific override", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          variantId: "size-16",
+          modifiers: [buildModifier({ priceDelta: 100 })],
+        }),
+      ],
+      products: [
+        {
+          ...productWithVariants,
+          modifierGroups: productWithModifiers.modifierGroups,
+          modifierOptionOverrides: [
+            {
+              modifierOptionId: "pepperoni",
+              priceDeltaOverride: 2,
+            },
+          ],
+          variantModifierOptionPriceOverrides: [
+            {
+              variantGroupOptionId: "size-16",
+              modifierGroupId: "toppings",
+              modifierOptionId: "pepperoni",
+              priceDelta: 2.5,
+              isEnabled: true,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers[0].priceDelta).toBe(2.5)
+    expect(result.cart.items[0].unitPrice).toBe(21.99)
+  })
+
+  it("falls back to product-specific modifier price when variant override is missing", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          variantId: "size-16",
+          modifiers: [buildModifier()],
+        }),
+      ],
+      products: [
+        {
+          ...productWithVariants,
+          modifierGroups: productWithModifiers.modifierGroups,
+          modifierOptionOverrides: [
+            {
+              modifierOptionId: "pepperoni",
+              priceDeltaOverride: 2.25,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers[0].priceDelta).toBe(2.25)
+    expect(result.cart.items[0].unitPrice).toBe(21.74)
+  })
+
+  it("ignores disabled variant-specific modifier price overrides", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          variantId: "size-16",
+          modifiers: [buildModifier()],
+        }),
+      ],
+      products: [
+        {
+          ...productWithVariants,
+          modifierGroups: productWithModifiers.modifierGroups,
+          variantModifierOptionPriceOverrides: [
+            {
+              variantGroupOptionId: "size-16",
+              modifierGroupId: "toppings",
+              modifierOptionId: "pepperoni",
+              priceDelta: 9,
+              isEnabled: false,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers[0].priceDelta).toBe(1.5)
+    expect(result.cart.items[0].unitPrice).toBe(20.99)
+  })
+
+  it("does not apply variant modifier price override across modifier groups", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          variantId: "size-16",
+          modifiers: [buildModifier({ groupId: "premium-toppings" })],
+        }),
+      ],
+      products: [
+        {
+          ...productWithVariants,
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              id: "premium-toppings",
+              options: [
+                {
+                  ...productWithModifiers.modifierGroups[0].options[0],
+                  priceDelta: 3,
+                },
+              ],
+            },
+          ],
+          variantModifierOptionPriceOverrides: [
+            {
+              variantGroupOptionId: "size-16",
+              modifierGroupId: "toppings",
+              modifierOptionId: "pepperoni",
+              priceDelta: 1,
+              isEnabled: true,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers[0].priceDelta).toBe(3)
+    expect(result.cart.items[0].unitPrice).toBe(22.49)
+  })
+
   it("rejects product modifier option disabled override", () => {
     const result = validateAndPriceCart({
       items: [buildCartItem({ modifiers: [buildModifier()] })],

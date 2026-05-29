@@ -13,6 +13,7 @@ import {
   filterModifierOptionsByVariant,
   removeUnavailableSelectedModifiers,
 } from "@/features/product-configurator/utils/filter-modifier-options-by-variant"
+import { applyVariantModifierOptionPrices } from "@/features/product-configurator/utils/variant-modifier-pricing"
 import { getInitialSelectedModifiersFromDefaults } from "@/features/product-configurator/utils/product-default-modifiers"
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation"
 import {
@@ -136,17 +137,26 @@ export function StandardItemBuilder({
   )
 
   const modifierGroups = useMemo(
-    () =>
-      filterModifierOptionsByVariant({
+    () => {
+      const availableModifierGroups = filterModifierOptionsByVariant({
         selectedVariantId: selectedVariant?.id,
         modifierGroups: baseModifierGroups,
         availabilityRules:
           product.product_variant_modifier_option_availability_rules ?? [],
-      }),
+      })
+
+      return applyVariantModifierOptionPrices({
+        selectedVariantId: selectedVariant?.id,
+        modifierGroups: availableModifierGroups,
+        priceOverrides:
+          product.product_variant_modifier_option_price_overrides ?? [],
+      })
+    },
     [
       baseModifierGroups,
       selectedVariant?.id,
       product.product_variant_modifier_option_availability_rules,
+      product.product_variant_modifier_option_price_overrides,
     ]
   )
 
@@ -179,11 +189,16 @@ export function StandardItemBuilder({
     const nextVariant = sortedVariants.find(
       (variant) => variant.id === nextVariantId
     )
-    const nextModifierGroups = filterModifierOptionsByVariant({
+    const nextAvailableModifierGroups = filterModifierOptionsByVariant({
       selectedVariantId: nextVariant?.id,
       modifierGroups: baseModifierGroups,
       availabilityRules:
         product.product_variant_modifier_option_availability_rules ?? [],
+    })
+    const nextModifierGroups = applyVariantModifierOptionPrices({
+      selectedVariantId: nextVariant?.id,
+      modifierGroups: nextAvailableModifierGroups,
+      priceOverrides: product.product_variant_modifier_option_price_overrides ?? [],
     })
 
     setVariantId(nextVariantId)

@@ -1,6 +1,6 @@
 # MenuPilot Project State
 
-_Last updated: 2026-05-23_
+_Last updated: 2026-05-29_
 
 ## Purpose
 
@@ -116,7 +116,7 @@ The engine supports or is designed to support:
 Size/count/portion/weight choices are product variants, not ordinary modifiers. Reusable variant groups are defined globally, attached to products, and customized per product through overrides.
 
 ### Modifiers
-**Status:** UPDATED 2026-05-23
+**Status:** UPDATED 2026-05-29
 
 Modifiers represent configurable product options such as toppings, crust type, crust style, sauce, dressing, bread, cheese, or preparation choices.
 
@@ -136,6 +136,8 @@ Modifier behavior should mirror variant behavior:
 - Products do not attach individual Modifier Options directly except through product-specific override/availability systems.
 - Product-specific differences live in override tables.
 - Per-product modifier option overrides currently support price delta, prep time delta, enabled state, and sort order.
+- Variant-specific modifier option availability is managed per product, reusable variant option, Modifier Group, and Modifier Option.
+- Variant-specific modifier option price overrides are managed per product, reusable variant option, Modifier Group, and Modifier Option.
 - Modifier Categories are for admin organization only.
 - Modifier Option Groups organize options inside a Modifier Group.
 
@@ -145,6 +147,17 @@ Modifier behavior should mirror variant behavior:
 Variant-specific modifier option availability is implemented through `product_variant_modifier_option_availability_rules` and runtime filtering. Selected modifier options are removed if they become unavailable after a variant change.
 
 Location-specific and selected-option dependency availability remain planned.
+
+### Variant-specific modifier pricing
+**Status:** IMPLEMENTED
+
+Variant-specific modifier option price overrides are implemented through `product_variant_modifier_option_price_overrides`. Pricing priority is:
+
+1. enabled variant-specific modifier option price override
+2. product-specific `product_modifier_option_overrides.price_delta_override`
+3. global `modifier_options.price_delta`
+
+Disabled product-specific modifier option overrides make the option unavailable. Disabled variant-specific price overrides are ignored and fall back to inherited pricing.
 
 ### Included modifier credits
 **Status:** PARTIALLY IMPLEMENTED
@@ -158,15 +171,16 @@ Included topping credits and multiplier-aware included pricing are implemented f
 | Product vision | Locked | Broad platform direction remains intact |
 | Tech stack | Locked | Next.js, Supabase, shadcn, Stripe planned |
 | Public menu | Working demo | Uses seeded Pronto Demo records |
-| Product configurator | Working | Variants, modifiers, included credits, cart flow |
+| Product configurator | Working | Variants, modifiers, included credits, variant-specific modifier availability/pricing, cart flow |
 | Cart | Working | Provider, sheet, summary bar, localStorage |
-| Checkout | Working demo | Creates unpaid pickup orders; needs server-side price validation |
+| Checkout | Working demo | Server-side cart validation/repricing creates unpaid pickup orders; transaction/RPC still needed |
 | Staff orders | Working demo | Queue and status updates exist |
 | Admin dashboard | Working demo | Modifier access moved under product management |
-| Product admin | Working | Categories, subcategories, products, variant groups, assignments |
+| Product admin | Working | Categories, subcategories, products, Media Library image selection, variant groups, assignments |
 | Variant admin | Working | Reusable groups/options and per-product overrides |
 | Modifier admin | In progress | Hierarchy standardized as Modifier Category -> Modifier Group -> Modifier Option Group -> Modifier Option |
-| Product modifier assignments | In progress | Attach/detach and option overrides exist |
+| Media Library | Working demo | `/admin/media` manages `media_assets`; products reference images through `image_media_id` |
+| Product modifier assignments | In progress | Attach/detach, option overrides, variant availability, and variant price overrides exist |
 | Auth/roles | Planned | Admin/staff routes are not protected yet |
 | Payments | Planned | Stripe selected but not implemented |
 | Website builder | Future | Scoped conceptually |
@@ -179,6 +193,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 - `/checkout` pickup checkout
 - `/staff/orders` staff order queue
 - `/admin` admin hub
+- `/admin/media` media library
 - `/admin/products` product management hub
 - `/admin/products/list` products browser
 - `/admin/products/new` create product
@@ -189,6 +204,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 - `/admin/products/variant-groups/[groupId]` variant group options
 - `/admin/products/variant-assignments?productId=...` product-scoped variant assignment browser entered from Product cards
 - `/admin/products/modifier-groups` product modifier assignment browser
+- `/admin/products/modifier-groups/[groupId]/availability?productId=...` product-scoped Modifier Group variant availability and pricing rules
 - `/admin/modifiers/groups` Modifier Categories displayed as the current Modifier Groups entry point
 - `/admin/modifiers/groups/[categoryId]` Modifier Groups for one Modifier Category
 - `/admin/modifiers/[groupId]` Modifier Option Groups for one Modifier Group
@@ -204,6 +220,9 @@ Included topping credits and multiplier-aware included pricing are implemented f
 ### Modifier availability depends on selected size
 **Solution:** Use variant-based modifier option availability rules and filter options at configuration time.
 
+### Modifier prices depend on selected size
+**Solution:** Use variant-specific modifier option price overrides and apply them after product-specific modifier option price overrides are inherited.
+
 ### Gluten-free crust should not be a fake size
 **Solution:** Keep size as a variant. Use crust type as a modifier filtered by selected size.
 
@@ -215,7 +234,6 @@ Included topping credits and multiplier-aware included pricing are implemented f
 
 ## High-Risk Gaps
 
-- Checkout totals are still trusted from the client flow more than they should be.
 - Order creation should become transactional before real payment use.
 - Admin and staff routes need auth/role protection.
 - Public data access should be reviewed after auth and RLS are tightened.
@@ -233,6 +251,12 @@ Included topping credits and multiplier-aware included pricing are implemented f
 
 - Standardized modifier terminology: Modifier Category, Modifier Group, Modifier Option Group, and Modifier Option.
 - Clarified that products attach Modifier Groups only; categories and option groups are organizational layers.
+
+### 2026-05-29
+
+- Recorded server-side checkout validation and repricing as implemented.
+- Recorded Media Library product image selection through `media_assets` and `products.image_media_id`.
+- Recorded variant-specific modifier option availability and price override flows.
 
 ### 2026-05-06
 

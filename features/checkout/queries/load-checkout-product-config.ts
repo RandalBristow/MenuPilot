@@ -88,6 +88,14 @@ type RawModifierAvailabilityRule = {
   is_enabled: boolean
 }
 
+type RawVariantModifierOptionPriceOverride = {
+  variant_group_option_id: string
+  modifier_group_id: string
+  modifier_option_id: string
+  price_delta: number | string
+  is_enabled: boolean
+}
+
 type RawIncludedModifierGroup = {
   modifier_group_id: string
   included_quantity: number
@@ -105,6 +113,9 @@ type RawCheckoutProduct = {
   product_modifier_option_overrides: RawModifierOptionOverride[] | null
   product_variant_modifier_option_availability_rules:
     | RawModifierAvailabilityRule[]
+    | null
+  product_variant_modifier_option_price_overrides:
+    | RawVariantModifierOptionPriceOverride[]
     | null
   product_included_modifier_groups: RawIncludedModifierGroup[] | null
 }
@@ -240,6 +251,15 @@ function mapProduct(product: RawCheckoutProduct): CheckoutProductConfig {
       isAvailable: rule.is_available,
       isEnabled: rule.is_enabled,
     })),
+    variantModifierOptionPriceOverrides: (
+      product.product_variant_modifier_option_price_overrides ?? []
+    ).map((override) => ({
+      variantGroupOptionId: override.variant_group_option_id,
+      modifierGroupId: override.modifier_group_id,
+      modifierOptionId: override.modifier_option_id,
+      priceDelta: toNumber(override.price_delta),
+      isEnabled: override.is_enabled,
+    })),
   }
 }
 
@@ -323,6 +343,13 @@ export async function loadCheckoutProductConfig({
         modifier_group_id,
         modifier_option_id,
         is_available,
+        is_enabled
+      ),
+      product_variant_modifier_option_price_overrides (
+        variant_group_option_id,
+        modifier_group_id,
+        modifier_option_id,
+        price_delta,
         is_enabled
       ),
       product_included_modifier_groups (

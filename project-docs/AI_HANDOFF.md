@@ -1,6 +1,6 @@
 # MenuPilot AI Handoff
 
-_Last updated: 2026-05-23_
+_Last updated: 2026-05-29_
 
 ## Overview
 
@@ -24,18 +24,21 @@ Working now:
 - `/menu` customer menu for the seeded Pronto Demo business.
 - Product configurator with reusable variant groups, modifier groups, included credits, multiplier-aware pricing, and cart integration.
 - Cart provider, summary bar, sheet UI, and localStorage persistence.
-- `/checkout` pickup checkout that writes unpaid orders to Supabase.
+- `/checkout` pickup checkout that validates/reprices cart contents server-side and writes unpaid orders to Supabase.
 - `/staff/orders` staff queue with order status updates.
 - `/admin` admin hub.
+- `/admin/media` Media Library for image upload/import metadata backed by `media_assets`.
 - `/admin/products` product management hub and product/category/subcategory/product form flows.
+- Products select images from Media Library through `products.image_media_id`.
 - Reusable variant group list, option editing, product assignment, and per-product overrides.
 - Modifier library flow using the updated hierarchy.
 - Product modifier group assignment with per-product modifier option overrides.
 - Variant-specific modifier option availability filtering.
+- Variant-specific modifier option price overrides on the product Modifier Group variant rules page.
 
 Current gaps:
 - Admin/staff auth is not enforced yet.
-- Checkout creates orders but still needs full server-side price validation and a transaction/RPC pattern.
+- Checkout creates orders after server-side price validation but still needs a transaction/RPC pattern.
 - Stripe payment, webhooks, refunds, and payment status automation are not implemented.
 - Public menu and checkout still use seeded demo business/location records.
 - Website builder, theme editor, inventory, reporting, delivery, and display panels remain future work.
@@ -50,6 +53,14 @@ The current modifier terminology is important:
 - Modifier Option: actual selectable choice, such as Pepperoni, Ranch, or Gluten Free, backed by `modifier_options`.
 - `product_modifier_groups` attaches a reusable Modifier Group to a product.
 - `product_modifier_option_overrides` stores product-specific option price, prep time, enabled, and sort overrides.
+- `product_variant_modifier_option_availability_rules` stores product + selected reusable variant option + Modifier Group + Modifier Option availability.
+- `product_variant_modifier_option_price_overrides` stores product + selected reusable variant option + Modifier Group + Modifier Option price overrides.
+
+Modifier option price priority is:
+
+1. enabled variant-specific modifier option price override
+2. product-specific modifier option price override
+3. global modifier option price
 
 Modifiers should behave like variants:
 
@@ -87,7 +98,7 @@ The active focus is stabilizing the mobile-first admin product/modifier flow:
 ## Suggested Next Steps
 
 1. Verify Modifier Category, Modifier Group, Modifier Option Group, and Modifier Option admin pages on 320px, 375px, 390px, 430px, tablet, and desktop.
-2. Add or tighten tests for modifier overrides and variant-based modifier availability.
-3. Add server-side checkout price validation before Stripe.
-4. Move order creation to a transaction/RPC-style pattern.
-5. Add auth/role protection for admin and staff routes.
+2. Add or tighten tests as modifier override and variant-rule behavior expands.
+3. Move order creation to a transaction/RPC-style pattern.
+4. Add auth/role protection for admin and staff routes.
+5. Continue mobile checks for Media Library and product Modifier Group variant rules.

@@ -52,3 +52,29 @@ export function buildVariantModifierAvailabilityRulePayload({
     is_enabled: true,
   }
 }
+
+export function buildVariantModifierPriceOverridePayload({
+  businessId,
+  productId,
+  variantGroupOptionId,
+  modifierGroupId,
+  modifierOptionId,
+  priceDelta,
+}: {
+  businessId: string
+  productId: string
+  variantGroupOptionId: string
+  modifierGroupId: string
+  modifierOptionId: string
+  priceDelta: number
+}) {
+  return {
+    business_id: businessId,
+    product_id: productId,
+    variant_group_option_id: variantGroupOptionId,
+    modifier_group_id: modifierGroupId,
+    modifier_option_id: modifierOptionId,
+    price_delta: priceDelta,
+    is_enabled: true,
+  }
+}

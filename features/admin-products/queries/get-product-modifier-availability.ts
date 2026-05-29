@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { VariantModifierOptionAvailabilityRule } from "@/features/admin-products/utils/variant-modifier-availability"
+import type { VariantModifierOptionPriceOverride } from "@/features/product-configurator/utils/variant-modifier-pricing"
 
 const BUSINESS_SLUG = "pronto-demo"
 
@@ -19,6 +20,8 @@ export type ProductModifierAvailabilityVariantGroup = {
 export type ProductModifierAvailabilityOption = {
   id: string
   name: string
+  price_delta: number
+  price_delta_override: number | null
   is_enabled: boolean
   sort_order: number
 }
@@ -39,6 +42,20 @@ export type ProductModifierAvailabilityData = {
   variantGroup: ProductModifierAvailabilityVariantGroup
   modifierGroup: ProductModifierAvailabilityGroup
   availabilityRules: VariantModifierOptionAvailabilityRule[]
+  priceOverrides: VariantModifierOptionPriceOverride[]
+}
+
+type RawProductModifierAvailabilityOption = Omit<
+  ProductModifierAvailabilityOption,
+  "price_delta" | "price_delta_override"
+> & {
+  price_delta: number | string
+}
+
+type ProductModifierOptionOverride = {
+  modifier_option_id: string
+  price_delta_override: number | string | null
+  is_enabled: boolean | null
 }
 
 function sortBySortOrder<T extends { sort_order: number; name: string }>(
@@ -87,6 +104,8 @@ export async function getProductModifierAvailabilityData({
     { data: modifierAssignment, error: modifierAssignmentError },
     { data: variantAssignment, error: variantAssignmentError },
     { data: availabilityRules, error: availabilityRulesError },
+    { data: optionOverrides, error: optionOverridesError },
+    { data: priceOverrides, error: priceOverridesError },
   ] = await Promise.all([
     supabaseAdmin
       .from("products")
@@ -107,6 +126,7 @@ export async function getProductModifierAvailabilityData({
           modifier_options (
             id,
             name,
+            price_delta,
             is_enabled,
             sort_order
           )
@@ -155,6 +175,31 @@ export async function getProductModifierAvailabilityData({
       .eq("business_id", businessId)
       .eq("product_id", productId)
       .eq("modifier_group_id", modifierGroupId),
+    supabaseAdmin
+      .from("product_modifier_option_overrides")
+      .select(
+        `
+        modifier_option_id,
+        price_delta_override,
+        is_enabled
+      `
+      )
+      .eq("business_id", businessId)
+      .eq("product_id", productId),
+    supabaseAdmin
+      .from("product_variant_modifier_option_price_overrides")
+      .select(
+        `
+        variant_group_option_id,
+        modifier_group_id,
+        modifier_option_id,
+        price_delta,
+        is_enabled
+      `
+      )
+      .eq("business_id", businessId)
+      .eq("product_id", productId)
+      .eq("modifier_group_id", modifierGroupId),
   ])
 
   if (productError || !product) return null
@@ -167,6 +212,16 @@ export async function getProductModifierAvailabilityData({
       `Could not load modifier availability rules: ${availabilityRulesError.message}`
     )
   }
+  if (optionOverridesError) {
+    throw new Error(
+      `Could not load modifier option overrides: ${optionOverridesError.message}`
+    )
+  }
+  if (priceOverridesError) {
+    throw new Error(
+      `Could not load variant modifier price overrides: ${priceOverridesError.message}`
+    )
+  }
 
   const modifierGroup = getFirstRelation(
     (
@@ -176,13 +231,13 @@ export async function getProductModifierAvailabilityData({
               id: string
               name: string
               is_enabled: boolean
-              modifier_options: ProductModifierAvailabilityOption[] | null
+              modifier_options: RawProductModifierAvailabilityOption[] | null
             }
           | {
               id: string
               name: string
               is_enabled: boolean
-              modifier_options: ProductModifierAvailabilityOption[] | null
+              modifier_options: RawProductModifierAvailabilityOption[] | null
             }[]
           | null
       }
@@ -190,6 +245,11 @@ export async function getProductModifierAvailabilityData({
   )
 
   if (!modifierGroup || !modifierGroup.is_enabled) return null
+  const optionOverridesByOptionId = new Map(
+    ((optionOverrides ?? []) as ProductModifierOptionOverride[]).map(
+      (override) => [override.modifier_option_id, override]
+    )
+  )
 
   const variantGroup = getFirstRelation(
     (
@@ -239,12 +299,46 @@ export async function getProductModifierAvailabilityData({
       name: modifierGroup.name,
       is_enabled: modifierGroup.is_enabled,
       options: sortBySortOrder(
-        (modifierGroup.modifier_options ?? []).filter(
-          (option) => option.is_enabled
-        )
+        (modifierGroup.modifier_options ?? [])
+          .filter((option) => {
+            const override = optionOverridesByOptionId.get(option.id)
+
+            return option.is_enabled && override?.is_enabled !== false
+          })
+          .map((option) => {
+            const override = optionOverridesByOptionId.get(option.id)
+            const priceOverride = override?.price_delta_override
+
+            return {
+              ...option,
+              price_delta:
+                typeof option.price_delta === "number"
+                  ? option.price_delta
+                  : Number(option.price_delta),
+              price_delta_override:
+                priceOverride === null || priceOverride === undefined
+                  ? null
+                  : typeof priceOverride === "number"
+                    ? priceOverride
+                    : Number(priceOverride),
+            }
+          })
       ),
     },
     availabilityRules:
       (availabilityRules ?? []) as VariantModifierOptionAvailabilityRule[],
+    priceOverrides: ((priceOverrides ?? []) as Array<{
+      variant_group_option_id: string
+      modifier_group_id: string
+      modifier_option_id: string
+      price_delta: number | string
+      is_enabled: boolean
+    }>).map((override) => ({
+      ...override,
+      price_delta:
+        typeof override.price_delta === "number"
+          ? override.price_delta
+          : Number(override.price_delta),
+    })),
   }
 }

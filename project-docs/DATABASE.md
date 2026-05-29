@@ -1,6 +1,6 @@
 # Database
 
-_Last updated: 2026-05-23_
+_Last updated: 2026-05-29_
 
 All schema changes must be made through files in `database/migrations/`.
 
@@ -20,6 +20,9 @@ All schema changes must be made through files in `database/migrations/`.
 | `010_product_variant_modifier_option_availability_rules.sql` | Adds variant-specific modifier option availability rules. |
 | `011_product_modifier_option_overrides.sql` | Adds per-product modifier option overrides. |
 | `012_rename_modifier_group_categories.sql` | Renames the old Modifier Category table/foreign key to `modifier_categories` and `modifier_category_id` for existing databases. |
+| `013_order_snapshot_reusable_ids.sql` | Adds reusable variant/modifier IDs to order item snapshots. |
+| `014_product_default_modifier_option_settings.sql` | Adds placement, multiplier, enabled, sort, and uniqueness settings for product default modifier options. |
+| `015_product_variant_modifier_option_price_overrides.sql` | Adds variant-specific modifier option price overrides for reusable variants. |
 
 ## Core Tenant Tables
 
@@ -40,8 +43,11 @@ The app is designed for multiple businesses and locations, but the current demo 
 - `products`
 - `product_groups`
 - `product_location_overrides`
+- `media_assets`
 
 `products` are the sellable items. `menu_groups` are customer/admin-facing product categories and subcategories. `product_groups` assigns products into menu groups.
+
+Product images are selected from Media Library records. Products reference images through `products.image_media_id`, which points to `media_assets`.
 
 ## Reusable Variant Tables
 
@@ -72,6 +78,13 @@ Assignment and override tables:
 - `product_modifier_groups` attaches Modifier Groups to products.
 - `product_modifier_option_overrides` stores product-specific option price, prep-time, enabled, and sort overrides.
 - `product_variant_modifier_option_availability_rules` controls option availability by selected variant option.
+- `product_variant_modifier_option_price_overrides` controls option price by selected variant option.
+
+Modifier option price priority is:
+
+1. enabled `product_variant_modifier_option_price_overrides.price_delta`
+2. `product_modifier_option_overrides.price_delta_override`
+3. global `modifier_options.price_delta`
 
 Products do not attach Modifier Categories, Modifier Option Groups, or individual Modifier Options directly except through product-specific override/availability systems.
 
@@ -95,18 +108,17 @@ Some of these foundation tables exist before their full admin UI is built.
 - `order_charges`
 - `payments`
 
-Checkout currently creates unpaid pickup orders with item and modifier snapshots. Stripe payment records/webhooks are planned but not implemented.
+Checkout currently validates/reprices cart contents server-side, then creates unpaid pickup orders with item and modifier snapshots. Stripe payment records/webhooks are planned but not implemented.
 
 Known order-system gaps:
 - Order creation should be moved to a transaction/RPC-style pattern.
-- Server-side price recalculation and validation need to be added before real payments.
 - Auth/role enforcement needs to be applied to staff/admin access.
 
 ## Content And Theme Foundation
 
-The initial schema also includes foundation for future public website/page/theme work:
+The initial schema also includes foundation for public media and future website/page/theme work:
 
-- media assets
+- media assets, currently managed through `/admin/media`
 - pages
 - page sections
 - navigation

@@ -1,6 +1,6 @@
 # Routes
 
-_Last updated: 2026-05-23_
+_Last updated: 2026-05-29_
 
 Status values:
 
@@ -34,6 +34,12 @@ Status values:
 | --- | --- | --- |
 | `/admin` | current | Admin dashboard/navigation hub. Modifier management access lives under Product Management. |
 
+## Media Library
+
+| Route | Status | Purpose |
+| --- | --- | --- |
+| `/admin/media` | current | Media Library for managing image assets in `media_assets`; product images are selected from here through `products.image_media_id`. |
+
 ## Product Management
 
 | Route | Status | Purpose |
@@ -45,6 +51,7 @@ Status values:
 | `/admin/products/new` | current | Create product page. |
 | `/admin/products/[productId]` | current | Edit product page. |
 | `/admin/products/modifier-groups` | current | Product-to-Modifier Group assignment and per-product Modifier Option override flow. |
+| `/admin/products/modifier-groups/[groupId]/availability` | hidden/internal | Product-scoped Modifier Group variant rules page for availability and variant-specific modifier option price overrides. Use with `productId`. |
 | `/admin/products/variants` | legacy/remove | Removed from active navigation. Old product-specific variant route replaced by reusable Variant Groups and `/admin/products/variant-assignments`. Do not use for new work. |
 
 ## Reusable Variant Groups
@@ -89,6 +96,7 @@ Products attach Modifier Groups. Products do not attach Modifier Categories or M
 | --- | --- | --- |
 | `/admin/products/subcategories?categoryId=...` | hidden/internal | Category-scoped subcategory management entry from a Product Category card. |
 | `/admin/products/modifier-groups?productId=...` | hidden/internal | Product-scoped Modifier Group assignment entry from a Product card. |
+| `/admin/products/modifier-groups/[groupId]/availability?productId=...` | hidden/internal | Product-scoped Variant Rules page for one assigned Modifier Group. Manages availability and price overrides per selected reusable variant option. |
 | `/admin/products/variant-groups/[groupId]?productId=...` | hidden/internal | Product-scoped variant option override/preview route. |
 | `/admin/modifiers/[groupId]?productId=...` | hidden/internal | Product-scoped Modifier Option Group list. |
 | `/admin/modifiers/[groupId]/subgroups/[subgroupId]?productId=...` | hidden/internal | Product-scoped Modifier Option override list. |

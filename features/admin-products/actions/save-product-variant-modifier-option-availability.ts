@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { buildVariantModifierAvailabilityRulePayload } from "@/features/admin-products/utils/variant-modifier-availability"
+import {
+  buildVariantModifierAvailabilityRulePayload,
+  buildVariantModifierPriceOverridePayload,
+} from "@/features/admin-products/utils/variant-modifier-availability"
 
 const BUSINESS_SLUG = "pronto-demo"
 
@@ -19,6 +22,20 @@ function parseBoolean(value: FormDataEntryValue | null) {
   if (value === "false") return false
 
   throw new Error("Availability value is invalid.")
+}
+
+function parseOptionalPrice(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null
+  }
+
+  const parsedValue = Number(value)
+
+  if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+    throw new Error("Price override must be zero or greater.")
+  }
+
+  return parsedValue
 }
 
 async function getBusinessId() {
@@ -177,6 +194,80 @@ export async function setProductVariantModifierOptionAvailability(
   revalidatePath(
     `/admin/products/variant-groups/${variantGroupId}?productId=${productId}`
   )
+  revalidatePath(
+    `/admin/products/modifier-groups/${modifierGroupId}/availability?productId=${productId}`
+  )
+  revalidatePath("/menu")
+}
+
+export async function setProductVariantModifierOptionPriceOverride(
+  formData: FormData
+) {
+  const businessId = await getBusinessId()
+  const productId = parseString(formData.get("productId"), "Product")
+  const variantGroupId = parseString(
+    formData.get("variantGroupId"),
+    "Variant group"
+  )
+  const variantGroupOptionId = parseString(
+    formData.get("variantGroupOptionId"),
+    "Variant option"
+  )
+  const modifierGroupId = parseString(
+    formData.get("modifierGroupId"),
+    "Modifier group"
+  )
+  const modifierOptionId = parseString(
+    formData.get("modifierOptionId"),
+    "Modifier option"
+  )
+  const priceDelta = parseOptionalPrice(formData.get("priceDelta"))
+
+  await assertProductVariantModifierContext({
+    businessId,
+    productId,
+    variantGroupId,
+    variantGroupOptionId,
+    modifierGroupId,
+    modifierOptionId,
+  })
+
+  if (priceDelta === null) {
+    const { error } = await supabaseAdmin
+      .from("product_variant_modifier_option_price_overrides")
+      .delete()
+      .eq("business_id", businessId)
+      .eq("product_id", productId)
+      .eq("variant_group_option_id", variantGroupOptionId)
+      .eq("modifier_group_id", modifierGroupId)
+      .eq("modifier_option_id", modifierOptionId)
+
+    if (error) {
+      throw new Error(`Could not clear price override: ${error.message}`)
+    }
+  } else {
+    const { error } = await supabaseAdmin
+      .from("product_variant_modifier_option_price_overrides")
+      .upsert(
+        buildVariantModifierPriceOverridePayload({
+          businessId,
+          productId,
+          variantGroupOptionId,
+          modifierGroupId,
+          modifierOptionId,
+          priceDelta,
+        }),
+        {
+          onConflict:
+            "product_id,variant_group_option_id,modifier_group_id,modifier_option_id",
+        }
+      )
+
+    if (error) {
+      throw new Error(`Could not save price override: ${error.message}`)
+    }
+  }
+
   revalidatePath(
     `/admin/products/modifier-groups/${modifierGroupId}/availability?productId=${productId}`
   )

@@ -44,6 +44,13 @@ export async function getProductConfig(productId: string) {
         is_available,
         is_enabled
       ),
+      product_variant_modifier_option_price_overrides (
+        variant_group_option_id,
+        modifier_group_id,
+        modifier_option_id,
+        price_delta,
+        is_enabled
+      ),
       product_modifier_option_overrides (
         modifier_option_id,
         price_delta_override,

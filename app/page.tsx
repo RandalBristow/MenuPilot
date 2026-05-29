@@ -62,7 +62,7 @@ export default function HomePage() {
         <div className="relative mx-auto grid min-h-140 max-w-7xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="max-w-2xl">
             <p className="mb-4 inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white">
-              Pizza • Wings • Subs • Carryout
+              Pizza | Wings | Subs | Carryout
             </p>
 
             <h1 className="text-5xl font-bold tracking-tight text-white md:text-7xl">
@@ -89,7 +89,7 @@ export default function HomePage() {
             <div className="aspect-square rounded-3xl bg-linear-to-br from-red-500 via-orange-400 to-yellow-300 p-6">
               <div className="flex h-full items-center justify-center rounded-2xl border-4 border-white/40 bg-black/20 text-center">
                 <div>
-                  <p className="text-7xl">🍕</p>
+                  <p className="text-7xl">Pizza</p>
                   <p className="mt-4 text-2xl font-bold">Fresh from the oven</p>
                   <p className="mt-2 text-sm text-white/80">
                     Hero carousel will use media library images later.
@@ -109,7 +109,7 @@ export default function HomePage() {
           </div>
 
           <Link href="/menu" className="hidden text-sm font-semibold md:block">
-            View full menu →
+            View full menu
           </Link>
         </div>
 
@@ -151,9 +151,9 @@ export default function HomePage() {
           </div>
 
           <ThemedCard className="p-6">
-            <h3 className="text-xl font-semibold">Today’s Hours</h3>
+            <h3 className="text-xl font-semibold">Today&apos;s Hours</h3>
             <p className="mt-3 text-muted-foreground">
-              Hours are seeded in the database. We’ll wire this section to live
+              Hours are seeded in the database. We&apos;ll wire this section to live
               location hours soon.
             </p>
 
@@ -168,7 +168,7 @@ export default function HomePage() {
 
       <footer className="px-4 py-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 Pronto Demo. Powered by MenuPilot.</p>
+          <p>(c) 2026 Pronto Demo. Powered by MenuPilot.</p>
           <div className="flex flex-col gap-2 sm:items-end">
             <p>Website, menu, ordering, and operations in one place.</p>
             <nav

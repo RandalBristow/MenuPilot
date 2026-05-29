@@ -16,6 +16,10 @@ import {
   removeUnavailableSelectedModifiers,
   type VariantModifierOptionAvailabilityRule,
 } from "@/features/product-configurator/utils/filter-modifier-options-by-variant";
+import {
+  applyVariantModifierOptionPrices,
+  type VariantModifierOptionPriceOverride,
+} from "@/features/product-configurator/utils/variant-modifier-pricing";
 import { getInitialSelectedModifiersFromDefaults } from "@/features/product-configurator/utils/product-default-modifiers";
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation";
 import {
@@ -102,6 +106,7 @@ export type ProductConfig = {
   product_included_modifier_groups?: IncludedModifierGroup[];
   product_default_modifier_options?: ProductDefaultModifierOption[];
   product_variant_modifier_option_availability_rules?: VariantModifierOptionAvailabilityRule[];
+  product_variant_modifier_option_price_overrides?: VariantModifierOptionPriceOverride[];
 };
 
 type SelectedModifier = {
@@ -227,17 +232,26 @@ export function PizzaBuilder({
   );
 
   const modifierGroups = useMemo(
-    () =>
-      filterModifierOptionsByVariant({
+    () => {
+      const availableModifierGroups = filterModifierOptionsByVariant({
         selectedVariantId: selectedVariant?.id,
         modifierGroups: baseModifierGroups,
         availabilityRules:
           product.product_variant_modifier_option_availability_rules ?? [],
-      }),
+      });
+
+      return applyVariantModifierOptionPrices({
+        selectedVariantId: selectedVariant?.id,
+        modifierGroups: availableModifierGroups,
+        priceOverrides:
+          product.product_variant_modifier_option_price_overrides ?? [],
+      });
+    },
     [
       baseModifierGroups,
       selectedVariant?.id,
       product.product_variant_modifier_option_availability_rules,
+      product.product_variant_modifier_option_price_overrides,
     ],
   );
 
@@ -262,11 +276,16 @@ export function PizzaBuilder({
     const nextVariant = sortedVariants.find(
       (variant) => variant.id === nextVariantId,
     );
-    const nextModifierGroups = filterModifierOptionsByVariant({
+    const nextAvailableModifierGroups = filterModifierOptionsByVariant({
       selectedVariantId: nextVariant?.id,
       modifierGroups: baseModifierGroups,
       availabilityRules:
         product.product_variant_modifier_option_availability_rules ?? [],
+    });
+    const nextModifierGroups = applyVariantModifierOptionPrices({
+      selectedVariantId: nextVariant?.id,
+      modifierGroups: nextAvailableModifierGroups,
+      priceOverrides: product.product_variant_modifier_option_price_overrides ?? [],
     });
 
     setVariantId(nextVariantId);
@@ -500,7 +519,7 @@ export function PizzaBuilder({
                       {group.included_quantity === 1
                         ? "selection"
                         : "selections"}
-                      {group.is_swappable ? " — swappable" : ""}.
+                      {group.is_swappable ? " - swappable" : ""}.
                     </p>
                   ) : null}
 
@@ -565,7 +584,7 @@ export function PizzaBuilder({
                                   onClick={() => toggleModifier(group, option)}
                                   className="min-w-0 flex-1 truncate text-left text-sm font-medium"
                                 >
-                                  {selected ? "✓ " : ""}
+                                  {selected ? "Selected: " : ""}
                                   {option.name}
                                 </button>
 

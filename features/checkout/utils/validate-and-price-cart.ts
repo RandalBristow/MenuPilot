@@ -1,4 +1,8 @@
 import { calculateProductTotal } from "../../../lib/pricing/calculate-product-total"
+import {
+  resolveVariantModifierOptionPrice,
+  type VariantModifierOptionPriceOverride,
+} from "../../product-configurator/utils/variant-modifier-pricing"
 
 export type CheckoutSubmittedModifier = {
   optionId: string
@@ -31,6 +35,7 @@ export type CheckoutProductConfig = {
   modifierGroups?: CheckoutModifierGroupConfig[]
   modifierOptionOverrides?: CheckoutModifierOptionOverride[]
   variantModifierOptionAvailabilityRules?: CheckoutVariantModifierOptionAvailabilityRule[]
+  variantModifierOptionPriceOverrides?: CheckoutVariantModifierOptionPriceOverride[]
 }
 
 export type CheckoutEffectiveVariant = {
@@ -83,6 +88,14 @@ export type CheckoutVariantModifierOptionAvailabilityRule = {
   modifierGroupId: string
   modifierOptionId: string
   isAvailable: boolean
+  isEnabled: boolean
+}
+
+export type CheckoutVariantModifierOptionPriceOverride = {
+  variantGroupOptionId: string
+  modifierGroupId: string
+  modifierOptionId: string
+  priceDelta: number
   isEnabled: boolean
 }
 
@@ -180,6 +193,20 @@ function getModifierOverridesByOptionId(product: CheckoutProductConfig) {
   )
 }
 
+function getVariantModifierOptionPriceOverrides(
+  product: CheckoutProductConfig
+): VariantModifierOptionPriceOverride[] {
+  return (product.variantModifierOptionPriceOverrides ?? []).map(
+    (override) => ({
+      variant_group_option_id: override.variantGroupOptionId,
+      modifier_group_id: override.modifierGroupId,
+      modifier_option_id: override.modifierOptionId,
+      price_delta: override.priceDelta,
+      is_enabled: override.isEnabled,
+    })
+  )
+}
+
 function getActiveModifierGroups(product: CheckoutProductConfig) {
   return (product.modifierGroups ?? []).filter(
     (group) => group.isAssignmentEnabled && group.isEnabled
@@ -188,19 +215,33 @@ function getActiveModifierGroups(product: CheckoutProductConfig) {
 
 function getEffectiveModifierOption({
   option,
+  modifierGroupId,
+  selectedVariantId,
   overridesByOptionId,
+  variantPriceOverrides,
 }: {
   option: CheckoutModifierOptionConfig
+  modifierGroupId: string
+  selectedVariantId: string | null
   overridesByOptionId: Map<string, CheckoutModifierOptionOverride>
+  variantPriceOverrides: VariantModifierOptionPriceOverride[]
 }) {
   const override = overridesByOptionId.get(option.id)
 
   if (!option.isEnabled || override?.isEnabled === false) return null
   if (option.optionGroup && !option.optionGroup.isEnabled) return null
 
+  const inheritedPriceDelta = override?.priceDeltaOverride ?? option.priceDelta
+
   return {
     ...option,
-    priceDelta: override?.priceDeltaOverride ?? option.priceDelta,
+    priceDelta: resolveVariantModifierOptionPrice({
+      selectedVariantId,
+      modifierGroupId,
+      modifierOptionId: option.id,
+      inheritedPriceDelta,
+      priceOverrides: variantPriceOverrides,
+    }),
   }
 }
 
@@ -233,17 +274,22 @@ function getAvailableModifierOptions({
   product,
   selectedVariantId,
   overridesByOptionId,
+  variantPriceOverrides,
 }: {
   group: CheckoutModifierGroupConfig
   product: CheckoutProductConfig
   selectedVariantId: string | null
   overridesByOptionId: Map<string, CheckoutModifierOptionOverride>
+  variantPriceOverrides: VariantModifierOptionPriceOverride[]
 }) {
   return group.options
     .map((option) =>
       getEffectiveModifierOption({
         option,
+        modifierGroupId: group.id,
+        selectedVariantId,
         overridesByOptionId,
+        variantPriceOverrides,
       })
     )
     .filter((option): option is CheckoutModifierOptionConfig =>
@@ -427,6 +473,7 @@ function validateModifiers({
       errors: CheckoutValidationError[]
     } {
   const overridesByOptionId = getModifierOverridesByOptionId(product)
+  const variantPriceOverrides = getVariantModifierOptionPriceOverrides(product)
   const activeGroups = getActiveModifierGroups(product)
   const groupsById = new Map(
     (product.modifierGroups ?? []).map((group) => [group.id, group])
@@ -479,7 +526,10 @@ function validateModifiers({
 
     const effectiveOption = getEffectiveModifierOption({
       option: configuredOption,
+      modifierGroupId: configuredGroup.id,
+      selectedVariantId,
       overridesByOptionId,
+      variantPriceOverrides,
     })
 
     if (!effectiveOption) {
@@ -571,6 +621,7 @@ function validateModifiers({
       product,
       selectedVariantId,
       overridesByOptionId,
+      variantPriceOverrides,
     })
     const selectedCount = validatedModifiers.filter(
       (modifier) => modifier.groupId === group.id
@@ -629,6 +680,7 @@ function validateModifiers({
       product,
       selectedVariantId,
       overridesByOptionId,
+      variantPriceOverrides,
     }).map((option) => ({
       id: option.id,
       price_delta: option.priceDelta,
