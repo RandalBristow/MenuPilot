@@ -116,6 +116,9 @@ export function ProductUpdateHiddenFields({
             name="builderTemplate"
             value={product.builder_template}
           />
+          {product.has_variants ? (
+            <input type="hidden" name="hasVariants" value="true" />
+          ) : null}
           <input
             type="hidden"
             name="imageMediaId"

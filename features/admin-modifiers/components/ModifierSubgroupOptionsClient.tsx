@@ -18,6 +18,8 @@ import {
 } from "@/components/themed/ThemedSheet"
 import { saveProductModifierOptionOverride } from "@/features/admin-modifiers/actions/save-product-modifier-option-override"
 import { setProductDefaultModifierOption } from "@/features/admin-products/actions/save-product-default-modifier-option"
+import type { DeleteModifierOptionResult } from "@/features/admin-modifiers/actions/delete-modifier-option"
+import { DeleteModifierOptionButton } from "@/features/admin-modifiers/components/DeleteModifierOptionButton"
 import { ModifierOptionFormDialog } from "@/features/admin-modifiers/components/ModifierOptionFormDialog"
 import {
   PRODUCT_ADMIN_PANEL_BODY_CLASS,
@@ -268,6 +270,8 @@ export function ModifierSubgroupOptionsClient({
   subgroup,
 }: ModifierSubgroupOptionsClientProps) {
   const [createOpen, setCreateOpen] = useState(false)
+  const [deleteResult, setDeleteResult] =
+    useState<DeleteModifierOptionResult | null>(null)
   const [activeOption, setActiveOption] =
     useState<ModifierGroupDetailOption | null>(null)
   const { group, mode, productContext } = data
@@ -302,6 +306,17 @@ export function ModifierSubgroupOptionsClient({
             <p className="text-xs text-muted-foreground">
               This group is not assigned to this product. Options are read-only
               here.
+            </p>
+          ) : null}
+          {deleteResult ? (
+            <p
+              className={
+                deleteResult.status === "deleted"
+                  ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+                  : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              }
+            >
+              {deleteResult.message}
             </p>
           ) : null}
         </div>
@@ -397,6 +412,13 @@ export function ModifierSubgroupOptionsClient({
                             />
                           </ThemedButton>
                         </form>
+                      ) : mode === "global" ? (
+                        <DeleteModifierOptionButton
+                          optionId={option.id}
+                          optionName={option.name}
+                          modifierGroupId={group.id}
+                          onResult={setDeleteResult}
+                        />
                       ) : undefined
                     }
                     metadata={

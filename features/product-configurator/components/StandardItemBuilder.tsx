@@ -16,6 +16,7 @@ import {
 import { applyVariantModifierOptionPrices } from "@/features/product-configurator/utils/variant-modifier-pricing"
 import { getInitialSelectedModifiersFromDefaults } from "@/features/product-configurator/utils/product-default-modifiers"
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation"
+import { groupModifierOptionsByOptionGroup } from "@/features/product-configurator/utils/group-modifier-options-by-option-group"
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,28 @@ type StandardItemBuilderProps = {
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
   cartItem?: CartItem | null
+}
+
+function PlacementIcon({
+  placement,
+}: {
+  placement: SelectedModifier["placement"]
+}) {
+  if (placement === "whole") {
+    return (
+      <span className="block size-4 rounded-full border border-current bg-current" />
+    )
+  }
+
+  return (
+    <span className="relative block size-4 overflow-hidden rounded-full border border-current">
+      <span
+        className={`absolute inset-y-0 w-1/2 bg-current ${
+          placement === "left" ? "left-0" : "right-0"
+        }`}
+      />
+    </span>
+  )
 }
 
 function getInitialSelectedModifiers(cartItem?: CartItem | null) {
@@ -78,6 +101,19 @@ function hasEnabledModifierGroup(
   modifier_groups: ModifierGroup
 } {
   return item.is_enabled && item.modifier_groups?.is_enabled === true
+}
+
+function getMultiplierOptions(group: ModifierGroup) {
+  const min = Math.max(1, Number(group.min_multiplier) || 1)
+  const max = Math.max(min, Number(group.max_multiplier) || min)
+  const step = Math.max(1, Number(group.multiplier_step) || 1)
+  const values: number[] = []
+
+  for (let value = min; value <= max; value += step) {
+    values.push(value)
+  }
+
+  return values
 }
 
 export function StandardItemBuilder({
@@ -447,63 +483,125 @@ export function StandardItemBuilder({
                 </p>
               ) : null}
 
-              <div className="grid gap-2">
-                {[...group.modifier_options]
-                  .sort((first, second) => first.sort_order - second.sort_order)
-                  .map((option) => {
-                    const selected = selectedModifiers[option.id]
-
-                    return (
-                      <div
-                        key={option.id}
-                        className={`rounded-lg border p-3 ${
-                          selected ? "border-accent bg-accent/20" : ""
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => toggleModifier(group, option)}
-                          className="flex w-full items-center justify-between gap-3 text-left"
-                        >
-                          <span className="font-medium">
-                            {selected ? "Selected: " : ""}
-                            {option.name}
-                          </span>
-                          {Number(option.price_delta) > 0 ? (
-                            <span className="text-sm font-semibold">
-                              +${Number(option.price_delta).toFixed(2)}
-                            </span>
-                          ) : null}
-                        </button>
-
-                        {selected && group.supports_multiplier ? (
-                          <div className="mt-3">
-                            <label className="text-sm font-medium">
-                              Amount
-                            </label>
-                            <select
-                              value={selected.multiplier}
-                              onChange={(event) =>
-                                updateModifier(option.id, {
-                                  multiplier: Number(event.target.value),
-                                })
-                              }
-                              className="mt-1 h-10 w-full rounded-md border bg-background px-3"
-                            >
-                              {Array.from(
-                                { length: Number(group.max_multiplier) },
-                                (_, index) => index + 1
-                              ).map((amount) => (
-                                <option key={amount} value={amount}>
-                                  {amount}x
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+              <div className="space-y-3">
+                {groupModifierOptionsByOptionGroup<ModifierOption>(
+                  group.modifier_options ?? []
+                ).map((optionGroup) => (
+                  <div
+                    key={optionGroup.optionGroup?.id ?? "ungrouped"}
+                    className={
+                      optionGroup.optionGroup
+                        ? "rounded-lg border bg-muted/20 p-2.5"
+                        : undefined
+                    }
+                  >
+                    {optionGroup.optionGroup ? (
+                      <div className="mb-2">
+                        <h4 className="text-sm font-semibold">
+                          {optionGroup.optionGroup.name}
+                        </h4>
+                        {optionGroup.optionGroup.description ? (
+                          <p className="text-xs text-muted-foreground">
+                            {optionGroup.optionGroup.description}
+                          </p>
                         ) : null}
                       </div>
-                    )
-                  })}
+                    ) : null}
+
+                    <div className="space-y-1.5">
+                      {optionGroup.options.map((option) => {
+                        const selected = selectedModifiers[option.id]
+
+                        return (
+                          <div
+                            key={option.id}
+                            className={`rounded-md border px-3 py-2 ${
+                              selected ? "border-accent bg-accent/20" : ""
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleModifier(group, option)}
+                                className="min-w-0 flex-1 truncate text-left text-sm font-medium"
+                              >
+                                {selected ? "Selected: " : ""}
+                                {option.name}
+                              </button>
+
+                              {Number(option.price_delta) > 0 ? (
+                                <span className="shrink-0 text-sm font-semibold">
+                                  +${Number(option.price_delta).toFixed(2)}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {selected &&
+                            (group.supports_placement ||
+                              group.supports_multiplier) ? (
+                              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                {group.supports_placement ? (
+                                  <div className="flex min-w-[7.5rem] flex-1 items-center gap-1.5">
+                                    {(
+                                      [
+                                        ["left", "Left side"],
+                                        ["whole", "Whole item"],
+                                        ["right", "Right side"],
+                                      ] as const
+                                    ).map(([placement, label]) => (
+                                      <button
+                                        key={placement}
+                                        type="button"
+                                        aria-label={`Set ${option.name} placement to ${label}`}
+                                        title={label}
+                                        onClick={() =>
+                                          updateModifier(option.id, {
+                                            placement,
+                                          })
+                                        }
+                                        className={`flex size-9 items-center justify-center rounded-md border ${
+                                          selected.placement === placement
+                                            ? "border-accent bg-accent text-accent-foreground"
+                                            : "bg-card"
+                                        }`}
+                                      >
+                                        <PlacementIcon placement={placement} />
+                                        <span className="sr-only">
+                                          {label}
+                                        </span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                {group.supports_multiplier ? (
+                                  <select
+                                    aria-label={`Amount for ${option.name}`}
+                                    value={selected.multiplier}
+                                    onChange={(event) =>
+                                      updateModifier(option.id, {
+                                        multiplier: Number(event.target.value),
+                                      })
+                                    }
+                                    className="h-9 w-20 shrink-0 rounded-md border bg-background px-2 text-sm"
+                                  >
+                                    {getMultiplierOptions(group).map(
+                                      (amount) => (
+                                        <option key={amount} value={amount}>
+                                          {amount}x
+                                        </option>
+                                      )
+                                    )}
+                                  </select>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </ThemedCard>
           ))}

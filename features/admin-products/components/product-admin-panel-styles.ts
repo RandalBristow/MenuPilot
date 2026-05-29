@@ -2,7 +2,7 @@ export const PRODUCT_ADMIN_PANEL_PAGE_CLASS =
   "fixed inset-0 overflow-hidden bg-muted/40"
 
 export const PRODUCT_ADMIN_SHEET_PANEL_CLASS =
-  "inset-x-0 gap-0 overflow-hidden rounded-lg border text-sm data-[side=bottom]:top-2 data-[side=bottom]:bottom-2 data-[side=bottom]:h-auto data-[side=bottom]:max-h-none sm:left-1/2 sm:w-full sm:max-w-2xl sm:-translate-x-1/2"
+  "gap-0 overflow-hidden rounded-lg border text-sm data-[side=bottom]:left-1/2 data-[side=bottom]:right-auto data-[side=bottom]:top-2 data-[side=bottom]:bottom-2 data-[side=bottom]:h-auto data-[side=bottom]:w-[calc(100vw-1rem)] data-[side=bottom]:max-w-2xl data-[side=bottom]:max-h-none data-[side=bottom]:-translate-x-1/2"
 
 export const PRODUCT_ADMIN_PANEL_HEADER_CLASS =
   "shrink-0 space-y-1 border-b p-4"

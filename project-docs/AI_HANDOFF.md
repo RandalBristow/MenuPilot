@@ -35,6 +35,7 @@ Working now:
 - Product modifier group assignment with per-product modifier option overrides.
 - Variant-specific modifier option availability filtering.
 - Variant-specific modifier option price overrides on the product Modifier Group variant rules page.
+- Builder template routing is explicit: `pizza` uses PizzaBuilder; `standard`, `wings`, `sub`, `salad`, and `drink` use StandardItemBuilder.
 
 Current gaps:
 - Admin/staff auth is not enforced yet.
@@ -42,6 +43,10 @@ Current gaps:
 - Stripe payment, webhooks, refunds, and payment status automation are not implemented.
 - Public menu and checkout still use seeded demo business/location records.
 - Website builder, theme editor, inventory, reporting, delivery, and display panels remain future work.
+
+Recently completed:
+- Variant-specific modifier option price overrides are done. Do not treat "add variant-specific modifier option price overrides" as the next task; future work should verify, refine, or extend the existing implementation.
+- Builder template support is formalized for admin-created non-combo templates. Current custom builders are PizzaBuilder and StandardItemBuilder; Combo/BundleBuilder remains future work before true bundle specials or meal deals.
 
 ## Modifier Hierarchy
 

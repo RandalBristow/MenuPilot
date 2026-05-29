@@ -7,6 +7,7 @@ function createProductFormData(overrides: Record<string, string | string[]> = {}
     description: "Classic pizza",
     basePrice: "14.99",
     builderTemplate: "pizza",
+    hasVariants: "true",
     menuGroupId: "menu-group-pizza",
     modifierGroupIds: ["modifier-crust", "modifier-toppings"],
     ...overrides,
@@ -92,8 +93,37 @@ describe("buildProductPayload", () => {
     ])
   })
 
-  it("marks products as variant-ready for reusable group assignments", () => {
-    const payload = buildProductPayload(createProductFormData())
+  it.each(["standard", "pizza", "wings", "sub", "salad", "drink"])(
+    "accepts %s builder template",
+    (builderTemplate) => {
+      const payload = buildProductPayload(createProductFormData({ builderTemplate }))
+
+      expect(payload.product.builder_template).toBe(builderTemplate)
+    }
+  )
+
+  it("rejects unsupported builder template values", () => {
+    expect(() =>
+      buildProductPayload(createProductFormData({ builderTemplate: "combo" }))
+    ).toThrow("Builder template is not supported yet.")
+
+    expect(() =>
+      buildProductPayload(createProductFormData({ builderTemplate: "unknown" }))
+    ).toThrow("Builder template is not supported yet.")
+  })
+
+  it("handles products without variants", () => {
+    const payload = buildProductPayload(
+      createProductFormData({ hasVariants: "" })
+    )
+
+    expect(payload.product.has_variants).toBe(false)
+  })
+
+  it("handles products with variants", () => {
+    const payload = buildProductPayload(
+      createProductFormData({ hasVariants: "true" })
+    )
 
     expect(payload.product.has_variants).toBe(true)
   })

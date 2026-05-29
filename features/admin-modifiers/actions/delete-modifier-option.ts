@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { getModifierOptionDeleteStrategy } from "@/features/admin-modifiers/utils/get-modifier-option-delete-strategy"
+import {
+  safeDeleteModifierOption,
+  type ModifierOptionReferenceCheck,
+} from "@/features/admin-modifiers/utils/safe-delete-modifier-option"
 
 const BUSINESS_SLUG = "pronto-demo"
 
 export type DeleteModifierOptionResult = {
-  deleted: boolean
-  disabled: boolean
+  status: "deleted" | "blocked" | "error"
   message: string
 }
 
@@ -41,7 +43,7 @@ async function getModifierOption(
 ) {
   const { data, error } = await supabaseAdmin
     .from("modifier_options")
-    .select("id, modifier_group_id")
+    .select("id, modifier_group_id, modifier_option_group_id")
     .eq("id", optionId)
     .eq("business_id", businessId)
     .eq("modifier_group_id", modifierGroupId)
@@ -51,34 +53,31 @@ async function getModifierOption(
     throw new Error("Selected modifier option is invalid.")
   }
 
-  return data as { id: string; modifier_group_id: string }
-}
-
-async function hasProductUsage(businessId: string, modifierGroupId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("product_modifier_groups")
-    .select("id")
-    .eq("business_id", businessId)
-    .eq("modifier_group_id", modifierGroupId)
-    .limit(1)
-
-  if (error) {
-    throw new Error(`Could not check product usage: ${error.message}`)
+  return data as {
+    id: string
+    modifier_group_id: string
+    modifier_option_group_id: string | null
   }
-
-  return (data ?? []).length > 0
 }
 
-async function hasOrderUsage(businessId: string, optionId: string) {
+async function hasModifierOptionReference({
+  businessId,
+  optionId,
+  check,
+}: {
+  businessId: string
+  optionId: string
+  check: ModifierOptionReferenceCheck
+}) {
   const { data, error } = await supabaseAdmin
-    .from("order_item_modifiers")
+    .from(check.table)
     .select("id")
     .eq("business_id", businessId)
-    .eq("modifier_option_id", optionId)
+    .eq(check.column, optionId)
     .limit(1)
 
   if (error) {
-    throw new Error(`Could not check order usage: ${error.message}`)
+    throw new Error(`Could not check modifier option usage: ${error.message}`)
   }
 
   return (data ?? []).length > 0
@@ -87,65 +86,57 @@ async function hasOrderUsage(businessId: string, optionId: string) {
 export async function deleteModifierOption(
   formData: FormData
 ): Promise<DeleteModifierOptionResult> {
-  const businessId = await getBusinessId()
-  const optionId = parseString(formData.get("optionId"), "Option")
-  const modifierGroupId = parseString(
-    formData.get("modifierGroupId"),
-    "Modifier group"
-  )
-  const option = await getModifierOption(businessId, optionId, modifierGroupId)
-  const [usedByProducts, usedByOrders] = await Promise.all([
-    hasProductUsage(businessId, option.modifier_group_id),
-    hasOrderUsage(businessId, option.id),
-  ])
+  try {
+    const businessId = await getBusinessId()
+    const optionId = parseString(formData.get("optionId"), "Option")
+    const modifierGroupId = parseString(
+      formData.get("modifierGroupId"),
+      "Modifier group"
+    )
+    const option = await getModifierOption(businessId, optionId, modifierGroupId)
+    const result = await safeDeleteModifierOption({
+      hasReference: (check) =>
+        hasModifierOptionReference({
+          businessId,
+          optionId: option.id,
+          check,
+        }),
+      deleteOption: async () => {
+        const { error } = await supabaseAdmin
+          .from("modifier_options")
+          .delete()
+          .eq("id", option.id)
+          .eq("business_id", businessId)
+          .eq("modifier_group_id", option.modifier_group_id)
 
-  if (
-    getModifierOptionDeleteStrategy({
-      usedByProducts,
-      usedByOrders,
-    }) === "disable"
-  ) {
-    const { error } = await supabaseAdmin
-      .from("modifier_options")
-      .update({ is_enabled: false })
-      .eq("id", option.id)
-      .eq("business_id", businessId)
-      .eq("modifier_group_id", option.modifier_group_id)
+        if (error) {
+          throw new Error(`Could not delete modifier option: ${error.message}`)
+        }
+      },
+    })
 
-    if (error) {
-      throw new Error(`Could not disable modifier option: ${error.message}`)
+    if (result.status === "deleted") {
+      revalidatePath("/admin/modifiers")
+      revalidatePath("/admin/modifiers/options")
+      revalidatePath("/admin/modifiers/subgroups")
+      revalidatePath(`/admin/modifiers/${option.modifier_group_id}`)
+      if (option.modifier_option_group_id) {
+        revalidatePath(
+          `/admin/modifiers/${option.modifier_group_id}/subgroups/${option.modifier_option_group_id}`
+        )
+      }
     }
-
-    revalidatePath("/admin/modifiers")
-    revalidatePath("/admin/modifiers/options")
-    revalidatePath(`/admin/modifiers/${option.modifier_group_id}`)
 
     return {
-      deleted: false,
-      disabled: true,
-      message:
-        "This option is in use, so it was disabled instead of permanently deleted.",
+      status: result.status,
+      message: result.message,
     }
-  }
 
-  const { error } = await supabaseAdmin
-    .from("modifier_options")
-    .delete()
-    .eq("id", option.id)
-    .eq("business_id", businessId)
-    .eq("modifier_group_id", option.modifier_group_id)
-
-  if (error) {
-    throw new Error(`Could not delete modifier option: ${error.message}`)
-  }
-
-  revalidatePath("/admin/modifiers")
-  revalidatePath("/admin/modifiers/options")
-  revalidatePath(`/admin/modifiers/${option.modifier_group_id}`)
-
-  return {
-    deleted: true,
-    disabled: false,
-    message: "Modifier option deleted.",
+  } catch (error) {
+    console.error(error)
+    return {
+      status: "error",
+      message: "Modifier option could not be deleted. Please try again.",
+    }
   }
 }

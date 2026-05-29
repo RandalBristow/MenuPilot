@@ -32,11 +32,11 @@ Completed:
 - [x] Product-to-modifier-group assignment admin flow
 - [x] Per-product modifier option overrides
 - [x] Variant-specific modifier option availability filtering
+- [x] Variant-specific modifier option price overrides
 - [x] Pricing tests passing
 
 Next focus:
 - [ ] Verify modifier group/subgroup/option pages across mobile widths
-- [ ] Add server-side checkout price recalculation and validation
 - [ ] Move checkout order creation to a transaction/RPC-style pattern
 - [ ] Add auth/role protection for admin and staff routes
 
@@ -756,10 +756,10 @@ For each feature:
 
 - [x] Build product-specific option override editor
 - [x] Set product-specific option price
-- [ ] Set variant-specific option price
+- [x] Set variant-specific option price
 - [ ] Set location-specific option price
 - [x] Set prep-time override
-- [ ] Display resolved price in admin preview
+- [x] Display resolved price in admin preview
 - [ ] Test ham pizza/salad/sub example
 
 ## 13.5 Modifier availability rules
@@ -1016,14 +1016,14 @@ For each feature:
 
 # 21. Order Creation
 
-- [ ] Create server-side order validation
+- [x] Create server-side order validation
 - [x] Validate business/location
-- [ ] Validate cart items
-- [ ] Validate product availability
-- [ ] Validate variant availability
-- [ ] Validate modifier availability
-- [ ] Validate pricing server-side
-- [ ] Validate totals server-side
+- [x] Validate cart items
+- [x] Validate product availability
+- [x] Validate variant availability
+- [x] Validate modifier availability
+- [x] Validate pricing server-side
+- [x] Validate totals server-side
 - [x] Create order record
 - [x] Create order item records
 - [x] Create order item modifier records
@@ -1355,7 +1355,7 @@ For each feature:
 
 - [ ] Add loading skeletons
 - [ ] Add optimistic UI where safe
-- [ ] Add server-side validation for all checkout pricing
+- [x] Add server-side validation for all checkout pricing
 - [ ] Add caching strategy for public menus
 - [ ] Add cache invalidation after menu/theme/page publish
 - [ ] Add error logging

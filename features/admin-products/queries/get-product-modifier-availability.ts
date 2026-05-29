@@ -24,6 +24,11 @@ export type ProductModifierAvailabilityOption = {
   price_delta_override: number | null
   is_enabled: boolean
   sort_order: number
+  option_group: {
+    id: string
+    name: string
+    sort_order: number
+  } | null
 }
 
 export type ProductModifierAvailabilityGroup = {
@@ -47,9 +52,21 @@ export type ProductModifierAvailabilityData = {
 
 type RawProductModifierAvailabilityOption = Omit<
   ProductModifierAvailabilityOption,
-  "price_delta" | "price_delta_override"
+  "option_group" | "price_delta" | "price_delta_override"
 > & {
   price_delta: number | string
+  modifier_option_groups:
+    | {
+        id: string
+        name: string
+        sort_order: number
+      }
+    | {
+        id: string
+        name: string
+        sort_order: number
+      }[]
+    | null
 }
 
 type ProductModifierOptionOverride = {
@@ -128,7 +145,12 @@ export async function getProductModifierAvailabilityData({
             name,
             price_delta,
             is_enabled,
-            sort_order
+            sort_order,
+            modifier_option_groups (
+              id,
+              name,
+              sort_order
+            )
           )
         )
       `
@@ -321,6 +343,7 @@ export async function getProductModifierAvailabilityData({
                   : typeof priceOverride === "number"
                     ? priceOverride
                     : Number(priceOverride),
+              option_group: getFirstRelation(option.modifier_option_groups),
             }
           })
       ),

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import { X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -16,8 +17,19 @@ export function AdminBackButton({
   className = "size-10 bg-background text-foreground hover:bg-muted",
 }: AdminBackButtonProps) {
   const router = useRouter()
+  const mountedRef = useRef(false)
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   function handleBack() {
+    if (!mountedRef.current) return
+
     if (window.history.length > 1) {
       router.back()
       return

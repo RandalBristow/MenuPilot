@@ -24,6 +24,10 @@ import {
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
+import {
+  ACTIVE_BUILDER_TEMPLATES,
+  BUILDER_TEMPLATE_LABELS,
+} from "@/features/product-configurator/utils/builder-templates"
 import type {
   ExistingProduct,
   ProductFormData,
@@ -78,6 +82,7 @@ function ProductDetailEditor({
 }) {
   const productPath = `/admin/products/${product.id}`
   const [isEnabled, setIsEnabled] = useState(product.is_enabled)
+  const [hasVariants, setHasVariants] = useState(product.has_variants)
   const placementLabel = getProductPlacementLabel(menuGroups, product.menuGroupId)
 
   return (
@@ -109,6 +114,9 @@ function ProductDetailEditor({
               />
               <input type="hidden" name="menuGroupId" value={product.menuGroupId} />
               <input type="hidden" name="isEnabled" value={String(isEnabled)} />
+              {hasVariants ? (
+                <input type="hidden" name="hasVariants" value="true" />
+              ) : null}
 
               <div className="grid gap-4">
                 <label className="grid gap-2">
@@ -118,9 +126,31 @@ function ProductDetailEditor({
                     defaultValue={product.builder_template}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   >
-                    <option value="standard">Standard</option>
-                    <option value="pizza">Pizza</option>
+                    {ACTIVE_BUILDER_TEMPLATES.map((template) => (
+                      <option key={template} value={template}>
+                        {BUILDER_TEMPLATE_LABELS[template]}
+                      </option>
+                    ))}
+                    <option value="combo" disabled>
+                      Combo (future)
+                    </option>
                   </select>
+                </label>
+
+                <label className="flex items-start gap-3 rounded-md border bg-background px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={hasVariants}
+                    onChange={(event) => setHasVariants(event.target.checked)}
+                    className="mt-1 size-4 shrink-0"
+                  />
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-medium">Uses variants</span>
+                    <span className="text-xs text-muted-foreground">
+                      Enable when this product has size, count, portion, volume,
+                      or similar choices.
+                    </span>
+                  </span>
                 </label>
 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">

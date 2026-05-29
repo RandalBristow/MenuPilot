@@ -9,6 +9,12 @@ import {
 describe("modifier form panel styles", () => {
   it("uses full-height bottom sheet constraints for mobile admin forms", () => {
     expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
+      "data-[side=bottom]:left-1/2"
+    )
+    expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
+      "data-[side=bottom]:right-auto"
+    )
+    expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
       "data-[side=bottom]:top-2"
     )
     expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
@@ -16,6 +22,15 @@ describe("modifier form panel styles", () => {
     )
     expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
       "data-[side=bottom]:h-auto"
+    )
+    expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
+      "data-[side=bottom]:w-[calc(100vw-1rem)]"
+    )
+    expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
+      "data-[side=bottom]:max-w-2xl"
+    )
+    expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
+      "data-[side=bottom]:-translate-x-1/2"
     )
     expect(MODIFIER_FORM_SHEET_CONTENT_CLASS).toContain(
       "data-[side=bottom]:max-h-none"

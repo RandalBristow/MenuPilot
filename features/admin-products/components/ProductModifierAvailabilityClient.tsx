@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Pencil, RotateCcw, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
+import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
@@ -17,6 +18,11 @@ import { getVariantModifierOptionPriceOverride } from "@/features/product-config
 
 type ProductModifierAvailabilityClientProps = {
   data: ProductModifierAvailabilityData
+}
+
+type OptionGroupFilter = {
+  id: string
+  name: string
 }
 
 function formatPrice(value: number | string) {
@@ -33,6 +39,8 @@ export function ProductModifierAvailabilityClient({
   const [editingPriceOptionId, setEditingPriceOptionId] = useState<
     string | null
   >(null)
+  const [selectedOptionGroupFilterId, setSelectedOptionGroupFilterId] =
+    useState("all")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const selectedVariantOption =
     data.variantGroup?.options.find(
@@ -40,6 +48,47 @@ export function ProductModifierAvailabilityClient({
     ) ??
     data.variantGroup?.options[0] ??
     null
+  const optionGroupFilters = useMemo<OptionGroupFilter[]>(() => {
+    const groupsById = new Map<string, OptionGroupFilter & { sortOrder: number }>()
+
+    data.modifierGroup.options.forEach((option) => {
+      if (!option.option_group) return
+
+      groupsById.set(option.option_group.id, {
+        id: option.option_group.id,
+        name: option.option_group.name,
+        sortOrder: option.option_group.sort_order,
+      })
+    })
+
+    const groups = [...groupsById.values()]
+      .sort((first, second) => {
+        if (first.sortOrder !== second.sortOrder) {
+          return first.sortOrder - second.sortOrder
+        }
+
+        return first.name.localeCompare(second.name)
+      })
+      .map(({ id, name }) => ({ id, name }))
+
+    const hasUngroupedOptions = data.modifierGroup.options.some(
+      (option) => !option.option_group
+    )
+
+    if (groups.length > 0 && hasUngroupedOptions) {
+      groups.push({ id: "ungrouped", name: "Ungrouped" })
+    }
+
+    return groups
+  }, [data.modifierGroup.options])
+  const visibleOptions =
+    selectedOptionGroupFilterId === "all"
+      ? data.modifierGroup.options
+      : data.modifierGroup.options.filter((option) =>
+          selectedOptionGroupFilterId === "ungrouped"
+            ? !option.option_group
+            : option.option_group?.id === selectedOptionGroupFilterId
+        )
 
   async function handleAvailabilityToggle(formData: FormData) {
     setSubmitError(null)
@@ -112,29 +161,69 @@ export function ProductModifierAvailabilityClient({
           />
 
           {data.variantGroup ? (
-            <div className="no-scrollbar flex gap-2 overflow-x-auto">
-              {data.variantGroup.options.map((option) => {
-                const isSelected = option.id === selectedVariantOption?.id
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                  Variant
+                </span>
+                <div className="no-scrollbar flex min-w-0 gap-2 overflow-x-auto">
+                  {data.variantGroup.options.map((option) => {
+                    const isSelected = option.id === selectedVariantOption?.id
 
-                return (
-                  <ThemedButton
-                    key={option.id}
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedVariantOptionId(option.id)
-                      setEditingPriceOptionId(null)
-                    }}
-                    className={
-                      isSelected
-                        ? "shrink-0"
-                        : "shrink-0 border bg-background text-foreground hover:bg-muted"
-                    }
-                  >
-                    {option.name}
-                  </ThemedButton>
-                )
-              })}
+                    return (
+                      <ThemedButton
+                        key={option.id}
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVariantOptionId(option.id)
+                          setEditingPriceOptionId(null)
+                        }}
+                        className={
+                          isSelected
+                            ? "shrink-0"
+                            : "shrink-0 border bg-background text-foreground hover:bg-muted"
+                        }
+                      >
+                        {option.name}
+                      </ThemedButton>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {optionGroupFilters.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                    Show
+                  </span>
+                  <div className="no-scrollbar flex min-w-0 gap-1.5 overflow-x-auto">
+                    {[{ id: "all", name: "All" }, ...optionGroupFilters].map(
+                      (filter) => {
+                        const isSelected =
+                          filter.id === selectedOptionGroupFilterId
+
+                        return (
+                          <ThemedButton
+                            key={filter.id}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedOptionGroupFilterId(filter.id)}
+                            className={
+                              isSelected
+                                ? "h-8 shrink-0 border-border bg-muted px-3 text-xs text-foreground hover:bg-muted/80"
+                                : "h-8 shrink-0 border-border bg-background/70 px-3 text-xs text-muted-foreground hover:bg-muted"
+                            }
+                          >
+                            {filter.name}
+                          </ThemedButton>
+                        )
+                      }
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -161,8 +250,15 @@ export function ProductModifierAvailabilityClient({
                 Add enabled modifier options before managing variant rules.
               </p>
             </ThemedCard>
+          ) : visibleOptions.length === 0 ? (
+            <ThemedCard className="p-5 text-center">
+              <p className="font-semibold">No options in this group</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Choose another option group or show all options.
+              </p>
+            </ThemedCard>
           ) : (
-            data.modifierGroup.options.map((option) => {
+            visibleOptions.map((option) => {
               const isAvailable = isModifierOptionAvailableForVariant({
                 selectedVariantOptionId: selectedVariantOption.id,
                 modifierGroupId: data.modifierGroup.id,
@@ -187,17 +283,19 @@ export function ProductModifierAvailabilityClient({
                   <div className="space-y-2 px-3 py-2.5">
                     <div className="flex min-w-0 items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">
-                          {option.name}
-                        </p>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <CompactRecordStatusIcon
+                            enabled={isAvailable}
+                            enabledLabel="Available for this variant"
+                            disabledLabel="Unavailable for this variant"
+                          />
+                          <p className="min-w-0 truncate text-sm font-semibold">
+                            {option.name}
+                          </p>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           ${formatPrice(effectivePrice)} -{" "}
                           {isPriceOverridden ? "Overridden" : "Inherited"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {isAvailable
-                            ? "Available"
-                            : "Unavailable for this variant"}
                         </p>
                       </div>
 

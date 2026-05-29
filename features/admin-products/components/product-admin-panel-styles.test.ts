@@ -10,18 +10,18 @@ import {
 describe("product admin panel styles", () => {
   it("keeps product add/edit and view panels on the same sheet shell", () => {
     const sheetPanelClasses = [
-      "inset-x-0",
+      "data-[side=bottom]:left-1/2",
+      "data-[side=bottom]:right-auto",
       "data-[side=bottom]:top-2",
       "data-[side=bottom]:bottom-2",
+      "data-[side=bottom]:w-[calc(100vw-1rem)]",
+      "data-[side=bottom]:max-w-2xl",
+      "data-[side=bottom]:-translate-x-1/2",
       "gap-0",
       "overflow-hidden",
       "rounded-lg",
       "border",
       "text-sm",
-      "sm:left-1/2",
-      "sm:w-full",
-      "sm:max-w-2xl",
-      "sm:-translate-x-1/2",
     ]
 
     for (const className of sheetPanelClasses) {

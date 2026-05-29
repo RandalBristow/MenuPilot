@@ -164,6 +164,19 @@ Disabled product-specific modifier option overrides make the option unavailable.
 
 Included topping credits and multiplier-aware included pricing are implemented for the current configurator. Broader admin editing for included/default modifier rules remains future work.
 
+### Builder templates
+**Status:** UPDATED 2026-05-29
+
+The database-supported builder templates are `standard`, `pizza`, `wings`, `sub`, `salad`, `drink`, and `combo`.
+
+Current runtime routing is:
+
+1. `pizza` -> PizzaBuilder
+2. `standard`, `wings`, `sub`, `salad`, and `drink` -> StandardItemBuilder
+3. `combo` -> unsupported/future bundle handling
+
+Current custom builders are PizzaBuilder and StandardItemBuilder. Wings, subs, salads, and drinks intentionally use StandardItemBuilder until their workflows prove they need custom builders. Combo/bundle architecture is future work and should exist before true bundle specials or meal deals.
+
 ## Current Progress Summary
 
 | Area | Status | Notes |
@@ -171,7 +184,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 | Product vision | Locked | Broad platform direction remains intact |
 | Tech stack | Locked | Next.js, Supabase, shadcn, Stripe planned |
 | Public menu | Working demo | Uses seeded Pronto Demo records |
-| Product configurator | Working | Variants, modifiers, included credits, variant-specific modifier availability/pricing, cart flow |
+| Product configurator | Working | PizzaBuilder plus StandardItemBuilder for standard/wings/sub/salad/drink products; variants, modifiers, included credits, variant-specific modifier availability/pricing, cart flow |
 | Cart | Working | Provider, sheet, summary bar, localStorage |
 | Checkout | Working demo | Server-side cart validation/repricing creates unpaid pickup orders; transaction/RPC still needed |
 | Staff orders | Working demo | Queue and status updates exist |
@@ -257,6 +270,7 @@ Included topping credits and multiplier-aware included pricing are implemented f
 - Recorded server-side checkout validation and repricing as implemented.
 - Recorded Media Library product image selection through `media_assets` and `products.image_media_id`.
 - Recorded variant-specific modifier option availability and price override flows.
+- Recorded explicit builder template routing for standard, pizza, wings, sub, salad, drink, and future combo/bundle products.
 
 ### 2026-05-06
 

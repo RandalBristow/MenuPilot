@@ -1,4 +1,7 @@
-export type BuilderTemplate = "pizza" | "standard"
+import {
+  isActiveBuilderTemplate,
+  type ActiveBuilderTemplate,
+} from "../../product-configurator/utils/builder-templates"
 
 export type ProductCreationPayload = {
   product: {
@@ -6,7 +9,7 @@ export type ProductCreationPayload = {
     slug: string
     description: string | null
     base_price: number
-    builder_template: BuilderTemplate
+    builder_template: ActiveBuilderTemplate
     has_variants: boolean
     is_enabled: true
     image_media_id: string | null
@@ -44,16 +47,20 @@ function parsePrice(value: FormDataEntryValue | null) {
 
 function parseBuilderTemplate(
   value: FormDataEntryValue | null
-): BuilderTemplate {
-  if (value === "pizza" || value === "standard") {
+): ActiveBuilderTemplate {
+  if (isActiveBuilderTemplate(value)) {
     return value
   }
 
-  throw new Error("Builder template must be pizza or standard.")
+  throw new Error("Builder template is not supported yet.")
 }
 
 function parseStringList(values: FormDataEntryValue[]) {
   return values.filter((value): value is string => typeof value === "string")
+}
+
+function parseBoolean(value: FormDataEntryValue | null) {
+  return value === "true"
 }
 
 export function createSlug(name: string) {
@@ -71,6 +78,7 @@ export function buildProductPayload(
   const description = parseOptionalString(formData.get("description"))
   const basePrice = parsePrice(formData.get("basePrice"))
   const builderTemplate = parseBuilderTemplate(formData.get("builderTemplate"))
+  const hasVariants = parseBoolean(formData.get("hasVariants"))
   const menuGroupId = parseString(formData.get("menuGroupId"), "Category")
   const imageMediaId = parseOptionalString(formData.get("imageMediaId"))
   const modifierGroupIds = parseStringList(formData.getAll("modifierGroupIds"))
@@ -82,7 +90,7 @@ export function buildProductPayload(
       description,
       base_price: basePrice,
       builder_template: builderTemplate,
-      has_variants: true,
+      has_variants: hasVariants,
       is_enabled: true,
       image_media_id: imageMediaId,
     },

@@ -2,13 +2,15 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus } from "lucide-react"
+import { ListChecks, Plus } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
+import type { DeleteModifierOptionGroupResult } from "@/features/admin-modifiers/actions/delete-modifier-option-group"
+import { DeleteModifierOptionGroupButton } from "@/features/admin-modifiers/components/DeleteModifierOptionGroupButton"
 import { ModifierOptionGroupFormDialog } from "@/features/admin-modifiers/components/ModifierOptionGroupFormDialog"
 import type { ModifierGroupDetail } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 import type { ModifierGroupProductContext } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
@@ -36,6 +38,8 @@ export function ModifierSubgroupListClient({
   const [activeOptionGroup, setActiveOptionGroup] = useState<
     ModifierGroupDetail["optionGroups"][number] | null
   >(null)
+  const [deleteResult, setDeleteResult] =
+    useState<DeleteModifierOptionGroupResult | null>(null)
   const { group, mode, productContext } = data
   const isProductScopedMode = mode !== "global"
 
@@ -48,9 +52,20 @@ export function ModifierSubgroupListClient({
             description={
               productContext
                 ? `Product-specific lists for ${productContext.name}.`
-                : `Lists inside ${group.name}.`
+              : `Lists inside ${group.name}.`
             }
           />
+          {deleteResult ? (
+            <p
+              className={
+                deleteResult.status === "deleted"
+                  ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+                  : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              }
+            >
+              {deleteResult.message}
+            </p>
+          ) : null}
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
@@ -94,22 +109,35 @@ export function ModifierSubgroupListClient({
                   }
                   description={subgroup.description}
                   rightAction={
-                    <ThemedButton
-                      type="button"
-                      variant="outline"
-                      className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        router.push(
-                          getProductScopedHref(
-                            `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`,
-                            productContext?.id
+                    <>
+                      <ThemedButton
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Manage options for ${subgroup.name}`}
+                        className="size-8 bg-background text-foreground hover:bg-muted"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          router.push(
+                            getProductScopedHref(
+                              `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`,
+                              productContext?.id
+                            )
                           )
-                        )
-                      }}
-                    >
-                      Manage Options
-                    </ThemedButton>
+                        }}
+                      >
+                        <ListChecks aria-hidden="true" />
+                        <span className="sr-only">Manage Options</span>
+                      </ThemedButton>
+                      {mode === "preview" ? null : (
+                        <DeleteModifierOptionGroupButton
+                          modifierGroupId={group.id}
+                          modifierOptionGroupId={subgroup.id}
+                          optionGroupName={subgroup.name}
+                          onResult={setDeleteResult}
+                        />
+                      )}
+                    </>
                   }
                 />
               </ThemedCard>

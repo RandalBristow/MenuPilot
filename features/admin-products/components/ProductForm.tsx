@@ -19,6 +19,10 @@ import {
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
+import {
+  ACTIVE_BUILDER_TEMPLATES,
+  BUILDER_TEMPLATE_LABELS,
+} from "@/features/product-configurator/utils/builder-templates"
 
 const BUSINESS_SLUG = "pronto-demo"
 
@@ -51,6 +55,7 @@ export type ExistingProduct = {
   description: string | null
   base_price: number | null
   builder_template: string
+  has_variants: boolean
   is_enabled: boolean
   image_media_id: string | null
   imageMedia: MediaAssetOption | null
@@ -98,6 +103,7 @@ type RawExistingProduct = {
   description: string | null
   base_price: number | null
   builder_template: string
+  has_variants: boolean
   is_enabled: boolean
   image_media_id: string | null
   media_assets: MediaAssetOption | MediaAssetOption[] | null
@@ -125,6 +131,7 @@ function mapExistingProduct(product: RawExistingProduct): ExistingProduct {
     description: product.description,
     base_price: product.base_price,
     builder_template: product.builder_template,
+    has_variants: product.has_variants,
     is_enabled: product.is_enabled,
     image_media_id: product.image_media_id,
     imageMedia: Array.isArray(product.media_assets)
@@ -152,6 +159,7 @@ async function getExistingProduct(
       description,
       base_price,
       builder_template,
+      has_variants,
       is_enabled,
       image_media_id,
       media_assets (
@@ -333,9 +341,32 @@ export async function ProductForm({ productId }: ProductFormProps) {
                   defaultValue={product?.builder_template ?? "standard"}
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
-                  <option value="standard">Standard</option>
-                  <option value="pizza">Pizza</option>
+                  {ACTIVE_BUILDER_TEMPLATES.map((template) => (
+                    <option key={template} value={template}>
+                      {BUILDER_TEMPLATE_LABELS[template]}
+                    </option>
+                  ))}
+                  <option value="combo" disabled>
+                    Combo (future)
+                  </option>
                 </select>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-md border bg-background px-3 py-2.5">
+                <input
+                  name="hasVariants"
+                  type="checkbox"
+                  value="true"
+                  defaultChecked={product?.has_variants ?? true}
+                  className="mt-1 size-4 shrink-0"
+                />
+                <span className="grid gap-0.5">
+                  <span className="text-sm font-medium">Uses variants</span>
+                  <span className="text-xs text-muted-foreground">
+                    Enable when this product has size, count, portion, volume,
+                    or similar choices.
+                  </span>
+                </span>
               </label>
 
               <ProductImageSelector

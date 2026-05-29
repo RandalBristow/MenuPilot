@@ -5,6 +5,8 @@ import { Plus } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
+import type { DeleteModifierOptionResult } from "@/features/admin-modifiers/actions/delete-modifier-option"
+import { DeleteModifierOptionButton } from "@/features/admin-modifiers/components/DeleteModifierOptionButton"
 import { ModifierOptionFormDialog } from "@/features/admin-modifiers/components/ModifierOptionFormDialog"
 import {
   MODIFIER_ADMIN_ROW_CARD_CLASS,
@@ -71,6 +73,8 @@ export function ModifierOptionsBrowser({
     null
   )
   const [createOpen, setCreateOpen] = useState(false)
+  const [deleteResult, setDeleteResult] =
+    useState<DeleteModifierOptionResult | null>(null)
 
   function handleCategoryChange(categoryId: string) {
     const nextGroup = groups.find(({ category }) => category.id === categoryId)
@@ -145,6 +149,17 @@ export function ModifierOptionsBrowser({
             </select>
           </label>
         </div>
+        {deleteResult ? (
+          <p
+            className={
+              deleteResult.status === "deleted"
+                ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+                : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            }
+          >
+            {deleteResult.message}
+          </p>
+        ) : null}
       </div>
 
       {options.length === 0 ? (
@@ -156,34 +171,41 @@ export function ModifierOptionsBrowser({
       ) : (
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-20 pt-3">
           {options.map((option) => (
-            <button
+            <ThemedCard
               key={option.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               aria-label={`Open modifier ${option.name}`}
               onClick={() => setActiveOption(option)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  setActiveOption(option)
+                }
+              }}
               className={
                 option.is_enabled
-                  ? "block w-full text-left"
-                  : "block w-full text-left opacity-75"
+                  ? `${MODIFIER_ADMIN_ROW_CARD_CLASS} cursor-pointer`
+                  : `${MODIFIER_ADMIN_ROW_CARD_CLASS} cursor-pointer bg-muted/30 opacity-75`
               }
             >
-              <ThemedCard
-                className={
-                  option.is_enabled
-                    ? MODIFIER_ADMIN_ROW_CARD_CLASS
-                    : `${MODIFIER_ADMIN_ROW_CARD_CLASS} bg-muted/30`
+              <CompactRecordRow
+                className={MODIFIER_ADMIN_ROW_CLASS}
+                title={option.name}
+                statusIcon={
+                  <CompactRecordStatusIcon enabled={option.is_enabled} />
                 }
-              >
-                <CompactRecordRow
-                  className={MODIFIER_ADMIN_ROW_CLASS}
-                  title={option.name}
-                  statusIcon={
-                    <CompactRecordStatusIcon enabled={option.is_enabled} />
-                  }
-                  description={formatPriceDelta(option.price_delta)}
-                />
-              </ThemedCard>
-            </button>
+                description={formatPriceDelta(option.price_delta)}
+                rightAction={
+                  <DeleteModifierOptionButton
+                    optionId={option.id}
+                    optionName={option.name}
+                    modifierGroupId={selectedGroup.id}
+                    onResult={setDeleteResult}
+                  />
+                }
+              />
+            </ThemedCard>
           ))}
         </div>
       )}
@@ -232,7 +254,6 @@ export function ModifierOptionsBrowser({
           optionGroups={subgroups}
         />
       ) : null}
-
     </div>
   )
 }
