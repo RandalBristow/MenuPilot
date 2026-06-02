@@ -4,6 +4,7 @@ import {
   type CheckoutProductConfig,
   type CheckoutSubmittedCartItem,
 } from "./validate-and-price-cart"
+import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product"
 
 const enabledProduct = {
   id: "product-pizza",
@@ -1181,5 +1182,294 @@ describe("validateAndPriceCart", () => {
 
     expect(result.cart.items[0].modifiers[0].priceDelta).toBe(1.5)
     expect(result.cart.items[0].unitPrice).toBe(14)
+  })
+
+  it("applies included modifier quantity server-side and ignores stale client prices", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          unitPrice: 1,
+          totalPrice: 2,
+          modifiers: [
+            buildModifier({ optionId: "pepperoni", priceDelta: 99 }),
+            buildModifier({
+              optionId: "mushrooms",
+              optionName: "Client Mushrooms",
+              priceDelta: 99,
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithModifiers,
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              includedQuantity: 2,
+              chargeForExtra: true,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers).toMatchObject([
+      { optionId: "pepperoni", priceDelta: 0 },
+      { optionId: "mushrooms", priceDelta: 0 },
+    ])
+    expect(result.cart.items[0].unitPrice).toBe(12.5)
+  })
+
+  it("charges the third included-group modifier using server pricing", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          modifiers: [
+            buildModifier({ optionId: "pepperoni" }),
+            buildModifier({
+              optionId: "mushrooms",
+              optionName: "Client Mushrooms",
+            }),
+            buildModifier({
+              optionId: "onions",
+              optionName: "Client Onions",
+              priceDelta: 99,
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithModifiers,
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              includedQuantity: 2,
+              chargeForExtra: true,
+              options: [
+                ...productWithModifiers.modifierGroups[0].options,
+                {
+                  id: "onions",
+                  name: "Onions",
+                  priceDelta: 1.25,
+                  isEnabled: true,
+                  optionGroup: null,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers).toMatchObject([
+      { optionId: "pepperoni", priceDelta: 0 },
+      { optionId: "mushrooms", priceDelta: 0 },
+      { optionId: "onions", priceDelta: 1.25 },
+    ])
+    expect(result.cart.items[0].unitPrice).toBe(13.75)
+  })
+
+  it("counts product defaults as included selections server-side", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          quantity: 1,
+          modifiers: [
+            buildModifier({ optionId: "pepperoni" }),
+            buildModifier({
+              optionId: "mushrooms",
+              optionName: "Client Mushrooms",
+            }),
+            buildModifier({
+              optionId: "onions",
+              optionName: "Client Onions",
+              priceDelta: 99,
+            }),
+            buildModifier({
+              optionId: "bacon",
+              optionName: "Client Bacon",
+              priceDelta: 99,
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithModifiers,
+          productDefaultModifierOptions: [
+            {
+              modifier_option_id: "pepperoni",
+              multiplier: 1,
+              quantity: 1,
+              is_enabled: true,
+            },
+          ],
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              includedQuantity: 2,
+              chargeForExtra: true,
+              options: [
+                ...productWithModifiers.modifierGroups[0].options,
+                {
+                  id: "onions",
+                  name: "Onions",
+                  priceDelta: 1.25,
+                  isEnabled: true,
+                  optionGroup: null,
+                },
+                {
+                  id: "bacon",
+                  name: "Bacon",
+                  priceDelta: 2,
+                  isEnabled: true,
+                  optionGroup: null,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers).toMatchObject([
+      { optionId: "pepperoni", priceDelta: 0 },
+      { optionId: "mushrooms", priceDelta: 0 },
+      { optionId: "onions", priceDelta: 1.25 },
+      { optionId: "bacon", priceDelta: 2 },
+    ])
+    expect(result.cart.items[0].unitPrice).toBe(15.75)
+  })
+
+  it("uses variant-specific modifier price for charged extras after included selections", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          variantId: "size-16",
+          modifiers: [
+            buildModifier({ optionId: "pepperoni" }),
+            buildModifier({
+              optionId: "mushrooms",
+              optionName: "Client Mushrooms",
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithVariants,
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              includedQuantity: 1,
+              chargeForExtra: true,
+            },
+          ],
+          variantModifierOptionPriceOverrides: [
+            {
+              variantGroupOptionId: "size-16",
+              modifierGroupId: "toppings",
+              modifierOptionId: "mushrooms",
+              priceDelta: 2.75,
+              isEnabled: true,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers).toMatchObject([
+      { optionId: "pepperoni", priceDelta: 0 },
+      { optionId: "mushrooms", priceDelta: 2.75 },
+    ])
+    expect(result.cart.items[0].unitPrice).toBe(22.24)
+  })
+
+  it("uses the same pricing result as the shared configured product resolver", () => {
+    const item = buildCartItem({
+      quantity: 3,
+      modifiers: [
+        buildModifier({ optionId: "pepperoni" }),
+        buildModifier({
+          optionId: "mushrooms",
+          optionName: "Client Mushrooms",
+        }),
+        buildModifier({
+          optionId: "bacon",
+          optionName: "Client Bacon",
+        }),
+      ],
+    })
+    const product = {
+      ...productWithModifiers,
+      modifierGroups: [
+        {
+          ...productWithModifiers.modifierGroups[0],
+          includedQuantity: 2,
+          chargeForExtra: true,
+          options: [
+            ...productWithModifiers.modifierGroups[0].options,
+            {
+              id: "bacon",
+              name: "Bacon",
+              priceDelta: 2,
+              isEnabled: true,
+              optionGroup: null,
+            },
+          ],
+        },
+      ],
+    } satisfies CheckoutProductConfig
+    const expectedPricing = priceConfiguredProduct({
+      productBasePrice: product.basePrice,
+      selectedModifiers: {
+        pepperoni: { optionId: "pepperoni", multiplier: 1, placement: "whole" },
+        mushrooms: { optionId: "mushrooms", multiplier: 1, placement: "whole" },
+        bacon: { optionId: "bacon", multiplier: 1, placement: "whole" },
+      },
+      modifierGroups: [
+        {
+          id: "toppings",
+          includedQuantity: 2,
+          chargeForExtra: true,
+          options: [
+            { id: "pepperoni", priceDelta: 1.5 },
+            { id: "mushrooms", priceDelta: 1 },
+            { id: "bacon", priceDelta: 2 },
+          ],
+        },
+      ],
+      quantity: item.quantity,
+    })
+
+    const result = validateAndPriceCart({
+      items: [item],
+      products: [product],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].unitPrice).toBe(expectedPricing.unitPrice)
+    expect(result.cart.items[0].lineSubtotal).toBe(expectedPricing.lineTotal)
+    expect(result.cart.items[0].modifiers).toMatchObject([
+      { optionId: "pepperoni", priceDelta: 0 },
+      { optionId: "mushrooms", priceDelta: 0 },
+      { optionId: "bacon", priceDelta: 2 },
+    ])
   })
 })

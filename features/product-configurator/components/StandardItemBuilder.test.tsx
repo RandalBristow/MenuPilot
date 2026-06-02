@@ -205,6 +205,77 @@ describe("StandardItemBuilder", () => {
     expect(await screen.findByText("Selected: Ranch")).toBeInTheDocument()
   })
 
+  it("default selected modifiers consume included selections", async () => {
+    renderStandardItemBuilder({
+      product: buildProduct({
+        base_price: 8,
+        has_variants: false,
+        variants: [],
+        product_included_modifier_groups: [
+          {
+            id: "included-dressing",
+            modifier_group_id: "dressing-group",
+            included_quantity: 1,
+            is_swappable: false,
+            charge_for_extra: true,
+          },
+        ],
+        product_default_modifier_options: [
+          {
+            id: "default-ranch",
+            modifier_group_id: "dressing-group",
+            modifier_option_id: "ranch",
+            placement: "whole",
+            multiplier: 1,
+            quantity: 1,
+            is_enabled: true,
+            sort_order: 1,
+          },
+        ],
+        product_modifier_groups: [
+          {
+            id: "assignment-dressing",
+            is_enabled: true,
+            sort_order: 1,
+            modifier_groups: buildModifierGroup({
+              selection_type: "multiple",
+              is_required: false,
+              min_required: 0,
+              max_allowed: 3,
+              modifier_options: [
+                {
+                  id: "ranch",
+                  name: "Ranch",
+                  price_delta: 1.5,
+                  is_enabled: true,
+                  sort_order: 1,
+                  modifier_option_group_id: null,
+                  modifier_option_groups: null,
+                },
+                {
+                  id: "italian",
+                  name: "Italian",
+                  price_delta: 1,
+                  is_enabled: true,
+                  sort_order: 2,
+                  modifier_option_group_id: null,
+                  modifier_option_groups: null,
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    })
+
+    expect(await screen.findByText("Selected: Ranch")).toBeInTheDocument()
+    expect(screen.getByText("Includes 1 selection.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /italian/i }))
+    expect(screen.getByRole("button", { name: /add to cart/i })).toHaveTextContent(
+      "$9.00"
+    )
+  })
+
   it("blocks add to cart when a required modifier group has no selection", () => {
     renderStandardItemBuilder()
 

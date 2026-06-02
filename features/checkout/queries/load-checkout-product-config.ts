@@ -102,6 +102,13 @@ type RawIncludedModifierGroup = {
   charge_for_extra: boolean
 }
 
+type RawProductDefaultModifierOption = {
+  modifier_option_id: string
+  multiplier: number | null
+  quantity: number | null
+  is_enabled: boolean | null
+}
+
 type RawCheckoutProduct = {
   id: string
   name: string
@@ -118,6 +125,7 @@ type RawCheckoutProduct = {
     | RawVariantModifierOptionPriceOverride[]
     | null
   product_included_modifier_groups: RawIncludedModifierGroup[] | null
+  product_default_modifier_options: RawProductDefaultModifierOption[] | null
 }
 
 export type LoadCheckoutProductConfigInput = {
@@ -232,6 +240,14 @@ function mapProduct(product: RawCheckoutProduct): CheckoutProductConfig {
     basePrice: toNumber(product.base_price),
     variants: effectiveVariants,
     modifierGroups: mapModifierGroups(product),
+    productDefaultModifierOptions: (
+      product.product_default_modifier_options ?? []
+    ).map((defaultOption) => ({
+      modifier_option_id: defaultOption.modifier_option_id,
+      multiplier: defaultOption.multiplier,
+      quantity: defaultOption.quantity,
+      is_enabled: defaultOption.is_enabled,
+    })),
     modifierOptionOverrides: (
       product.product_modifier_option_overrides ?? []
     ).map((override) => ({
@@ -356,6 +372,12 @@ export async function loadCheckoutProductConfig({
         modifier_group_id,
         included_quantity,
         charge_for_extra
+      ),
+      product_default_modifier_options (
+        modifier_option_id,
+        multiplier,
+        quantity,
+        is_enabled
       )
     `
     )

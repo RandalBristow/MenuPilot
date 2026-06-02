@@ -1,107 +1,126 @@
+import {
+  priceConfiguredProduct,
+  type ConfiguredProductDefaultModifierOption,
+  type ConfiguredProductModifierGroup,
+  type ConfiguredProductSelectedModifier,
+} from "@/lib/pricing/price-configured-product"
+
 export type PricingModifierOption = {
-  id: string;
-  price_delta: number;
-};
+  id: string
+  price_delta: number
+}
 
 export type PricingModifierGroup = {
-  id: string;
-  modifier_options: PricingModifierOption[];
-  included_quantity?: number;
-  is_swappable?: boolean;
-  charge_for_extra?: boolean;
-};
+  id: string
+  modifier_options: PricingModifierOption[]
+  included_quantity?: number
+  is_swappable?: boolean
+  charge_for_extra?: boolean
+}
 
 export type PricingSelectedModifier = {
-  optionId: string;
-  multiplier: number;
-  placement?: "left" | "whole" | "right";
-};
+  optionId: string
+  multiplier: number
+  placement?: "left" | "whole" | "right"
+}
+
+export type PricingIncludedModifierOption = {
+  modifier_option_id: string
+  multiplier?: number | null
+  quantity?: number | null
+  is_enabled?: boolean | null
+}
 
 type CalculateProductTotalInput = {
-  basePrice: number;
-  modifierGroups: PricingModifierGroup[];
-  selectedModifiers: Record<string, PricingSelectedModifier>;
-};
+  basePrice: number
+  modifierGroups: PricingModifierGroup[]
+  selectedModifiers: Record<string, PricingSelectedModifier>
+  includedModifierOptionUnits?: Record<string, number>
+}
 
-export function calculateProductTotal({
+export type PricedSelectedModifier = PricingSelectedModifier & {
+  priceDelta: number
+}
+
+export function getIncludedModifierOptionUnits(
+  includedOptions: PricingIncludedModifierOption[] | null | undefined
+) {
+  return (includedOptions ?? []).reduce<Record<string, number>>(
+    (unitsByOptionId, option) => {
+      if (option.is_enabled === false) return unitsByOptionId
+
+      const quantity = Math.max(1, Number(option.quantity) || 1)
+      const multiplier = Math.max(1, Number(option.multiplier) || 1)
+
+      return {
+        ...unitsByOptionId,
+        [option.modifier_option_id]:
+          (unitsByOptionId[option.modifier_option_id] ?? 0) +
+          quantity * multiplier,
+      }
+    },
+    {}
+  )
+}
+
+function mapIncludedUnitsToDefaultOptions(
+  includedModifierOptionUnits: Record<string, number> | undefined
+): ConfiguredProductDefaultModifierOption[] {
+  return Object.entries(includedModifierOptionUnits ?? {}).map(
+    ([modifierOptionId, quantity]) => ({
+      modifierOptionId,
+      quantity,
+      multiplier: 1,
+      isEnabled: true,
+    })
+  )
+}
+
+function getPricingResult({
   basePrice,
   modifierGroups,
   selectedModifiers,
+  includedModifierOptionUnits,
 }: CalculateProductTotalInput) {
-  const modifierTotal = modifierGroups.reduce((groupSum, group) => {
-    const selectedForGroup = Object.values(selectedModifiers).filter(
-      (selected) =>
-        group.modifier_options.some(
-          (option) => option.id === selected.optionId,
-        ),
-    );
-
-    const selectedWithPrices = selectedForGroup
-      .map((selected) => {
-        const option = group.modifier_options.find(
-          (modifierOption) => modifierOption.id === selected.optionId,
-        );
-
-        if (!option) return null;
-
-        const totalUnits = selected.multiplier ?? 1;
-
-        return {
-          selected,
-          option,
-          totalUnits,
-          unitPrice: Number(option.price_delta),
-        };
-      })
-      .filter(Boolean) as {
-      selected: PricingSelectedModifier;
-      option: PricingModifierOption;
-      totalUnits: number;
-      unitPrice: number;
-    }[];
-
-    const includedQuantity = group.included_quantity ?? 0;
-    const chargeForExtra = group.charge_for_extra ?? true;
-
-    if (!chargeForExtra || includedQuantity <= 0) {
-      return (
-        groupSum +
-        selectedWithPrices.reduce(
-          (sum, item) => sum + item.unitPrice * item.totalUnits,
-          0,
-        )
-      );
-    }
-
-    let remainingCredits = includedQuantity;
-
-    const sortedByPrice = [...selectedWithPrices].sort(
-      (a, b) => b.unitPrice - a.unitPrice,
-    );
-
-    let groupTotal = 0;
-
-    for (const item of sortedByPrice) {
-      const units = item.totalUnits;
-
-      if (remainingCredits <= 0) {
-        groupTotal += units * item.unitPrice;
-        continue;
-      }
-
-      if (units <= remainingCredits) {
-        // fully covered by included credits
-        remainingCredits -= units;
-      } else {
-        // partially covered
-        const paidUnits = units - remainingCredits;
-        groupTotal += paidUnits * item.unitPrice;
-        remainingCredits = 0;
-      }
-    }
-
-    return groupSum + groupTotal;
-  }, 0);
-
-  return basePrice + modifierTotal;
+  return priceConfiguredProduct({
+    productBasePrice: basePrice,
+    selectedModifiers:
+      selectedModifiers as Record<string, ConfiguredProductSelectedModifier>,
+    modifierGroups: modifierGroups as ConfiguredProductModifierGroup[],
+    productDefaultModifierOptions: mapIncludedUnitsToDefaultOptions(
+      includedModifierOptionUnits
+    ),
+  })
 }
+
+export function getPricedSelectedModifiers({
+  modifierGroups,
+  selectedModifiers,
+  includedModifierOptionUnits = {},
+}: Omit<CalculateProductTotalInput, "basePrice">) {
+  const result = getPricingResult({
+    basePrice: 0,
+    modifierGroups,
+    selectedModifiers,
+    includedModifierOptionUnits,
+  })
+
+  return Object.fromEntries(
+    Object.entries(result.pricedSelectedModifiers).map(
+      ([optionId, modifier]) => [
+        optionId,
+        {
+          optionId: modifier.optionId,
+          placement: modifier.placement,
+          multiplier: modifier.multiplier,
+          priceDelta: modifier.priceDelta,
+        },
+      ]
+    )
+  ) as Record<string, PricedSelectedModifier>
+}
+
+export function calculateProductTotal(input: CalculateProductTotalInput) {
+  return getPricingResult(input).unitPrice
+}
+

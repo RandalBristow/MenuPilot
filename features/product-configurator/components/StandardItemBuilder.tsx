@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
-import { calculateProductTotal } from "@/lib/pricing/calculate-product-total"
+import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product"
 import { useCart } from "@/features/cart/context/CartProvider"
 import type { CartItem, CartModifier } from "@/features/cart/types/cart"
 import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety"
@@ -196,6 +196,26 @@ export function StandardItemBuilder({
     ]
   )
 
+  const pricing = useMemo(
+    () =>
+      priceConfiguredProduct({
+        productBasePrice: product.base_price ?? 0,
+        selectedVariant,
+        modifierGroups,
+        selectedModifiers,
+        productDefaultModifierOptions: product.product_default_modifier_options,
+        quantity,
+      }),
+    [
+      modifierGroups,
+      product.base_price,
+      product.product_default_modifier_options,
+      quantity,
+      selectedModifiers,
+      selectedVariant,
+    ]
+  )
+
   useEffect(() => {
     if (!open) {
       hasAppliedDefaultModifiersRef.current = false
@@ -246,17 +266,8 @@ export function StandardItemBuilder({
     )
   }
 
-  const unitTotal = useMemo(() => {
-    const basePrice = selectedVariant?.base_price ?? product.base_price ?? 0
-
-    return calculateProductTotal({
-      basePrice,
-      modifierGroups,
-      selectedModifiers,
-    })
-  }, [modifierGroups, product.base_price, selectedModifiers, selectedVariant])
-
-  const total = unitTotal * quantity
+  const unitTotal = pricing.unitPrice
+  const total = pricing.lineTotal
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -350,7 +361,9 @@ export function StandardItemBuilder({
           groupName: group.name,
           placement: selected.placement,
           multiplier: selected.multiplier,
-          priceDelta: Number(option.price_delta),
+          priceDelta:
+            pricing.pricedSelectedModifiers[option.id]?.priceDelta ??
+            Number(option.price_delta),
         }
       })
       .filter(Boolean) as CartModifier[]
@@ -464,6 +477,15 @@ export function StandardItemBuilder({
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold">{group.name}</h3>
+                  {group.included_quantity && group.included_quantity > 0 ? (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      Includes {group.included_quantity}{" "}
+                      {group.included_quantity === 1
+                        ? "selection"
+                        : "selections"}
+                      .
+                    </p>
+                  ) : null}
                   {group.max_allowed ? (
                     <p className="text-sm text-muted-foreground">
                       Choose up to {group.max_allowed}.
@@ -511,6 +533,10 @@ export function StandardItemBuilder({
                     <div className="space-y-1.5">
                       {optionGroup.options.map((option) => {
                         const selected = selectedModifiers[option.id]
+                        const displayPriceDelta = selected
+                          ? pricing.pricedSelectedModifiers[option.id]?.priceDelta ??
+                            Number(option.price_delta)
+                          : Number(option.price_delta)
 
                         return (
                           <div
@@ -529,9 +555,9 @@ export function StandardItemBuilder({
                                 {option.name}
                               </button>
 
-                              {Number(option.price_delta) > 0 ? (
+                              {displayPriceDelta > 0 ? (
                                 <span className="shrink-0 text-sm font-semibold">
-                                  +${Number(option.price_delta).toFixed(2)}
+                                  +${displayPriceDelta.toFixed(2)}
                                 </span>
                               ) : null}
                             </div>

@@ -45,6 +45,11 @@ export type ProductModifierGroupManagementData = ProductManagementData & {
     modifier_group_id: string
     is_enabled: boolean
     sort_order: number
+    includedRule: {
+      id: string
+      included_quantity: number
+      charge_for_extra: boolean
+    } | null
   }[]
 }
 
@@ -149,7 +154,7 @@ export async function getProductModifierGroupManagementData(
     getProductManagementData(requestedProductId),
     getBusinessId(),
   ])
-  const [{ data, error }, assignmentsResult] = await Promise.all([
+  const [{ data, error }, assignmentsResult, includedRulesResult] = await Promise.all([
     supabaseAdmin
     .from("modifier_categories")
     .select(
@@ -178,6 +183,13 @@ export async function getProductModifierGroupManagementData(
           .eq("business_id", businessId)
           .eq("product_id", productData.selectedProductId)
       : Promise.resolve({ data: [], error: null }),
+    productData.selectedProductId
+      ? supabaseAdmin
+          .from("product_included_modifier_groups")
+          .select("id, modifier_group_id, included_quantity, charge_for_extra")
+          .eq("business_id", businessId)
+          .eq("product_id", productData.selectedProductId)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   if (error) {
@@ -187,6 +199,11 @@ export async function getProductModifierGroupManagementData(
   if (assignmentsResult.error) {
     throw new Error(
       `Could not load modifier assignments: ${assignmentsResult.error.message}`
+    )
+  }
+  if (includedRulesResult.error) {
+    throw new Error(
+      `Could not load included modifier rules: ${includedRulesResult.error.message}`
     )
   }
 
@@ -200,6 +217,22 @@ export async function getProductModifierGroupManagementData(
   return {
     ...productData,
     modifierCategories: sortBySortOrder(modifierCategories),
-    modifierAssignments: (assignmentsResult.data ?? []) as ProductModifierGroupManagementData["modifierAssignments"],
+    modifierAssignments: (assignmentsResult.data ?? []).map((assignment) => {
+      const includedRule =
+        includedRulesResult.data?.find(
+          (rule) => rule.modifier_group_id === assignment.modifier_group_id
+        ) ?? null
+
+      return {
+        ...assignment,
+        includedRule: includedRule
+          ? {
+              id: includedRule.id as string,
+              included_quantity: Number(includedRule.included_quantity),
+              charge_for_extra: Boolean(includedRule.charge_for_extra),
+            }
+          : null,
+      }
+    }) as ProductModifierGroupManagementData["modifierAssignments"],
   }
 }

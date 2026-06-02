@@ -5,7 +5,7 @@ import { ThemedButton } from "@/components/themed/ThemedButton";
 import { ThemedCard } from "@/components/themed/ThemedCard";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { calculateProductTotal } from "@/lib/pricing/calculate-product-total";
+import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product";
 import { useCart } from "@/features/cart/context/CartProvider";
 import type { CartItem, CartModifier } from "@/features/cart/types/cart";
 import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety";
@@ -255,6 +255,24 @@ export function PizzaBuilder({
     ],
   );
 
+  const pricing = useMemo(
+    () =>
+      priceConfiguredProduct({
+        productBasePrice: product.base_price ?? 0,
+        selectedVariant,
+        modifierGroups,
+        selectedModifiers,
+        productDefaultModifierOptions: product.product_default_modifier_options,
+      }),
+    [
+      modifierGroups,
+      product.base_price,
+      product.product_default_modifier_options,
+      selectedModifiers,
+      selectedVariant,
+    ],
+  );
+
   useEffect(() => {
     if (!open) {
       hasAppliedDefaultModifiersRef.current = false;
@@ -297,15 +315,7 @@ export function PizzaBuilder({
     );
   }
 
-  const total = useMemo(() => {
-    const basePrice = selectedVariant?.base_price ?? product.base_price ?? 0;
-
-    return calculateProductTotal({
-      basePrice,
-      modifierGroups,
-      selectedModifiers,
-    });
-  }, [selectedVariant, product.base_price, selectedModifiers, modifierGroups]);
+  const total = pricing.unitPrice;
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -443,7 +453,9 @@ export function PizzaBuilder({
           groupName: group.name,
           placement: selected.placement,
           multiplier: selected.multiplier,
-          priceDelta: Number(option.price_delta),
+          priceDelta:
+            pricing.pricedSelectedModifiers[option.id]?.priceDelta ??
+            Number(option.price_delta),
         };
       })
       .filter(Boolean) as CartModifier[];
@@ -570,6 +582,10 @@ export function PizzaBuilder({
                       <div className="space-y-1.5">
                         {optionGroup.options.map((option) => {
                           const selected = selectedModifiers[option.id];
+                          const displayPriceDelta = selected
+                            ? pricing.pricedSelectedModifiers[option.id]?.priceDelta ??
+                              Number(option.price_delta)
+                            : Number(option.price_delta);
 
                           return (
                             <div
@@ -588,9 +604,9 @@ export function PizzaBuilder({
                                   {option.name}
                                 </button>
 
-                                {Number(option.price_delta) > 0 ? (
+                                {displayPriceDelta > 0 ? (
                                   <span className="shrink-0 text-sm font-semibold">
-                                    +${Number(option.price_delta).toFixed(2)}
+                                    +${displayPriceDelta.toFixed(2)}
                                   </span>
                                 ) : null}
                               </div>

@@ -164,6 +164,26 @@ Disabled product-specific modifier option overrides make the option unavailable.
 
 Included topping credits and multiplier-aware included pricing are implemented for the current configurator. Broader admin editing for included/default modifier rules remains future work.
 
+### Configurable product pricing
+**Status:** UPDATED 2026-06-01
+
+All configurable product pricing must go through the shared `priceConfiguredProduct` helper in `lib/pricing/price-configured-product.ts`.
+
+Builders should not implement independent pricing math. PizzaBuilder, StandardItemBuilder, and future builder templates should pass their selected effective variant, effective modifier groups/options, selected modifiers, default modifier records, and quantity into the shared helper.
+
+Checkout must remain server-authoritative, but it should use the same pricing helper after validating server-loaded product, variant, modifier, availability, placement, and multiplier rules. Client-submitted prices are snapshots only and must not be trusted.
+
+Pricing order is:
+
+1. selected variant price determines the product base price
+2. enabled variant-specific modifier option price override
+3. product-specific modifier option price override
+4. global modifier option price
+5. included modifier group rules after effective modifier prices are known
+6. quantity multiplies the resolved unit price
+
+Default modifier selections are selected modifiers and consume included selection slots.
+
 ### Builder templates
 **Status:** UPDATED 2026-05-29
 

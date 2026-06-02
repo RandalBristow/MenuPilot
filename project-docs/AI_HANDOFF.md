@@ -90,6 +90,9 @@ Modifiers should behave like variants:
 - Mobile-first UI is required.
 - TypeScript is required; avoid `any` unless unavoidable.
 - If a pattern is built twice, extract it.
+- Configurable product pricing belongs in `lib/pricing/price-configured-product.ts`.
+- Builders must not implement independent configurable-product pricing math.
+- Checkout must validate server-loaded config, then use the shared pricing helper instead of trusting client-submitted cart prices.
 
 ## Current Goal
 

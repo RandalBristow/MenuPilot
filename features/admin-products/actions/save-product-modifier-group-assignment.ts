@@ -149,6 +149,29 @@ async function deleteProductDefaultModifierOptions({
   }
 }
 
+async function deleteProductIncludedModifierGroup({
+  businessId,
+  productId,
+  modifierGroupId,
+}: {
+  businessId: string
+  productId: string
+  modifierGroupId: string
+}) {
+  const { error } = await supabaseAdmin
+    .from("product_included_modifier_groups")
+    .delete()
+    .eq("business_id", businessId)
+    .eq("product_id", productId)
+    .eq("modifier_group_id", modifierGroupId)
+
+  if (error) {
+    throw new Error(
+      `Could not remove included modifier settings: ${error.message}`
+    )
+  }
+}
+
 function revalidateProductModifierPaths(productId: string) {
   revalidatePath("/admin/products")
   revalidatePath("/admin/products/modifier-groups")
@@ -213,6 +236,11 @@ export async function detachProductModifierGroup(formData: FormData) {
     modifierGroupId: assignment.modifier_group_id as string,
   })
   await deleteProductDefaultModifierOptions({
+    businessId,
+    productId,
+    modifierGroupId: assignment.modifier_group_id as string,
+  })
+  await deleteProductIncludedModifierGroup({
     businessId,
     productId,
     modifierGroupId: assignment.modifier_group_id as string,

@@ -1,4 +1,4 @@
-import { calculateProductTotal } from "../../../lib/pricing/calculate-product-total"
+import { priceConfiguredProduct } from "../../../lib/pricing/price-configured-product"
 import {
   resolveVariantModifierOptionPrice,
   type VariantModifierOptionPriceOverride,
@@ -33,6 +33,7 @@ export type CheckoutProductConfig = {
   basePrice: number
   variants?: CheckoutEffectiveVariant[]
   modifierGroups?: CheckoutModifierGroupConfig[]
+  productDefaultModifierOptions?: CheckoutProductDefaultModifierOption[]
   modifierOptionOverrides?: CheckoutModifierOptionOverride[]
   variantModifierOptionAvailabilityRules?: CheckoutVariantModifierOptionAvailabilityRule[]
   variantModifierOptionPriceOverrides?: CheckoutVariantModifierOptionPriceOverride[]
@@ -81,6 +82,13 @@ export type CheckoutModifierOptionOverride = {
   modifierOptionId: string
   priceDeltaOverride?: number | null
   isEnabled?: boolean | null
+}
+
+export type CheckoutProductDefaultModifierOption = {
+  modifier_option_id: string
+  multiplier?: number | null
+  quantity?: number | null
+  is_enabled?: boolean | null
 }
 
 export type CheckoutVariantModifierOptionAvailabilityRule = {
@@ -687,14 +695,22 @@ function validateModifiers({
     })),
   }))
 
+  const pricing = priceConfiguredProduct({
+    productBasePrice: basePrice,
+    selectedModifiers,
+    modifierGroups: pricingGroups,
+    productDefaultModifierOptions: product.productDefaultModifierOptions,
+  })
+
   return {
     ok: true,
-    modifiers: validatedModifiers,
-    unitPrice: calculateProductTotal({
-      basePrice,
-      modifierGroups: pricingGroups,
-      selectedModifiers,
-    }),
+    modifiers: validatedModifiers.map((modifier) => ({
+      ...modifier,
+      priceDelta:
+        pricing.pricedSelectedModifiers[modifier.optionId]?.priceDelta ??
+        modifier.priceDelta,
+    })),
+    unitPrice: pricing.unitPrice,
   }
 }
 
