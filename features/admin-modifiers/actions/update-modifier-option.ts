@@ -2,8 +2,17 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  moveModifierOption,
+  type MoveModifierOptionStore,
+} from "@/features/admin-modifiers/utils/move-modifier-option"
 
 const BUSINESS_SLUG = "pronto-demo"
+
+export type UpdateModifierOptionResult = {
+  status: "updated" | "blocked" | "error"
+  message: string
+}
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -63,63 +72,133 @@ async function getBusinessId() {
   return business.id as string
 }
 
-export async function updateModifierOption(formData: FormData) {
-  const businessId = await getBusinessId()
-  const optionId = parseString(formData.get("optionId"), "Option")
-  const modifierGroupId = parseString(
-    formData.get("modifierGroupId"),
-    "Modifier group"
-  )
-  const modifierOptionGroupId = parseNullableString(
-    formData.get("modifierOptionGroupId")
-  )
-  const name = parseString(formData.get("name"), "Option name")
-  const priceDelta = parsePrice(formData.get("priceDelta"))
-  const sortOrder = parseSortOrder(formData.get("sortOrder"))
+function createMoveStore({
+  businessId,
+  name,
+  priceDelta,
+  sortOrder,
+}: {
+  businessId: string
+  name: string
+  priceDelta: number
+  sortOrder: number
+}): MoveModifierOptionStore {
+  return {
+    async findOption({ optionId, modifierGroupId }) {
+      const { data, error } = await supabaseAdmin
+        .from("modifier_options")
+        .select("id, modifier_group_id, modifier_option_group_id")
+        .eq("id", optionId)
+        .eq("business_id", businessId)
+        .eq("modifier_group_id", modifierGroupId)
+        .single()
 
-  const { data: option, error: optionError } = await supabaseAdmin
-    .from("modifier_options")
-    .select("id")
-    .eq("id", optionId)
-    .eq("business_id", businessId)
-    .eq("modifier_group_id", modifierGroupId)
-    .single()
+      if (error || !data) return null
 
-  if (optionError || !option) {
-    throw new Error("Selected modifier option is invalid.")
+      return {
+        id: data.id as string,
+        modifier_group_id: data.modifier_group_id as string,
+        modifier_option_group_id:
+          (data.modifier_option_group_id as string | null) ?? null,
+      }
+    },
+    async findDestinationOptionGroup({
+      modifierGroupId,
+      destinationOptionGroupId,
+    }) {
+      const { data, error } = await supabaseAdmin
+        .from("modifier_option_groups")
+        .select("id, modifier_group_id")
+        .eq("id", destinationOptionGroupId)
+        .eq("business_id", businessId)
+        .eq("modifier_group_id", modifierGroupId)
+        .single()
+
+      if (error || !data) return null
+
+      return {
+        id: data.id as string,
+        modifier_group_id: data.modifier_group_id as string,
+      }
+    },
+    async updateOptionGroup({
+      optionId,
+      modifierGroupId,
+      destinationOptionGroupId,
+    }) {
+      const { error } = await supabaseAdmin
+        .from("modifier_options")
+        .update({
+          modifier_option_group_id: destinationOptionGroupId,
+          name,
+          price_delta: priceDelta,
+          sort_order: sortOrder,
+        })
+        .eq("id", optionId)
+        .eq("business_id", businessId)
+        .eq("modifier_group_id", modifierGroupId)
+
+      if (error) {
+        throw new Error(`Could not update modifier option: ${error.message}`)
+      }
+    },
   }
+}
 
-  if (modifierOptionGroupId) {
-    const { data: optionGroup, error: optionGroupError } = await supabaseAdmin
-      .from("modifier_option_groups")
-      .select("id")
-      .eq("id", modifierOptionGroupId)
-      .eq("business_id", businessId)
-      .eq("modifier_group_id", modifierGroupId)
-      .single()
+export async function updateModifierOption(
+  formData: FormData
+): Promise<UpdateModifierOptionResult> {
+  try {
+    const businessId = await getBusinessId()
+    const optionId = parseString(formData.get("optionId"), "Option")
+    const modifierGroupId = parseString(
+      formData.get("modifierGroupId"),
+      "Modifier group"
+    )
+    const modifierOptionGroupId = parseNullableString(
+      formData.get("modifierOptionGroupId")
+    )
+    const name = parseString(formData.get("name"), "Option name")
+    const priceDelta = parsePrice(formData.get("priceDelta"))
+    const sortOrder = parseSortOrder(formData.get("sortOrder"))
 
-    if (optionGroupError || !optionGroup) {
-      throw new Error("Selected modifier option subgroup is invalid.")
+    const result = await moveModifierOption({
+      payload: {
+        optionId,
+        modifierGroupId,
+        destinationOptionGroupId: modifierOptionGroupId,
+      },
+      store: createMoveStore({
+        businessId,
+        name,
+        priceDelta,
+        sortOrder,
+      }),
+    })
+
+    if (result.status === "blocked") {
+      return result
+    }
+
+    revalidatePath("/admin/modifiers")
+    revalidatePath("/admin/modifiers/options")
+    revalidatePath("/admin/modifiers/subgroups")
+    revalidatePath(`/admin/modifiers/${modifierGroupId}`)
+    if (modifierOptionGroupId) {
+      revalidatePath(
+        `/admin/modifiers/${modifierGroupId}/subgroups/${modifierOptionGroupId}`
+      )
+    }
+
+    return {
+      status: "updated",
+      message: "Modifier option updated.",
+    }
+  } catch (error) {
+    console.error(error)
+    return {
+      status: "error",
+      message: "Modifier option could not be updated. Please try again.",
     }
   }
-
-  const { error } = await supabaseAdmin
-    .from("modifier_options")
-    .update({
-      modifier_option_group_id: modifierOptionGroupId,
-      name,
-      price_delta: priceDelta,
-      sort_order: sortOrder,
-    })
-    .eq("id", optionId)
-    .eq("business_id", businessId)
-    .eq("modifier_group_id", modifierGroupId)
-
-  if (error) {
-    throw new Error(`Could not update modifier option: ${error.message}`)
-  }
-
-  revalidatePath("/admin/modifiers")
-  revalidatePath("/admin/modifiers/options")
-  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
 }

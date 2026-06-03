@@ -33,6 +33,7 @@ Working now:
 - Reusable variant group list, option editing, product assignment, and per-product overrides.
 - Modifier library flow using the updated hierarchy.
 - Product modifier group assignment with per-product modifier option overrides.
+- Modifier option setup cleanup supports safe hard delete for unused options and moving options between Modifier Option Groups inside the same Modifier Group.
 - Variant-specific modifier option availability filtering.
 - Variant-specific modifier option price overrides on the product Modifier Group variant rules page.
 - Builder template routing is explicit: `pizza` uses PizzaBuilder; `standard`, `wings`, `sub`, `salad`, and `drink` use StandardItemBuilder.

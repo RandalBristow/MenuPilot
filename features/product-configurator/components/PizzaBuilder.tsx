@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { ThemedButton } from "@/components/themed/ThemedButton";
 import { ThemedCard } from "@/components/themed/ThemedCard";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -484,12 +485,12 @@ export function PizzaBuilder({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[92dvh] max-w-3xl flex-col p-0 sm:h-auto sm:max-h-[90vh]">
-        <DialogHeader className="border-b px-4 py-3">
+      <DialogContent className="flex h-[92dvh] max-h-[92dvh] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:h-[min(90dvh,52rem)] sm:max-h-[90dvh]">
+        <DialogHeader className="shrink-0 border-b px-4 py-3">
           <DialogTitle>{product.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+        <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
           <ThemedCard className="p-3">
             <h3 className="mb-2 text-base font-semibold">Choose Your Size</h3>
 
@@ -590,6 +591,7 @@ export function PizzaBuilder({
                           return (
                             <div
                               key={option.id}
+                              aria-selected={selected ? "true" : "false"}
                               className={`rounded-md border px-3 py-2 ${
                                 selected ? "border-accent bg-accent/20" : ""
                               }`}
@@ -597,18 +599,26 @@ export function PizzaBuilder({
                               <div className="flex items-center justify-between gap-3">
                                 <button
                                   type="button"
+                                  aria-pressed={selected ? "true" : "false"}
                                   onClick={() => toggleModifier(group, option)}
-                                  className="min-w-0 flex-1 truncate text-left text-sm font-medium"
+                                  className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium"
                                 >
-                                  {selected ? "Selected: " : ""}
-                                  {option.name}
+                                  <Check
+                                    aria-hidden="true"
+                                    className={`size-5 shrink-0 ${
+                                      selected
+                                        ? "text-accent-foreground"
+                                        : "text-transparent"
+                                    }`}
+                                  />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {option.name}
+                                  </span>
                                 </button>
 
-                                {displayPriceDelta > 0 ? (
-                                  <span className="shrink-0 text-sm font-semibold">
-                                    +${displayPriceDelta.toFixed(2)}
-                                  </span>
-                                ) : null}
+                                <span className="shrink-0 text-sm font-semibold">
+                                  +${displayPriceDelta.toFixed(2)}
+                                </span>
                               </div>
 
                               {selected &&
@@ -688,7 +698,7 @@ export function PizzaBuilder({
           ))}
         </div>
 
-        <div className="border-t bg-background p-4">
+        <div className="shrink-0 border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {validationMessages.length > 0 ? (
             <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <p className="font-semibold">Please finish your selections:</p>

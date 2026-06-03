@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { createModifierOption } from "@/features/admin-modifiers/actions/create-modifier-option"
 import { setModifierOptionEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-enabled"
 import { updateModifierOption } from "@/features/admin-modifiers/actions/update-modifier-option"
+import type { UpdateModifierOptionResult } from "@/features/admin-modifiers/actions/update-modifier-option"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   ThemedSheet,
@@ -56,7 +57,7 @@ export function ModifierOptionFormDialog({
   const selectedOptionGroup = selectedOptionGroupId
     ? optionGroups.find((optionGroup) => optionGroup.id === selectedOptionGroupId)
     : undefined
-  const hasFixedOptionGroup = Boolean(initialOptionGroupId)
+  const hasFixedOptionGroup = isCreateMode && Boolean(initialOptionGroupId)
   const title = isCreateMode
     ? "Create modifier option"
     : (selectedOptionGroup?.name ?? modifierGroupName)
@@ -64,12 +65,21 @@ export function ModifierOptionFormDialog({
     ? `Add an option to ${modifierGroupName}.`
     : "Update this modifier option."
   const submitLabel = isCreateMode ? "Create option" : "Save option"
+  const [updateResult, setUpdateResult] =
+    useState<UpdateModifierOptionResult | null>(null)
 
   async function handleSubmit(formData: FormData) {
+    setUpdateResult(null)
+
     if (isCreateMode) {
       await createModifierOption(formData)
     } else {
-      await updateModifierOption(formData)
+      const result = await updateModifierOption(formData)
+
+      if (result.status !== "updated") {
+        setUpdateResult(result)
+        return
+      }
     }
 
     formRef.current?.reset()
@@ -124,6 +134,18 @@ export function ModifierOptionFormDialog({
                 name="isEnabled"
                 value={String(option.is_enabled)}
               />
+            ) : null}
+
+            {updateResult ? (
+              <p
+                className={
+                  updateResult.status === "updated"
+                    ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+                    : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                }
+              >
+                {updateResult.message}
+              </p>
             ) : null}
 
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">

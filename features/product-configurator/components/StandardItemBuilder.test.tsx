@@ -124,6 +124,7 @@ describe("StandardItemBuilder", () => {
     expect(screen.getByRole("button", { name: /ranch/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /italian/i })).toBeInTheDocument()
     expect(screen.getByText("Quantity")).toBeInTheDocument()
+    expect(screen.getAllByText("Fresh salad")).toHaveLength(1)
   })
 
   it("groups modifier options by modifier option group", () => {
@@ -202,7 +203,10 @@ describe("StandardItemBuilder", () => {
       }),
     })
 
-    expect(await screen.findByText("Selected: Ranch")).toBeInTheDocument()
+    expect(
+      await screen.findByRole("button", { name: /ranch/i, pressed: true })
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Selected:/i)).not.toBeInTheDocument()
   })
 
   it("default selected modifiers consume included selections", async () => {
@@ -268,7 +272,10 @@ describe("StandardItemBuilder", () => {
       }),
     })
 
-    expect(await screen.findByText("Selected: Ranch")).toBeInTheDocument()
+    expect(
+      await screen.findByRole("button", { name: /ranch/i, pressed: true })
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Selected:/i)).not.toBeInTheDocument()
     expect(screen.getByText("Includes 1 selection.")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: /italian/i }))
     expect(screen.getByRole("button", { name: /add to cart/i })).toHaveTextContent(
@@ -397,7 +404,10 @@ describe("StandardItemBuilder", () => {
       },
     })
 
-    expect(screen.getByText("Selected: Italian")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /italian/i, pressed: true })
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Selected:/i)).not.toBeInTheDocument()
     expect(screen.getByText("2")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled()
   })

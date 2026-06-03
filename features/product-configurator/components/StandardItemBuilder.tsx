@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { Check } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product"
@@ -395,18 +396,17 @@ export function StandardItemBuilder({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[92dvh] max-w-2xl flex-col p-0 sm:h-auto sm:max-h-[90vh]">
-        <DialogHeader className="border-b px-4 py-4">
+      <DialogContent className="flex h-[92dvh] max-h-[92dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:h-[min(90dvh,48rem)] sm:max-h-[90dvh]">
+        <DialogHeader className="shrink-0 border-b px-4 py-4">
           <DialogTitle>{product.name}</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {product.description ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm leading-5 text-muted-foreground">
               {product.description}
             </p>
           ) : null}
+        </DialogHeader>
 
+        <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {sortedVariants.length > 0 ? (
             <ThemedCard className="p-4">
               <h3 className="mb-3 text-lg font-semibold">Choose an option</h3>
@@ -541,6 +541,7 @@ export function StandardItemBuilder({
                         return (
                           <div
                             key={option.id}
+                            aria-selected={selected ? "true" : "false"}
                             className={`rounded-md border px-3 py-2 ${
                               selected ? "border-accent bg-accent/20" : ""
                             }`}
@@ -548,11 +549,21 @@ export function StandardItemBuilder({
                             <div className="flex items-center justify-between gap-3">
                               <button
                                 type="button"
+                                aria-pressed={selected ? "true" : "false"}
                                 onClick={() => toggleModifier(group, option)}
-                                className="min-w-0 flex-1 truncate text-left text-sm font-medium"
+                                className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium"
                               >
-                                {selected ? "Selected: " : ""}
-                                {option.name}
+                                <Check
+                                  aria-hidden="true"
+                                  className={`size-5 shrink-0 ${
+                                    selected
+                                      ? "text-accent-foreground"
+                                      : "text-transparent"
+                                  }`}
+                                />
+                                <span className="min-w-0 flex-1 truncate">
+                                  {option.name}
+                                </span>
                               </button>
 
                               {displayPriceDelta > 0 ? (
@@ -633,7 +644,7 @@ export function StandardItemBuilder({
           ))}
         </div>
 
-        <div className="border-t bg-background p-4">
+        <div className="shrink-0 border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {validationMessages.length > 0 ? (
             <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <p className="font-semibold">Please finish your selections:</p>

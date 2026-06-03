@@ -123,6 +123,16 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 - Keep sticky layers readable against the page background.
 - Avoid stacking multiple sticky bars unless the workflow needs it.
 
+## Product Builder Dialogs
+
+- Product builder headers should show the product name and, when present, the product description directly below the name.
+- Do not duplicate the product description in the scrollable builder body when it already appears in the header.
+- Selected modifier option rows should keep the warm selected highlight and show a clear checkmark.
+- Do not prefix selected modifier option labels with text such as "Selected:".
+- The selected checkmark must use a fixed-size slot so row height and price alignment do not shift between selected and unselected rows.
+- Use accessible selected/pressed state on selected modifier option controls where appropriate.
+- Do not use thumbs up/down for customer selected modifier state; thumbs remain reserved for admin enabled/available states.
+
 ## Card Spacing And Density
 
 - Use cards for repeated items, grouped panels, modals/sheets, and meaningful containers.
@@ -163,6 +173,9 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 - Inline forms are acceptable only for very small, isolated controls.
 - After successful create/edit actions, close the dialog/sheet and refresh or update the list.
 - Do not leave create/edit forms permanently embedded in list pages.
+- Full-height dialogs and sheets should use a fixed `dvh` height or equivalent shell, a non-shrinking header/footer, and a `min-h-0 flex-1 overflow-y-auto` body.
+- Full-height dialogs and sheets should avoid creating an outer document/body scrollbar; only the intended inner content area should scroll.
+- Preserve safe-area footer padding for full-height mobile dialogs and sheets.
 
 ## Mobile Admin Add/Edit/View Forms
 

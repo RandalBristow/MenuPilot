@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { ThemedCard } from "@/components/themed/ThemedCard";
 import { ThemedButton } from "@/components/themed/ThemedButton";
@@ -80,6 +81,20 @@ function getProductImage(product: Product) {
   };
 }
 
+function isSupabaseStorageUrl(src: string) {
+  try {
+    const url = new URL(src);
+
+    return (
+      url.protocol === "https:" &&
+      url.hostname.endsWith(".supabase.co") &&
+      url.pathname.startsWith("/storage/v1/object/public/")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function ProductCard({
   product,
   onCustomize,
@@ -100,13 +115,23 @@ export function ProductCard({
     <ThemedCard className="flex h-full overflow-hidden p-0">
       <div className="flex h-full w-full flex-col">
         {image ? (
-          <div className="border-b bg-muted/30">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={image.src}
-              alt={image.alt}
-              className="aspect-[4/3] w-full object-cover"
-            />
+          <div className="relative aspect-[4/3] border-b bg-muted/30">
+            {isSupabaseStorageUrl(image.src) ? (
+              <Image
+                src={image.src}
+                alt={image.alt}
+                fill
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={image.src}
+                alt={image.alt}
+                className="h-full w-full object-cover"
+              />
+            )}
           </div>
         ) : (
           <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center border-b bg-muted/40 text-muted-foreground">

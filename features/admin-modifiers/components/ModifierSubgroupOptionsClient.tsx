@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Plus, Star, ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { Check, Pencil, Plus, Star, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
@@ -413,12 +413,30 @@ export function ModifierSubgroupOptionsClient({
                           </ThemedButton>
                         </form>
                       ) : mode === "global" ? (
-                        <DeleteModifierOptionButton
-                          optionId={option.id}
-                          optionName={option.name}
-                          modifierGroupId={group.id}
-                          onResult={setDeleteResult}
-                        />
+                        <>
+                          <ThemedButton
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            aria-label={`Edit or move modifier option ${option.name}`}
+                            className="size-8 bg-background text-foreground hover:bg-muted"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setActiveOption(option)
+                            }}
+                          >
+                            <Pencil aria-hidden="true" />
+                            <span className="sr-only">
+                              Edit or move modifier option
+                            </span>
+                          </ThemedButton>
+                          <DeleteModifierOptionButton
+                            optionId={option.id}
+                            optionName={option.name}
+                            modifierGroupId={group.id}
+                            onResult={setDeleteResult}
+                          />
+                        </>
                       ) : undefined
                     }
                     metadata={
