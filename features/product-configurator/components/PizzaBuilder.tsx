@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check } from "lucide-react";
 import { ThemedButton } from "@/components/themed/ThemedButton";
 import { ThemedCard } from "@/components/themed/ThemedCard";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -23,6 +22,7 @@ import {
 } from "@/features/product-configurator/utils/variant-modifier-pricing";
 import { getInitialSelectedModifiersFromDefaults } from "@/features/product-configurator/utils/product-default-modifiers";
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation";
+import { ModifierOptionGroupAccordion } from "@/features/product-configurator/components/ModifierOptionGroupAccordion";
 import {
   Dialog,
   DialogContent,
@@ -130,28 +130,6 @@ type IncludedModifierGroup = {
   is_swappable: boolean;
   charge_for_extra: boolean;
 };
-
-function PlacementIcon({
-  placement,
-}: {
-  placement: SelectedModifier["placement"];
-}) {
-  if (placement === "whole") {
-    return (
-      <span className="block size-4 rounded-full border border-current bg-current" />
-    );
-  }
-
-  return (
-    <span className="relative block size-4 overflow-hidden rounded-full border border-current">
-      <span
-        className={`absolute inset-y-0 w-1/2 bg-current ${
-          placement === "left" ? "left-0" : "right-0"
-        }`}
-      />
-    </span>
-  );
-}
 
 function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
   if (!editingCartItem) return {};
@@ -377,42 +355,6 @@ export function PizzaBuilder({
     }));
   }
 
-  function groupOptionsBySubgroup(options: ModifierOption[]) {
-    const sortedOptions = [...options].sort(
-      (a, b) => a.sort_order - b.sort_order,
-    );
-
-    const grouped = sortedOptions.reduce<
-      Record<
-        string,
-        {
-          group: ModifierOptionGroup | null;
-          options: ModifierOption[];
-        }
-      >
-    >((acc, option) => {
-      const key = option.modifier_option_group_id ?? "ungrouped";
-
-      if (!acc[key]) {
-        acc[key] = {
-          group: option.modifier_option_groups ?? null,
-          options: [],
-        };
-      }
-
-      acc[key].options.push(option);
-
-      return acc;
-    }, {});
-
-    return Object.values(grouped).sort((a, b) => {
-      const aOrder = a.group?.sort_order ?? 999;
-      const bOrder = b.group?.sort_order ?? 999;
-
-      return aOrder - bOrder;
-    });
-  }
-
   function getGroupValidationMessage(group: ModifierGroup) {
     return getValidationMessage(
       group,
@@ -555,145 +497,30 @@ export function PizzaBuilder({
                 ) : null}
               </div>
 
-              <div className="space-y-3">
-                {groupOptionsBySubgroup(group.modifier_options ?? []).map(
-                  (optionGroup) => (
-                    <div
-                      key={optionGroup.group?.id ?? "ungrouped"}
-                      className={
-                        optionGroup.group
-                          ? "rounded-lg border bg-muted/20 p-2.5"
-                          : undefined
-                      }
-                    >
-                      {optionGroup.group ? (
-                        <div className="mb-2">
-                          <h4 className="text-sm font-semibold">
-                            {optionGroup.group.name}
-                          </h4>
-
-                          {optionGroup.group.description ? (
-                            <p className="text-xs text-muted-foreground">
-                              {optionGroup.group.description}
-                            </p>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      <div className="space-y-1.5">
-                        {optionGroup.options.map((option) => {
-                          const selected = selectedModifiers[option.id];
-                          const displayPriceDelta = selected
-                            ? pricing.pricedSelectedModifiers[option.id]?.priceDelta ??
-                              Number(option.price_delta)
-                            : Number(option.price_delta);
-
-                          return (
-                            <div
-                              key={option.id}
-                              aria-selected={selected ? "true" : "false"}
-                              className={`rounded-md border px-3 py-2 ${
-                                selected ? "border-accent bg-accent/20" : ""
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <button
-                                  type="button"
-                                  aria-pressed={selected ? "true" : "false"}
-                                  onClick={() => toggleModifier(group, option)}
-                                  className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium"
-                                >
-                                  <Check
-                                    aria-hidden="true"
-                                    className={`size-5 shrink-0 ${
-                                      selected
-                                        ? "text-accent-foreground"
-                                        : "text-transparent"
-                                    }`}
-                                  />
-                                  <span className="min-w-0 flex-1 truncate">
-                                    {option.name}
-                                  </span>
-                                </button>
-
-                                <span className="shrink-0 text-sm font-semibold">
-                                  +${displayPriceDelta.toFixed(2)}
-                                </span>
-                              </div>
-
-                              {selected &&
-                              (group.supports_placement ||
-                                group.supports_multiplier) ? (
-                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                  {group.supports_placement ? (
-                                    <div className="flex min-w-[7.5rem] flex-1 items-center gap-1.5">
-                                      {(
-                                        [
-                                          ["left", "Left side"],
-                                          ["whole", "Whole pizza"],
-                                          ["right", "Right side"],
-                                        ] as const
-                                      ).map(([placement, label]) => (
-                                        <button
-                                          key={placement}
-                                          type="button"
-                                          aria-label={`Set ${option.name} placement to ${label}`}
-                                          title={label}
-                                          onClick={() =>
-                                            updateModifier(option.id, {
-                                              placement,
-                                            })
-                                          }
-                                          className={`flex size-9 items-center justify-center rounded-md border ${
-                                            selected.placement === placement
-                                              ? "border-accent bg-accent text-accent-foreground"
-                                              : "bg-card"
-                                          }`}
-                                        >
-                                          <PlacementIcon
-                                            placement={placement}
-                                          />
-                                          <span className="sr-only">
-                                            {label}
-                                          </span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ) : null}
-
-                                  {group.supports_multiplier ? (
-                                    <select
-                                      aria-label={`Amount for ${option.name}`}
-                                      value={selected.multiplier}
-                                      onChange={(event) =>
-                                        updateModifier(option.id, {
-                                          multiplier: Number(
-                                            event.target.value,
-                                          ),
-                                        })
-                                      }
-                                      className="h-9 w-20 shrink-0 rounded-md border bg-background px-2 text-sm"
-                                    >
-                                      {Array.from(
-                                        { length: Number(group.max_multiplier) },
-                                        (_, index) => index + 1,
-                                      ).map((amount) => (
-                                        <option key={amount} value={amount}>
-                                          {amount}x
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
+              <ModifierOptionGroupAccordion
+                group={group}
+                selectedModifiers={selectedModifiers}
+                getDisplayPriceDelta={(option) =>
+                  selectedModifiers[option.id]
+                    ? pricing.pricedSelectedModifiers[option.id]?.priceDelta ??
+                      Number(option.price_delta)
+                    : Number(option.price_delta)
+                }
+                onToggleOption={(option) => toggleModifier(group, option)}
+                onUpdateModifier={updateModifier}
+                placementLabels={[
+                  ["left", "Left side"],
+                  ["whole", "Whole pizza"],
+                  ["right", "Right side"],
+                ]}
+                getMultiplierOptions={(modifierGroup) =>
+                  Array.from(
+                    { length: Number(modifierGroup.max_multiplier) },
+                    (_, index) => index + 1,
+                  )
+                }
+                showZeroPrices
+              />
             </ThemedCard>
           ))}
         </div>

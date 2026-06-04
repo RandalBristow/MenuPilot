@@ -34,6 +34,10 @@ Working now:
 - Modifier library flow using the updated hierarchy.
 - Product modifier group assignment with per-product modifier option overrides.
 - Modifier option setup cleanup supports safe hard delete for unused options and moving options between Modifier Option Groups inside the same Modifier Group.
+- Modifier Option sort order is scoped per Modifier Option Group/List. "Next Available" should use max sort order plus one only within the selected `modifier_option_group_id`.
+- Modifier Options should belong to a Modifier Option Group/List. Seed cleanup backfilled lists for direct seed options; admin option create/edit should require a list instead of creating ungrouped options.
+- Modifier Option Group/List sort order is scoped within its parent Modifier Group and controls how option lists appear in builders.
+- Modifier Group sort order is scoped within its Modifier Category and controls the order of builder sections such as Crust Type, Crust Style, Pizza Sauce, and Pizza Toppings.
 - Variant-specific modifier option availability filtering.
 - Variant-specific modifier option price overrides on the product Modifier Group variant rules page.
 - Builder template routing is explicit: `pizza` uses PizzaBuilder; `standard`, `wings`, `sub`, `salad`, and `drink` use StandardItemBuilder.
@@ -94,6 +98,7 @@ Modifiers should behave like variants:
 - Configurable product pricing belongs in `lib/pricing/price-configured-product.ts`.
 - Builders must not implement independent configurable-product pricing math.
 - Checkout must validate server-loaded config, then use the shared pricing helper instead of trusting client-submitted cart prices.
+- Product builders should render Modifier Option Group sections through the shared builder option group accordion/list component and themed accordion instead of duplicating selected option row UI.
 
 ## Current Goal
 

@@ -7,6 +7,10 @@ import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ModifierOptionGroupFormDialog } from "@/features/admin-modifiers/components/ModifierOptionGroupFormDialog"
 import {
+  getNextModifierOptionGroupSortOrder,
+  sortModifierOptionGroups,
+} from "@/features/admin-modifiers/utils/modifier-option-group-sort-order"
+import {
   MODIFIER_ADMIN_ROW_CARD_CLASS,
   MODIFIER_ADMIN_ROW_CLASS,
 } from "@/features/admin-modifiers/components/modifier-admin-row-styles"
@@ -46,7 +50,9 @@ export function ModifierSubgroupsBrowser({
     groups.find(({ group }) => group.id === selectedGroupId)?.group ??
     visibleGroups[0]?.group ??
     null
-  const subgroups = selectedGroup?.modifier_option_groups ?? []
+  const subgroups = sortModifierOptionGroups(
+    selectedGroup?.modifier_option_groups ?? []
+  )
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -115,6 +121,9 @@ function SubgroupRows({
   const [activeSubgroup, setActiveSubgroup] =
     useState<RawModifierOptionGroup | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const nextSortOrder = getNextModifierOptionGroupSortOrder({
+    optionGroups: subgroups,
+  })
 
   return (
     <>
@@ -152,6 +161,9 @@ function SubgroupRows({
                     <CompactRecordStatusIcon enabled={subgroup.is_enabled} />
                   }
                   description={subgroup.description}
+                  metadata={
+                    <span>Sort {subgroup.sort_order}</span>
+                  }
                 />
               </ThemedCard>
             </button>
@@ -183,6 +195,7 @@ function SubgroupRows({
         mode="create"
         modifierGroupId={group.id}
         modifierGroupName={group.name}
+        nextSortOrder={nextSortOrder}
       />
 
       {activeSubgroup ? (
@@ -194,6 +207,7 @@ function SubgroupRows({
           mode="edit"
           modifierGroupId={group.id}
           modifierGroupName={group.name}
+          nextSortOrder={nextSortOrder}
           optionGroup={activeSubgroup}
         />
       ) : null}

@@ -6,6 +6,7 @@ import {
   moveModifierOption,
   type MoveModifierOptionStore,
 } from "@/features/admin-modifiers/utils/move-modifier-option"
+import { buildModifierOptionWritePayload } from "@/features/admin-modifiers/utils/modifier-option-write-payload"
 
 const BUSINESS_SLUG = "pronto-demo"
 
@@ -22,12 +23,12 @@ function parseString(value: FormDataEntryValue | null, fieldName: string) {
   return value.trim()
 }
 
-function parseNullableString(value: FormDataEntryValue | null) {
-  if (typeof value !== "string" || value === "none" || value.length === 0) {
-    return null
+function parseModifierOptionGroupId(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("Modifier Option Group/List is required.")
   }
 
-  return value
+  return value.trim()
 }
 
 function parsePrice(value: FormDataEntryValue | null) {
@@ -126,14 +127,20 @@ function createMoveStore({
       modifierGroupId,
       destinationOptionGroupId,
     }) {
+      if (!destinationOptionGroupId) {
+        throw new Error("Modifier Option Group/List is required.")
+      }
+
       const { error } = await supabaseAdmin
         .from("modifier_options")
-        .update({
-          modifier_option_group_id: destinationOptionGroupId,
-          name,
-          price_delta: priceDelta,
-          sort_order: sortOrder,
-        })
+        .update(
+          buildModifierOptionWritePayload({
+            modifierOptionGroupId: destinationOptionGroupId,
+            name,
+            priceDelta,
+            sortOrder,
+          })
+        )
         .eq("id", optionId)
         .eq("business_id", businessId)
         .eq("modifier_group_id", modifierGroupId)
@@ -155,7 +162,7 @@ export async function updateModifierOption(
       formData.get("modifierGroupId"),
       "Modifier group"
     )
-    const modifierOptionGroupId = parseNullableString(
+    const modifierOptionGroupId = parseModifierOptionGroupId(
       formData.get("modifierOptionGroupId")
     )
     const name = parseString(formData.get("name"), "Option name")
@@ -198,7 +205,10 @@ export async function updateModifierOption(
     console.error(error)
     return {
       status: "error",
-      message: "Modifier option could not be updated. Please try again.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Modifier option could not be updated. Please try again.",
     }
   }
 }

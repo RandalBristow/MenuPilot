@@ -12,6 +12,10 @@ import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import type { DeleteModifierOptionGroupResult } from "@/features/admin-modifiers/actions/delete-modifier-option-group"
 import { DeleteModifierOptionGroupButton } from "@/features/admin-modifiers/components/DeleteModifierOptionGroupButton"
 import { ModifierOptionGroupFormDialog } from "@/features/admin-modifiers/components/ModifierOptionGroupFormDialog"
+import {
+  getNextModifierOptionGroupSortOrder,
+  sortModifierOptionGroups,
+} from "@/features/admin-modifiers/utils/modifier-option-group-sort-order"
 import type { ModifierGroupDetail } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 import type { ModifierGroupProductContext } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 
@@ -42,6 +46,10 @@ export function ModifierSubgroupListClient({
     useState<DeleteModifierOptionGroupResult | null>(null)
   const { group, mode, productContext } = data
   const isProductScopedMode = mode !== "global"
+  const optionGroups = sortModifierOptionGroups(group.optionGroups)
+  const nextSortOrder = getNextModifierOptionGroupSortOrder({
+    optionGroups,
+  })
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
@@ -69,7 +77,7 @@ export function ModifierSubgroupListClient({
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pb-3">
-          {group.optionGroups.length === 0 ? (
+          {optionGroups.length === 0 ? (
             <ThemedCard className="p-5 text-center">
               <p className="font-semibold">No option groups yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -77,7 +85,7 @@ export function ModifierSubgroupListClient({
               </p>
             </ThemedCard>
           ) : (
-            group.optionGroups.map((subgroup) => (
+            optionGroups.map((subgroup) => (
               <ThemedCard
                 key={subgroup.id}
                 role="button"
@@ -108,6 +116,9 @@ export function ModifierSubgroupListClient({
                     <CompactRecordStatusIcon enabled={subgroup.is_enabled} />
                   }
                   description={subgroup.description}
+                  metadata={
+                    <span>Sort {subgroup.sort_order}</span>
+                  }
                   rightAction={
                     <>
                       <ThemedButton
@@ -178,6 +189,7 @@ export function ModifierSubgroupListClient({
         onOpenChange={setCreateOpen}
         modifierGroupId={group.id}
         modifierGroupName={group.name}
+        nextSortOrder={nextSortOrder}
       />
 
       {activeOptionGroup ? (
@@ -189,6 +201,7 @@ export function ModifierSubgroupListClient({
           mode="edit"
           modifierGroupId={group.id}
           modifierGroupName={group.name}
+          nextSortOrder={nextSortOrder}
           optionGroup={activeOptionGroup}
         />
       ) : null}

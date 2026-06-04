@@ -30,6 +30,7 @@ type ModifierOptionGroupFormDialogProps = {
   mode?: ModifierOptionGroupFormMode
   modifierGroupId: string
   modifierGroupName: string
+  nextSortOrder?: number
   optionGroup?: RawModifierOptionGroup
 }
 
@@ -39,10 +40,12 @@ export function ModifierOptionGroupFormDialog({
   mode = "create",
   modifierGroupId,
   modifierGroupName,
+  nextSortOrder = 1,
   optionGroup,
 }: ModifierOptionGroupFormDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const sortOrderRef = useRef<HTMLInputElement>(null)
   const isCreateMode = mode === "create"
   const title = isCreateMode
     ? "Create option group"
@@ -51,6 +54,12 @@ export function ModifierOptionGroupFormDialog({
     ? `Add an option group to ${modifierGroupName}.`
     : "Update this option group."
   const submitLabel = isCreateMode ? "Create option group" : "Save option group"
+
+  function handleUseNextSortOrder() {
+    if (sortOrderRef.current) {
+      sortOrderRef.current.value = String(nextSortOrder)
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
     if (isCreateMode) {
@@ -163,15 +172,26 @@ export function ModifierOptionGroupFormDialog({
             <label className="block space-y-1.5 text-sm">
               <span className="font-medium">Sort order</span>
               <input
+                ref={sortOrderRef}
                 name="sortOrder"
                 type="number"
                 min="0"
                 step="1"
-                defaultValue={optionGroup ? String(optionGroup.sort_order) : ""}
+                defaultValue={
+                  optionGroup ? String(optionGroup.sort_order) : String(nextSortOrder)
+                }
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                placeholder={isCreateMode ? "Append to end" : "0"}
-                required={!isCreateMode}
+                placeholder="Next available"
               />
+              <ThemedButton
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 h-8 bg-background px-2 text-xs text-foreground hover:bg-muted"
+                onClick={handleUseNextSortOrder}
+              >
+                Next Available: {nextSortOrder}
+              </ThemedButton>
             </label>
 
             {isCreateMode ? (

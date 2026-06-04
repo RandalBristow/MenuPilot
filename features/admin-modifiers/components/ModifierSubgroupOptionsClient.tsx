@@ -27,6 +27,10 @@ import {
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import {
+  getNextModifierOptionSortOrder,
+  sortModifierOptionsWithinList,
+} from "@/features/admin-modifiers/utils/modifier-option-sort-order"
 import type {
   ModifierGroupDetail,
   ModifierGroupDetailOption,
@@ -276,9 +280,24 @@ export function ModifierSubgroupOptionsClient({
     useState<ModifierGroupDetailOption | null>(null)
   const { group, mode, productContext } = data
   const isProductScopedMode = mode !== "global"
-  const options = group.options.filter(
-    (option) => option.modifier_option_group_id === subgroup.id
+  const options = sortModifierOptionsWithinList(
+    group.options.filter(
+      (option) => option.modifier_option_group_id === subgroup.id
+    )
   )
+  const nextSortOrdersByOptionGroupId = Object.fromEntries(
+    group.optionGroups.map((optionGroup) => [
+      optionGroup.id,
+      getNextModifierOptionSortOrder({
+        options: group.options,
+        modifierOptionGroupId: optionGroup.id,
+      }),
+    ])
+  )
+  const ungroupedNextSortOrder = getNextModifierOptionSortOrder({
+    options: group.options,
+    modifierOptionGroupId: null,
+  })
 
   async function handleDefaultToggle(formData: FormData) {
     await setProductDefaultModifierOption(formData)
@@ -480,14 +499,18 @@ export function ModifierSubgroupOptionsClient({
         </div>
       </div>
 
-      <ModifierOptionFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        modifierGroupId={group.id}
-        modifierGroupName={group.name}
-        optionGroups={group.optionGroups}
-        initialOptionGroupId={subgroup.id}
-      />
+      {createOpen ? (
+        <ModifierOptionFormDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          modifierGroupId={group.id}
+          modifierGroupName={group.name}
+          optionGroups={group.optionGroups}
+          initialOptionGroupId={subgroup.id}
+          nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
+          ungroupedNextSortOrder={ungroupedNextSortOrder}
+        />
+      ) : null}
 
       {activeOption && productContext && mode === "product" ? (
         <ModifierOptionOverridePanel
@@ -511,6 +534,8 @@ export function ModifierSubgroupOptionsClient({
           modifierGroupName={group.name}
           optionGroups={group.optionGroups}
           initialOptionGroupId={subgroup.id}
+          nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
+          ungroupedNextSortOrder={ungroupedNextSortOrder}
         />
       ) : null}
     </main>

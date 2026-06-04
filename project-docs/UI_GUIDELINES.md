@@ -127,11 +127,14 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 
 - Product builder headers should show the product name and, when present, the product description directly below the name.
 - Do not duplicate the product description in the scrollable builder body when it already appears in the header.
+- Modifier Option Groups inside product builders should render through the shared builder option group accordion/list component instead of builder-specific row implementations.
+- Use `ThemedAccordion` for themed collapsible product-builder sections. Keep accordion triggers as real buttons with accessible expanded state and a visible chevron.
 - Selected modifier option rows should keep the warm selected highlight and show a clear checkmark.
 - Do not prefix selected modifier option labels with text such as "Selected:".
 - The selected checkmark must use a fixed-size slot so row height and price alignment do not shift between selected and unselected rows.
 - Use accessible selected/pressed state on selected modifier option controls where appropriate.
 - Do not use thumbs up/down for customer selected modifier state; thumbs remain reserved for admin enabled/available states.
+- Builder UI components should not calculate configurable product totals; pricing remains in the shared `priceConfiguredProduct` resolver.
 
 ## Card Spacing And Density
 

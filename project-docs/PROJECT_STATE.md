@@ -140,6 +140,9 @@ Modifier behavior should mirror variant behavior:
 - Variant-specific modifier option price overrides are managed per product, reusable variant option, Modifier Group, and Modifier Option.
 - Modifier Categories are for admin organization only.
 - Modifier Option Groups organize options inside a Modifier Group.
+- Modifier Options should belong to a Modifier Option Group/List; ungrouped options are not the intended admin/customer data shape.
+- Modifier Option Group/List `sort_order` is scoped within the parent Modifier Group and controls builder display order for grouped options.
+- Modifier Group `sort_order` is scoped within the parent Modifier Category and controls builder section order.
 
 ### Conditional modifier availability
 **Status:** PARTIALLY IMPLEMENTED

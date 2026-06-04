@@ -78,6 +78,7 @@ export async function updateModifierGroup(formData: FormData) {
   const isRequired = parseRequired(formData.get("isRequired"))
   const minRequired = parseInteger(formData.get("minRequired"), "Minimum")
   const maxAllowed = parseOptionalInteger(formData.get("maxAllowed"), "Maximum")
+  const sortOrder = parseInteger(formData.get("sortOrder"), "Sort order")
   const isEnabled = parseEnabled(formData.get("isEnabled"))
 
   if (maxAllowed !== null && maxAllowed < minRequired) {
@@ -105,6 +106,7 @@ export async function updateModifierGroup(formData: FormData) {
       max_allowed: maxAllowed,
       is_required: isRequired,
       is_enabled: isEnabled,
+      sort_order: sortOrder,
     })
     .eq("id", modifierGroupId)
     .eq("business_id", businessId)

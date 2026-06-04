@@ -86,6 +86,10 @@ export async function createModifierGroup(formData: FormData) {
   const isRequired = parseRequired(formData.get("isRequired"))
   const minRequired = parseInteger(formData.get("minRequired"), "Minimum")
   const maxAllowed = parseOptionalInteger(formData.get("maxAllowed"), "Maximum")
+  const requestedSortOrder = parseOptionalInteger(
+    formData.get("sortOrder"),
+    "Sort order"
+  )
 
   if (maxAllowed !== null && maxAllowed < minRequired) {
     throw new Error("Maximum must be greater than or equal to minimum.")
@@ -102,7 +106,8 @@ export async function createModifierGroup(formData: FormData) {
     throw new Error("Selected modifier category is invalid.")
   }
 
-  const sortOrder = await getNextSortOrder(businessId, categoryId)
+  const sortOrder =
+    requestedSortOrder ?? (await getNextSortOrder(businessId, categoryId))
 
   const { error } = await supabaseAdmin.from("modifier_groups").insert({
     business_id: businessId,

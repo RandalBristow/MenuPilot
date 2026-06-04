@@ -100,6 +100,21 @@ describe("moveModifierOption", () => {
     })
   })
 
+  it("moving an option does not calculate next available from unrelated option groups", async () => {
+    const { store, updates } = createStore()
+
+    await moveModifierOption({
+      payload: {
+        optionId: "tomato",
+        modifierGroupId: "salad-toppings",
+        destinationOptionGroupId: "veggies",
+      },
+      store,
+    })
+
+    expect(updates[0]).not.toHaveProperty("sortOrder")
+  })
+
   it("surfaces a friendly error when blocked", async () => {
     const store: MoveModifierOptionStore = {
       async findOption() {
@@ -128,4 +143,3 @@ describe("moveModifierOption", () => {
     })
   })
 })
-

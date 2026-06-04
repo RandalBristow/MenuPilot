@@ -34,6 +34,7 @@ type ModifierGroupFormDialogProps = {
   selectedCategoryId: string
   mode?: ModifierGroupFormMode
   group?: RawModifierGroup
+  nextSortOrder?: number
   triggerLabel?: string
   triggerIcon?: ReactNode
   triggerAriaLabel?: string
@@ -47,6 +48,7 @@ export function ModifierGroupFormDialog({
   selectedCategoryId,
   mode = "create",
   group,
+  nextSortOrder = 1,
   triggerLabel,
   triggerIcon,
   triggerAriaLabel,
@@ -54,6 +56,7 @@ export function ModifierGroupFormDialog({
 }: ModifierGroupFormDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const sortOrderRef = useRef<HTMLInputElement>(null)
   const [internalOpen, setInternalOpen] = useState(false)
   const currentOpen = open ?? internalOpen
   const setCurrentOpen = onOpenChange ?? setInternalOpen
@@ -68,6 +71,12 @@ export function ModifierGroupFormDialog({
     ? "Add a reusable subgroup. Options can be added later."
     : "Update this modifier subgroup rule set."
   const submitLabel = isCreateMode ? "Create subgroup" : "Save subgroup"
+
+  function handleUseNextSortOrder() {
+    if (sortOrderRef.current) {
+      sortOrderRef.current.value = String(nextSortOrder)
+    }
+  }
 
   function handleOpenChange(nextOpen: boolean) {
     setCurrentOpen(nextOpen)
@@ -239,6 +248,32 @@ export function ModifierGroupFormDialog({
                   />
                 </label>
               </div>
+
+              <label className="col-span-2 block space-y-1.5 text-sm">
+                <span className="font-medium">Sort order</span>
+                <input
+                  ref={sortOrderRef}
+                  name="sortOrder"
+                  type="number"
+                  min="0"
+                  step="1"
+                  defaultValue={
+                    group ? String(group.sort_order) : String(nextSortOrder)
+                  }
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  placeholder="Next available"
+                  required
+                />
+                <ThemedButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-8 bg-background px-2 text-xs text-foreground hover:bg-muted"
+                  onClick={handleUseNextSortOrder}
+                >
+                  Next Available: {nextSortOrder}
+                </ThemedButton>
+              </label>
 
               {!isCreateMode && group ? (
                 <input

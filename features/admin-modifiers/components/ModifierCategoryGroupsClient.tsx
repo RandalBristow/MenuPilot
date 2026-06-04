@@ -9,6 +9,10 @@ import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ModifierGroupFormDialog } from "@/features/admin-modifiers/components/ModifierGroupFormDialog"
+import {
+  getNextModifierGroupSortOrder,
+  sortModifierGroups,
+} from "@/features/admin-modifiers/utils/modifier-group-sort-order"
 import type {
   ModifierCategory,
   RawModifierGroup,
@@ -17,16 +21,6 @@ import type {
 type ModifierCategoryGroupsClientProps = {
   categories: ModifierCategory[]
   category: ModifierCategory
-}
-
-function sortGroups(groups: RawModifierGroup[]) {
-  return [...groups].sort((first, second) => {
-    if (first.sort_order !== second.sort_order) {
-      return first.sort_order - second.sort_order
-    }
-
-    return first.name.localeCompare(second.name)
-  })
 }
 
 function formatGroupRules(group: RawModifierGroup) {
@@ -49,7 +43,10 @@ export function ModifierCategoryGroupsClient({
   const router = useRouter()
   const [selectedCategoryId, setSelectedCategoryId] = useState(category.id)
   const [activeGroup, setActiveGroup] = useState<RawModifierGroup | null>(null)
-  const groups = sortGroups(category.modifier_groups)
+  const groups = sortModifierGroups(category.modifier_groups)
+  const nextSortOrder = getNextModifierGroupSortOrder({
+    modifierGroups: groups,
+  })
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
@@ -104,6 +101,9 @@ export function ModifierCategoryGroupsClient({
                     <p className="text-xs leading-5 text-muted-foreground">
                       {formatGroupRules(group)}
                     </p>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Sort {group.sort_order}
+                    </p>
                   </div>
                 </div>
 
@@ -136,6 +136,7 @@ export function ModifierCategoryGroupsClient({
               selectedCategoryId={selectedCategoryId}
               triggerIcon={<Plus aria-hidden="true" />}
               triggerAriaLabel="New Modifier Subgroup"
+              nextSortOrder={nextSortOrder}
               onCreated={setSelectedCategoryId}
             />
           </div>
@@ -151,6 +152,7 @@ export function ModifierCategoryGroupsClient({
             selectedCategoryId={category.id}
             mode="edit"
             group={activeGroup}
+            nextSortOrder={nextSortOrder}
             onCreated={setSelectedCategoryId}
           />
         ) : null}

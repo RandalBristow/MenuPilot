@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { createModifierOption } from "@/features/admin-modifiers/actions/create-modifier-option"
+import type { CreateModifierOptionResult } from "@/features/admin-modifiers/actions/create-modifier-option"
 import { setModifierOptionEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-enabled"
 import { updateModifierOption } from "@/features/admin-modifiers/actions/update-modifier-option"
 import type { UpdateModifierOptionResult } from "@/features/admin-modifiers/actions/update-modifier-option"
@@ -35,6 +36,8 @@ type ModifierOptionFormDialogProps = {
   modifierGroupName: string
   optionGroups: RawModifierOptionGroup[]
   initialOptionGroupId?: string | null
+  nextSortOrdersByOptionGroupId?: Record<string, number>
+  ungroupedNextSortOrder?: number
   option?: RawModifierOption
   mode?: ModifierOptionFormMode
 }
@@ -46,14 +49,22 @@ export function ModifierOptionFormDialog({
   modifierGroupName,
   optionGroups,
   initialOptionGroupId = null,
+  nextSortOrdersByOptionGroupId = {},
+  ungroupedNextSortOrder = 1,
   option,
   mode = "create",
 }: ModifierOptionFormDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const sortOrderRef = useRef<HTMLInputElement>(null)
   const isCreateMode = mode === "create"
-  const selectedOptionGroupId =
-    initialOptionGroupId ?? option?.modifier_option_group_id ?? null
+  const fallbackOptionGroupId = optionGroups[0]?.id ?? ""
+  const initialOptionGroupValue =
+    initialOptionGroupId ?? option?.modifier_option_group_id ?? fallbackOptionGroupId
+  const [selectedOptionGroupValue, setSelectedOptionGroupValue] = useState(
+    initialOptionGroupValue
+  )
+  const selectedOptionGroupId = selectedOptionGroupValue
   const selectedOptionGroup = selectedOptionGroupId
     ? optionGroups.find((optionGroup) => optionGroup.id === selectedOptionGroupId)
     : undefined
@@ -65,19 +76,35 @@ export function ModifierOptionFormDialog({
     ? `Add an option to ${modifierGroupName}.`
     : "Update this modifier option."
   const submitLabel = isCreateMode ? "Create option" : "Save option"
-  const [updateResult, setUpdateResult] =
-    useState<UpdateModifierOptionResult | null>(null)
+  const [formResult, setFormResult] = useState<
+    CreateModifierOptionResult | UpdateModifierOptionResult | null
+  >(null)
+  const nextSortOrder =
+    selectedOptionGroupValue
+      ? nextSortOrdersByOptionGroupId[selectedOptionGroupValue] ?? 1
+      : ungroupedNextSortOrder
+
+  function handleUseNextSortOrder() {
+    if (sortOrderRef.current) {
+      sortOrderRef.current.value = String(nextSortOrder)
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
-    setUpdateResult(null)
+    setFormResult(null)
 
     if (isCreateMode) {
-      await createModifierOption(formData)
+      const result = await createModifierOption(formData)
+
+      if (result.status !== "created") {
+        setFormResult(result)
+        return
+      }
     } else {
       const result = await updateModifierOption(formData)
 
       if (result.status !== "updated") {
-        setUpdateResult(result)
+        setFormResult(result)
         return
       }
     }
@@ -136,15 +163,22 @@ export function ModifierOptionFormDialog({
               />
             ) : null}
 
-            {updateResult ? (
+            {formResult ? (
               <p
                 className={
-                  updateResult.status === "updated"
+                  formResult.status === "updated" ||
+                  formResult.status === "created"
                     ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
                     : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 }
               >
-                {updateResult.message}
+                {formResult.message}
+              </p>
+            ) : null}
+
+            {optionGroups.length === 0 ? (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                Create a Modifier Option Group/List before adding options.
               </p>
             ) : null}
 
@@ -197,15 +231,26 @@ export function ModifierOptionFormDialog({
               <label className="block space-y-1.5 text-sm">
                 <span className="font-medium">Sort order</span>
                 <input
+                  ref={sortOrderRef}
                   name="sortOrder"
                   type="number"
                   min="0"
                   step="1"
-                  defaultValue={option ? String(option.sort_order) : ""}
+                  defaultValue={
+                    option ? String(option.sort_order) : String(nextSortOrder)
+                  }
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  placeholder={isCreateMode ? "Next" : "0"}
-                  required={!isCreateMode}
+                  placeholder="Next available"
                 />
+                <ThemedButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-8 bg-background px-2 text-xs text-foreground hover:bg-muted"
+                  onClick={handleUseNextSortOrder}
+                >
+                  Next Available: {nextSortOrder}
+                </ThemedButton>
               </label>
             </div>
 
@@ -213,7 +258,7 @@ export function ModifierOptionFormDialog({
               <input
                 type="hidden"
                 name="modifierOptionGroupId"
-                value={selectedOptionGroupId ?? "none"}
+                value={selectedOptionGroupValue}
               />
             ) : (
               <label className="block space-y-1.5 text-sm">
@@ -221,9 +266,12 @@ export function ModifierOptionFormDialog({
                 <select
                   name="modifierOptionGroupId"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                  defaultValue={selectedOptionGroupId ?? "none"}
+                  value={selectedOptionGroupValue}
+                  required
+                  onChange={(event) =>
+                    setSelectedOptionGroupValue(event.target.value)
+                  }
                 >
-                  <option value="none">None</option>
                   {optionGroups.map((optionGroup) => (
                     <option key={optionGroup.id} value={optionGroup.id}>
                       {optionGroup.name}
@@ -251,6 +299,7 @@ export function ModifierOptionFormDialog({
               size="icon"
               aria-label={submitLabel}
               className="size-10"
+              disabled={optionGroups.length === 0}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">{submitLabel}</span>

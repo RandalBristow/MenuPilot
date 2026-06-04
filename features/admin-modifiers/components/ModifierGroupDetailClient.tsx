@@ -24,6 +24,7 @@ import {
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import { getNextModifierOptionSortOrder } from "@/features/admin-modifiers/utils/modifier-option-sort-order"
 import type {
   ModifierGroupDetail,
   ModifierGroupDetailOption,
@@ -241,6 +242,19 @@ export function ModifierGroupDetailClient({
     useState<ModifierGroupDetailOption | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const { group, mode, productContext } = data
+  const nextSortOrdersByOptionGroupId = Object.fromEntries(
+    group.optionGroups.map((optionGroup) => [
+      optionGroup.id,
+      getNextModifierOptionSortOrder({
+        options: group.options,
+        modifierOptionGroupId: optionGroup.id,
+      }),
+    ])
+  )
+  const ungroupedNextSortOrder = getNextModifierOptionSortOrder({
+    options: group.options,
+    modifierOptionGroupId: null,
+  })
   const isProductMode = mode === "product"
   const isPreviewMode = mode === "preview"
   const isProductScopedMode = mode !== "global"
@@ -389,16 +403,22 @@ export function ModifierGroupDetailClient({
           modifierGroupId={group.id}
           modifierGroupName={group.name}
           optionGroups={group.optionGroups}
+          nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
+          ungroupedNextSortOrder={ungroupedNextSortOrder}
         />
       ) : null}
 
-      <ModifierOptionFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        modifierGroupId={group.id}
-        modifierGroupName={group.name}
-        optionGroups={group.optionGroups}
-      />
+      {createOpen ? (
+        <ModifierOptionFormDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          modifierGroupId={group.id}
+          modifierGroupName={group.name}
+          optionGroups={group.optionGroups}
+          nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
+          ungroupedNextSortOrder={ungroupedNextSortOrder}
+        />
+      ) : null}
     </main>
   )
 }

@@ -12,6 +12,10 @@ import {
   MODIFIER_ADMIN_ROW_CARD_CLASS,
   MODIFIER_ADMIN_ROW_CLASS,
 } from "@/features/admin-modifiers/components/modifier-admin-row-styles"
+import {
+  getNextModifierOptionSortOrder,
+  sortModifierOptionsWithinList,
+} from "@/features/admin-modifiers/utils/modifier-option-sort-order"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import type {
@@ -61,13 +65,29 @@ export function ModifierOptionsBrowser({
     null
   const [selectedSubgroupId, setSelectedSubgroupId] = useState("all")
   const subgroups = selectedGroup?.modifier_option_groups ?? []
-  const options = (selectedGroup?.modifier_options ?? []).filter((option) => {
-    if (selectedSubgroupId === "all") return true
-    if (selectedSubgroupId === "ungrouped") {
-      return option.modifier_option_group_id === null
-    }
+  const groupOptions = selectedGroup?.modifier_options ?? []
+  const options = sortModifierOptionsWithinList(
+    groupOptions.filter((option) => {
+      if (selectedSubgroupId === "all") return true
+      if (selectedSubgroupId === "ungrouped") {
+        return option.modifier_option_group_id === null
+      }
 
-    return option.modifier_option_group_id === selectedSubgroupId
+      return option.modifier_option_group_id === selectedSubgroupId
+    })
+  )
+  const nextSortOrdersByOptionGroupId = Object.fromEntries(
+    subgroups.map((subgroup) => [
+      subgroup.id,
+      getNextModifierOptionSortOrder({
+        options: groupOptions,
+        modifierOptionGroupId: subgroup.id,
+      }),
+    ])
+  )
+  const ungroupedNextSortOrder = getNextModifierOptionSortOrder({
+    options: groupOptions,
+    modifierOptionGroupId: null,
   })
   const [activeOption, setActiveOption] = useState<RawModifierOption | null>(
     null
@@ -228,18 +248,22 @@ export function ModifierOptionsBrowser({
         </div>
       </div>
 
-      <ModifierOptionFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        modifierGroupId={selectedGroup.id}
-        modifierGroupName={selectedGroup.name}
-        optionGroups={subgroups}
-        initialOptionGroupId={
-          selectedSubgroupId === "all" || selectedSubgroupId === "ungrouped"
-            ? null
-            : selectedSubgroupId
-        }
-      />
+      {createOpen ? (
+        <ModifierOptionFormDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          modifierGroupId={selectedGroup.id}
+          modifierGroupName={selectedGroup.name}
+          optionGroups={subgroups}
+          initialOptionGroupId={
+            selectedSubgroupId === "all" || selectedSubgroupId === "ungrouped"
+              ? null
+              : selectedSubgroupId
+          }
+          nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
+          ungroupedNextSortOrder={ungroupedNextSortOrder}
+        />
+      ) : null}
 
       {activeOption ? (
         <ModifierOptionFormDialog
@@ -252,6 +276,8 @@ export function ModifierOptionsBrowser({
           modifierGroupId={selectedGroup.id}
           modifierGroupName={selectedGroup.name}
           optionGroups={subgroups}
+          nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
+          ungroupedNextSortOrder={ungroupedNextSortOrder}
         />
       ) : null}
     </div>
