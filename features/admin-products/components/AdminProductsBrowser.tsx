@@ -9,6 +9,7 @@ import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
+import { DuplicateProductDialog } from "@/features/admin-products/components/DuplicateProductDialog"
 
 export type AdminProduct = {
   id: string
@@ -212,6 +213,10 @@ export function AdminProductsBrowser({
                                   >
                                     Manage Modifiers
                                   </ThemedButton>
+                                  <DuplicateProductDialog
+                                    productId={product.id}
+                                    productName={product.name}
+                                  />
                                 </>
                               }
                             />

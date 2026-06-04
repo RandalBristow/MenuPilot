@@ -29,6 +29,7 @@ Working now:
 - `/admin` admin hub.
 - `/admin/media` Media Library for image upload/import metadata backed by `media_assets`.
 - `/admin/products` product management hub and product/category/subcategory/product form flows.
+- Admin product list supports duplicating a product into a new disabled-by-default product copy. Duplication copies product-scoped category placement, variant assignments/overrides, Modifier Group assignments/overrides, default modifiers, included modifier rules, variant availability rules, and variant-specific modifier price overrides while reusing global variant, modifier, and media records.
 - Products select images from Media Library through `products.image_media_id`.
 - Reusable variant group list, option editing, product assignment, and per-product overrides.
 - Modifier library flow using the updated hierarchy.

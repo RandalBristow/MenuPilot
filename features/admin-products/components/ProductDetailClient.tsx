@@ -13,6 +13,7 @@ import {
   ThemedSheetTitle,
 } from "@/components/themed/ThemedSheet"
 import { updateProduct } from "@/features/admin-products/actions/update-product"
+import { DuplicateProductDialog } from "@/features/admin-products/components/DuplicateProductDialog"
 import {
   ProductPanelFooter,
   ProductUpdateHiddenFields,
@@ -80,7 +81,6 @@ function ProductDetailEditor({
   mediaAssets: ProductFormData["mediaAssets"]
   businessName: string
 }) {
-  const productPath = `/admin/products/${product.id}`
   const [isEnabled, setIsEnabled] = useState(product.is_enabled)
   const [hasVariants, setHasVariants] = useState(product.has_variants)
   const placementLabel = getProductPlacementLabel(menuGroups, product.menuGroupId)
@@ -93,21 +93,29 @@ function ProductDetailEditor({
           showCloseButton={false}
           className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
         >
-          <form action={updateProduct} className="flex min-h-0 flex-1 flex-col">
-            <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-              <ThemedSheetTitle>Edit Product</ThemedSheetTitle>
-              <ThemedSheetDescription>
-                Update product details for {businessName}.
-              </ThemedSheetDescription>
-              <p className="truncate text-sm text-muted-foreground">
-                {placementLabel}
-              </p>
-            </ThemedSheetHeader>
+          <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
+            <div className="flex items-start justify-between gap-3">
+              <ThemedSheetTitle className="min-w-0 flex-1">
+                Edit Product
+              </ThemedSheetTitle>
+              <DuplicateProductDialog
+                productId={product.id}
+                productName={product.name}
+              />
+            </div>
+            <ThemedSheetDescription>
+              Update product details for {businessName}.
+            </ThemedSheetDescription>
+            <p className="truncate text-sm text-muted-foreground">
+              {placementLabel}
+            </p>
+          </ThemedSheetHeader>
 
+          <form action={updateProduct} className="flex min-h-0 flex-1 flex-col">
             <div className={cn(PRODUCT_ADMIN_PANEL_BODY_CLASS, "pb-4")}>
               <ProductUpdateHiddenFields
                 product={product}
-                redirectTo={productPath}
+                redirectTo="/admin/products/list"
                 includeInfo={false}
                 includeMenuPlacement={false}
                 includeAvailability={false}

@@ -31,6 +31,7 @@ function parseRedirectTo(value: FormDataEntryValue | null, productId: string) {
 
   if (
     redirectTo === "/admin/products" ||
+    redirectTo === "/admin/products/list" ||
     redirectTo === `/admin/products/${productId}` ||
     redirectTo === `/admin/products/variant-assignments?productId=${productId}` ||
     redirectTo === `/admin/products/modifier-groups?productId=${productId}`
