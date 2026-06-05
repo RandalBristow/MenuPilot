@@ -9,9 +9,11 @@ import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ModifierCategoryFormDialog } from "@/features/admin-modifiers/components/ModifierCategoryFormDialog"
+import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import type { ModifierCategory } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierGroupsBrowserProps = {
+  businessSlug?: string
   businessName: string
   categories: ModifierCategory[]
 }
@@ -27,6 +29,7 @@ function sortCategories(categories: ModifierCategory[]) {
 }
 
 export function ModifierGroupsBrowser({
+  businessSlug,
   businessName,
   categories,
 }: ModifierGroupsBrowserProps) {
@@ -99,7 +102,9 @@ export function ModifierGroupsBrowser({
                     className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
                     onClick={(event) => {
                       event.stopPropagation()
-                      router.push(`/admin/modifiers/groups/${category.id}`)
+                      router.push(
+                        getModifierAdminHref(`groups/${category.id}`, businessSlug)
+                      )
                     }}
                   >
                     Manage Subgroups
@@ -113,10 +118,15 @@ export function ModifierGroupsBrowser({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
             <AdminBackButton
-              fallbackHref="/admin/products"
+              fallbackHref={
+                businessSlug
+                  ? `/businesses/${encodeURIComponent(businessSlug)}/admin`
+                  : "/admin/products"
+              }
               label="Back to product management"
             />
             <ModifierCategoryFormDialog
+              businessSlug={businessSlug}
               triggerIcon={<Plus aria-hidden="true" />}
               triggerAriaLabel="New Modifier Group"
             />
@@ -131,6 +141,7 @@ export function ModifierGroupsBrowser({
             }}
             mode="edit"
             category={activeCategory}
+            businessSlug={businessSlug}
           />
         ) : null}
       </div>

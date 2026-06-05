@@ -1,6 +1,6 @@
 # Database
 
-_Last updated: 2026-05-29_
+_Last updated: 2026-06-05_
 
 All schema changes must be made through files in `database/migrations/`.
 
@@ -23,6 +23,8 @@ All schema changes must be made through files in `database/migrations/`.
 | `013_order_snapshot_reusable_ids.sql` | Adds reusable variant/modifier IDs to order item snapshots. |
 | `014_product_default_modifier_option_settings.sql` | Adds placement, multiplier, enabled, sort, and uniqueness settings for product default modifier options. |
 | `015_product_variant_modifier_option_price_overrides.sql` | Adds variant-specific modifier option price overrides for reusable variants. |
+| `016_backfill_required_modifier_option_groups.sql` | Backfills Modifier Option Groups/Lists for seeded options that were created directly under Modifier Groups and removes placeholder pizza sauce seed options. |
+| `017_platform_onboarding_defaults.sql` | Adds minimal Platform Admin onboarding schema support: business primary contact fields, location status, and setup-safe defaults for new businesses/locations. |
 
 ## Core Tenant Tables
 
@@ -35,6 +37,25 @@ All schema changes must be made through files in `database/migrations/`.
 - `location_hour_overrides`
 
 The app is designed for multiple businesses and locations, but the current demo flows still use seeded Pronto Demo records.
+
+Current architecture decision:
+
+- One shared multi-tenant database is expected.
+- Business-owned records use `business_id`.
+- Location-specific records use `location_id` where appropriate.
+- Businesses should not each get a separate database by default.
+- Platform Admin / App Owner tooling should eventually create businesses and first locations before a clean development rebuild.
+- Before a clean database rebuild, public menu, checkout, staff, and admin data access should use a central tenant context resolver instead of hardcoded seeded demo business/location assumptions.
+
+Platform Admin onboarding schema support:
+
+- `businesses` includes optional `primary_contact_name`, `primary_contact_email`, and `primary_phone` fields.
+- `businesses.status` defaults to `setup` for newly-created businesses.
+- `locations.status` defaults to `setup` for newly-created locations.
+- New locations default to ordering disabled: `is_enabled = false`, `accepting_orders = false`, `pickup_enabled = false`, and `delivery_enabled = false`.
+- Existing businesses keep their current status, and existing locations are marked `active` when the location status column is introduced so demo data is not accidentally treated as setup data.
+- Expected status values for MVP are `setup`, `active`, `paused`, and `archived`; these are documented conventions, not strict database constraints yet.
+- Full auth/role enforcement remains deferred.
 
 ## Menu And Product Tables
 
@@ -126,6 +147,8 @@ The initial schema also includes foundation for public media and future website/
 
 These are not the current build focus.
 
+Draft/publish/versioning is a future structural layer after specials MVP and before real customer launch. Prefer real version records over only scattered `is_published` flags, with both a version number and published timestamp. Versioning should eventually apply beyond products, including categories, variants, modifiers, pricing rules, defaults, included rules, specials, media selections, printable menus, and future homepage/menu display settings.
+
 ## Current Modeling Rule
 
 Reusable configuration should follow this pattern:
@@ -135,3 +158,5 @@ Reusable configuration should follow this pattern:
 3. Store product-specific differences in override tables.
 4. Clean up assignment-scoped overrides when assignments are removed.
 5. Keep unassigned reusable objects view-only from product context.
+
+Product setup remains the foundation for specials, printable menus, draft/publish/versioning, and later AI-assisted owner/admin tools.

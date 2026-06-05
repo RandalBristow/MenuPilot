@@ -4,22 +4,11 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { buildProductPayload } from "@/features/admin-products/utils/build-product-payload"
-
-const BUSINESS_SLUG = "pronto-demo"
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
-}
+import {
+  getProductAdminActionHref,
+  getProductAdminActionRevalidatePaths,
+  resolveProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
 
 async function assertMenuGroup(businessId: string, menuGroupId: string) {
   const { data, error } = await supabaseAdmin
@@ -75,7 +64,8 @@ async function assertMediaAsset(
 }
 
 export async function createProduct(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
+  const { businessId } = context
   const { product: productPayload, menuGroupId, modifierGroupIds } =
     buildProductPayload(formData)
 
@@ -133,7 +123,13 @@ export async function createProduct(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/products")
+  getProductAdminActionRevalidatePaths({ context, productId }).forEach(
+    (path) => revalidatePath(path)
+  )
   revalidatePath("/menu")
-  redirect("/admin/products")
+  redirect(
+    context.isScoped
+      ? getProductAdminActionHref(context, "list")
+      : getProductAdminActionHref(context)
+  )
 }

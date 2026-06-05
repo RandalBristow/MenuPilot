@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { getProductDeleteStrategy } from "@/features/admin-products/utils/get-product-delete-strategy"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getProductAdminActionRevalidatePaths,
+  resolveProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
 
 export type DeleteProductResult = {
   deleted: boolean
@@ -18,20 +20,6 @@ function parseString(value: FormDataEntryValue | null, fieldName: string) {
   }
 
   return value.trim()
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 async function assertProduct(businessId: string, productId: string) {
@@ -65,7 +53,8 @@ async function hasOrderUsage(businessId: string, productId: string) {
 export async function deleteProduct(
   formData: FormData
 ): Promise<DeleteProductResult> {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
+  const { businessId } = context
   const productId = parseString(formData.get("productId"), "Product")
 
   await assertProduct(businessId, productId)
@@ -81,8 +70,9 @@ export async function deleteProduct(
       throw new Error(`Could not disable product: ${error.message}`)
     }
 
-    revalidatePath("/admin/products")
-    revalidatePath(`/admin/products/${productId}`)
+    getProductAdminActionRevalidatePaths({ context, productId }).forEach(
+      (path) => revalidatePath(path)
+    )
     revalidatePath("/menu")
 
     return {
@@ -103,7 +93,9 @@ export async function deleteProduct(
     throw new Error(`Could not delete product: ${error.message}`)
   }
 
-  revalidatePath("/admin/products")
+  getProductAdminActionRevalidatePaths({ context }).forEach((path) =>
+    revalidatePath(path)
+  )
   revalidatePath("/menu")
 
   return {

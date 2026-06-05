@@ -1,8 +1,25 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { StaffOrder } from "@/features/staff-orders/types/staff-order"
+import { resolveBusinessContext } from "@/features/tenant/queries/resolve-business-context"
+import { resolveLocationContext } from "@/features/tenant/queries/resolve-location-context"
+import type {
+  TenantBusinessContext,
+  TenantLocationContext,
+} from "@/features/tenant/types/tenant-context"
 
-const BUSINESS_SLUG = "pronto-demo"
-const LOCATION_SLUG = "main-street"
+export const LEGACY_STAFF_BUSINESS_SLUG = "pronto-demo"
+export const LEGACY_STAFF_LOCATION_SLUG = "main-street"
+
+export type StaffOrderTenantInput = {
+  businessSlug?: string | null
+  locationSlug?: string | null
+}
+
+export type StaffOrderScope = {
+  business: TenantBusinessContext
+  location: TenantLocationContext
+  isLegacyDemo: boolean
+}
 
 type RawOrderModifier = {
   id: string
@@ -77,28 +94,44 @@ function mapOrder(order: RawOrder): StaffOrder {
   }
 }
 
-export async function getRecentStaffOrders() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
+function getEffectiveStaffOrderSlugs(input: StaffOrderTenantInput = {}) {
+  const businessSlug = input.businessSlug?.trim() || LEGACY_STAFF_BUSINESS_SLUG
+  const locationSlug = input.locationSlug?.trim() || LEGACY_STAFF_LOCATION_SLUG
 
-  if (businessError || !business) {
-    throw new Error("Could not load staff business.")
+  return {
+    businessSlug,
+    locationSlug,
+    isLegacyDemo:
+      !input.businessSlug?.trim() && !input.locationSlug?.trim(),
   }
+}
 
-  const { data: location, error: locationError } = await supabaseAdmin
-    .from("locations")
-    .select("id")
-    .eq("business_id", business.id)
-    .eq("slug", LOCATION_SLUG)
-    .single()
+export async function getStaffOrderScope(
+  input: StaffOrderTenantInput = {}
+): Promise<StaffOrderScope | null> {
+  const { businessSlug, locationSlug, isLegacyDemo } =
+    getEffectiveStaffOrderSlugs(input)
+  const business = await resolveBusinessContext({ businessSlug })
 
-  if (locationError || !location) {
-    throw new Error("Could not load staff location.")
-  }
+  if (!business) return null
 
+  const location = await resolveLocationContext({
+    businessId: business.id,
+    locationSlug,
+  })
+
+  if (!location) return null
+
+  return { business, location, isLegacyDemo }
+}
+
+export async function getRecentStaffOrdersForScope({
+  businessId,
+  locationId,
+}: {
+  businessId: string
+  locationId: string
+}) {
   const { data, error } = await supabaseAdmin
     .from("orders")
     .select(
@@ -132,8 +165,8 @@ export async function getRecentStaffOrders() {
       )
     `
     )
-    .eq("business_id", business.id)
-    .eq("location_id", location.id)
+    .eq("business_id", businessId)
+    .eq("location_id", locationId)
     .order("created_at", { ascending: false })
     .limit(25)
 
@@ -144,30 +177,15 @@ export async function getRecentStaffOrders() {
   return ((data ?? []) as RawOrder[]).map(mapOrder)
 }
 
-export async function getStaffOrderScope() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
+export async function getRecentStaffOrders(input: StaffOrderTenantInput = {}) {
+  const scope = await getStaffOrderScope(input)
 
-  if (businessError || !business) {
-    throw new Error("Could not load staff business.")
+  if (!scope) {
+    throw new Error("Could not load staff order location.")
   }
 
-  const { data: location, error: locationError } = await supabaseAdmin
-    .from("locations")
-    .select("id")
-    .eq("business_id", business.id)
-    .eq("slug", LOCATION_SLUG)
-    .single()
-
-  if (locationError || !location) {
-    throw new Error("Could not load staff location.")
-  }
-
-  return {
-    businessId: business.id as string,
-    locationId: location.id as string,
-  }
+  return getRecentStaffOrdersForScope({
+    businessId: scope.business.id,
+    locationId: scope.location.id,
+  })
 }

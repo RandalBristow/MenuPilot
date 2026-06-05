@@ -1,6 +1,6 @@
 # MenuPilot Completion Checklist
 
-_Last updated: 2026-05-19_
+_Last updated: 2026-06-05_
 
 This file is the step-by-step project itinerary. The project is considered complete when every required checklist item is complete or intentionally deferred with a documented reason.
 
@@ -34,11 +34,23 @@ Completed:
 - [x] Variant-specific modifier option availability filtering
 - [x] Variant-specific modifier option price overrides
 - [x] Pricing tests passing
+- [x] Platform Admin schema support for setup-mode businesses/locations
+- [x] Platform Admin business list/detail pages
+- [x] Platform Admin create-business and first-location flow
+- [x] Tenant-scoped admin/menu/checkout/staff order route family
+- [x] Platform Admin activation controls
+- [x] Product setup warning for defaults exceeding included selections
+- [x] Tenant onboarding regression checklist
 
 Next focus:
-- [ ] Verify modifier group/subgroup/option pages across mobile widths
-- [ ] Move checkout order creation to a transaction/RPC-style pattern
-- [ ] Add auth/role protection for admin and staff routes
+- [~] Run Product Entry Regression Matrix
+- [~] Run `TENANT_ONBOARDING_REGRESSION.md`
+- [ ] Decide whether to retire/redirect legacy seeded demo routes before clean database rebuild
+- [ ] Do not wipe/rebuild the development database until tenant onboarding regression passes or exceptions are documented
+
+See `ROADMAP.md` for the current roadmap order and deferred future architecture decisions. See `PRODUCT_ENTRY_REGRESSION_MATRIX.md` for the audited product-entry code paths and `TENANT_ONBOARDING_REGRESSION.md` for the new-business manual verification checklist.
+
+Current roadmap order: Product Entry Foundation, Platform Admin / Business Onboarding, Clean Database Rebuild, Specials Engine, Draft/Publish Versioning, Printable Menu Builder, Builder Layout Variants / Theming, then Owner Copilot / AI.
 
 ---
 
@@ -563,8 +575,11 @@ For each feature:
 - [ ] Build admin layout shell
 - [ ] Build sidebar navigation
 - [ ] Build top bar
-- [ ] Build business switcher if needed
+- [ ] Build visible business context header, e.g. `Managing: {Business Name}`
+- [ ] Build Platform Admin back link from business admin context
+- [ ] Build business switcher for Platform Admin/app-owner use
 - [ ] Build location switcher
+- [ ] Support explicit tenant admin route context, such as `/businesses/[businessSlug]/admin`
 - [ ] Build user menu
 - [ ] Build breadcrumbs
 - [ ] Build admin dashboard home
@@ -579,6 +594,18 @@ For each feature:
 
 ## 10.1 Business setup
 
+- [x] Create business through Platform Admin
+- [x] Create first location through Platform Admin
+- [x] New businesses start in setup mode
+- [x] New locations start in setup mode with ordering disabled
+- [x] Open selected business admin context from Platform Admin business detail
+- [x] Centralize tenant resolver for business slug/id and location slug/id before clean database rebuild
+- [x] Activate/pause business from Platform Admin business detail
+- [x] Activate/pause location from Platform Admin business detail
+- [x] Toggle location enabled state from Platform Admin business detail
+- [x] Toggle accepting orders from Platform Admin business detail
+- [x] Toggle pickup from Platform Admin business detail
+- [x] Toggle delivery from Platform Admin business detail
 - [ ] Create business settings screen
 - [ ] Edit business name
 - [ ] Edit business slug
@@ -586,6 +613,7 @@ For each feature:
 - [ ] Upload favicon
 - [ ] Edit description
 - [ ] Edit contact info
+- [ ] Run full tenant onboarding manual regression before database rebuild
 
 ## 10.2 Locations
 
@@ -672,7 +700,7 @@ For each feature:
 - [ ] Filter by enabled status
 - [x] Add product
 - [x] Edit product
-- [ ] Duplicate product
+- [x] Duplicate product
 - [x] Enable/disable product
 - [ ] Set product image
 - [x] Set product description
@@ -783,6 +811,8 @@ For each feature:
 - [ ] Set included quantity
 - [ ] Set swappable yes/no
 - [ ] Set charge for extras yes/no
+- [ ] Warn when default selected modifier count exceeds included selections for the same Modifier Group
+- [ ] Warning example: `Meat Pizza has 5 default Pizza Toppings, but only 0 included selections. Default toppings beyond included count will be charged.`
 - [ ] Support variant-specific included rules
 - [ ] Test pepperoni remove/re-add no charge
 - [ ] Test pepperoni swapped for sausage no charge
@@ -922,6 +952,12 @@ For each feature:
 - [ ] Show related add-ons
 - [ ] Validate before add to cart
 - [x] Add configured item to cart
+- [ ] Defer required modifier validation messages until add attempt or group interaction
+- [ ] Use variant group name instead of generic "Choose an option" in SimpleProductBuilder
+- [ ] Keep quantity controls above variant/modifier selections in builders
+- [ ] Compact quantity-only SimpleProductBuilder dialog
+- [ ] Tune accordion padding/header density without changing pricing or validation
+- [ ] Keep future builder layouts presentation-only through shared pricing, validation, cart, and checkout logic
 
 ---
 
@@ -1110,6 +1146,7 @@ For each feature:
 - [ ] Publish page
 - [ ] Archive page
 - [ ] Delete page only if safe
+- [ ] Defer full business content versioning until after Platform Admin, clean rebuild, and Specials MVP
 
 ## 24.2 Sections
 
@@ -1311,6 +1348,8 @@ For each feature:
 - [ ] Export/print PDF
 - [ ] Hide disabled products
 - [ ] Use live product data
+- [ ] Use the same product/category/special source of truth
+- [ ] Participate in future draft/publish/versioning
 
 ---
 
@@ -1495,7 +1534,7 @@ The full platform is complete when:
 - [ ] Advanced specials work
 - [ ] Advanced delivery zones work
 - [ ] Theme versioning works
-- [ ] Draft/preview/publish works for pages/themes/menus/displays
+- [ ] Draft/preview/publish works for broad business content, including products, categories, variants, modifiers, pricing, defaults, included rules, specials, media selections, printable menus, and customer-facing content
 - [ ] Reporting is business-useful
 - [ ] Staff/admin permissions are polished
 - [ ] Custom domains are supported if desired
@@ -1634,8 +1673,19 @@ The full platform is complete when:
 
 - [ ] Website templates
 - [ ] Product builder templates (pizza variants, etc.)
+- [ ] Future `builder_layout` presentation variants such as compact accordion, visual card layout, and step-by-step layout
 
-## 41.13 Inventory System (Future)
+## 41.13 Owner Copilot / AI
+
+- [D] Owner/admin-only AI assistant for product descriptions
+- [D] Modifier suggestion assistant
+- [D] Specials suggestion assistant
+- [D] Printable menu copy assistant
+- [D] Menu import assistant
+- [D] Marketing/social copy assistant
+- [D] Usage controls and paid/optional AI packaging
+
+## 41.14 Inventory System (Future)
 
 - [ ] Inventory items
 - [ ] Internal item numbers
@@ -1643,7 +1693,7 @@ The full platform is complete when:
 - [ ] Low stock thresholds
 - [ ] Out-of-stock reporting
 
-## 41.14 Social Media & External Links
+## 41.15 Social Media & External Links
 
 - [ ] Add social links to location settings
 - [ ] Display social icons in UI

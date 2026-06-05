@@ -2,11 +2,41 @@ import { supabase } from "@/lib/supabase/client"
 import { applyEffectiveModifierGroups } from "@/features/product-configurator/utils/apply-effective-modifier-groups"
 import { applyEffectiveVariants } from "@/features/product-configurator/utils/apply-effective-product-variants"
 
-export async function getProductConfig(productId: string) {
+type ProductConfigQueryOptions = {
+  businessSlug?: string | null
+}
+
+async function resolveBusinessIdFromSlug(businessSlug: string) {
+  const slug = businessSlug.trim().toLowerCase()
+
+  if (!slug) return null
+
   const { data, error } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("slug", slug)
+    .single()
+
+  if (error) {
+    throw new Error(`Failed to resolve business: ${error.message}`)
+  }
+
+  return data.id as string
+}
+
+export async function getProductConfig(
+  productId: string,
+  options: ProductConfigQueryOptions = {}
+) {
+  const businessId = options.businessSlug
+    ? await resolveBusinessIdFromSlug(options.businessSlug)
+    : null
+
+  let query = supabase
     .from("products")
     .select(`
       id,
+      business_id,
       name,
       description,
       builder_template,
@@ -112,7 +142,12 @@ export async function getProductConfig(productId: string) {
     `)
     .eq("id", productId)
     .eq("is_enabled", true)
-    .single()
+
+  if (businessId) {
+    query = query.eq("business_id", businessId)
+  }
+
+  const { data, error } = await query.single()
 
   if (error) {
     throw new Error(`Failed to load product config: ${error.message}`)

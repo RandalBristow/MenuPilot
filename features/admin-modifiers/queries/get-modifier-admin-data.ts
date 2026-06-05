@@ -3,8 +3,10 @@ import type {
   ModifierCategory,
   RawModifierGroup,
 } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ModifierAdminBusinessContextInput,
+  resolveModifierAdminBusinessContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-business-context"
 
 type RawModifierCategory = {
   id: string
@@ -46,17 +48,10 @@ function mapCategory(category: RawModifierCategory) {
   }
 }
 
-export async function getModifierAdminData() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
+export async function getModifierAdminData(
+  businessContext: ModifierAdminBusinessContextInput = {}
+) {
+  const business = await resolveModifierAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("modifier_categories")
     .select(
@@ -101,7 +96,7 @@ export async function getModifierAdminData() {
   }
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     categories: sortBySortOrder(
       ((data ?? []) as RawModifierCategory[]).map(mapCategory)
     ) as ModifierCategory[],

@@ -7,8 +7,10 @@ import {
   type MoveModifierOptionStore,
 } from "@/features/admin-modifiers/utils/move-modifier-option"
 import { buildModifierOptionWritePayload } from "@/features/admin-modifiers/utils/modifier-option-write-payload"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
 
 export type UpdateModifierOptionResult = {
   status: "updated" | "blocked" | "error"
@@ -57,20 +59,6 @@ function parseSortOrder(value: FormDataEntryValue | null) {
   }
 
   return sortOrder
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
 }
 
 function createMoveStore({
@@ -156,7 +144,7 @@ export async function updateModifierOption(
   formData: FormData
 ): Promise<UpdateModifierOptionResult> {
   try {
-    const businessId = await getBusinessId()
+    const context = await resolveModifierAdminActionContext(formData)
     const optionId = parseString(formData.get("optionId"), "Option")
     const modifierGroupId = parseString(
       formData.get("modifierGroupId"),
@@ -176,7 +164,7 @@ export async function updateModifierOption(
         destinationOptionGroupId: modifierOptionGroupId,
       },
       store: createMoveStore({
-        businessId,
+        businessId: context.businessId,
         name,
         priceDelta,
         sortOrder,
@@ -187,13 +175,16 @@ export async function updateModifierOption(
       return result
     }
 
-    revalidatePath("/admin/modifiers")
-    revalidatePath("/admin/modifiers/options")
-    revalidatePath("/admin/modifiers/subgroups")
-    revalidatePath(`/admin/modifiers/${modifierGroupId}`)
+    revalidatePath(getModifierAdminActionHref(context))
+    revalidatePath(getModifierAdminActionHref(context, "options"))
+    revalidatePath(getModifierAdminActionHref(context, "subgroups"))
+    revalidatePath(getModifierAdminActionHref(context, modifierGroupId))
     if (modifierOptionGroupId) {
       revalidatePath(
-        `/admin/modifiers/${modifierGroupId}/subgroups/${modifierOptionGroupId}`
+        getModifierAdminActionHref(
+          context,
+          `${modifierGroupId}/subgroups/${modifierOptionGroupId}`
+        )
       )
     }
 

@@ -1,6 +1,6 @@
 # MenuPilot Project State
 
-_Last updated: 2026-05-29_
+_Last updated: 2026-06-05_
 
 ## Purpose
 
@@ -89,6 +89,10 @@ The application must work intentionally across mobile, tablet, desktop, and futu
 **Status:** LOCKED
 
 The platform must support multiple businesses and multiple locations per business. Menus, users, payment settings, delivery rules, displays, hours, and availability may be business-wide or location-specific.
+
+One shared multi-tenant database is expected. Business-owned records use `business_id`; location-specific records use `location_id` where appropriate. Businesses should not each get a separate database by default. A future Platform Admin / App Owner area will manage business and location onboarding.
+
+Before a clean database rebuild, the app needs tenant-aware routing/context resolution so public menu, checkout, staff, and admin queries can use a Platform Admin-created business/location instead of seeded demo slugs. Tenant context should resolve business slug/id and location slug/id centrally. Initial tenant resolver helpers now exist, `/businesses/[businessSlug]` serves a tenant-scoped storefront landing page, `/businesses/[businessSlug]/menu` serves tenant-scoped public menus, `/businesses/[businessSlug]/checkout` serves tenant-scoped checkout, `/businesses/[businessSlug]/locations/[locationSlug]/orders` serves tenant/location-scoped staff orders, `/businesses/[businessSlug]/admin` provides a tenant-aware business admin shell, `/businesses/[businessSlug]/admin/products...` has business-scoped product read queries plus core product mutations, `/businesses/[businessSlug]/admin/modifiers...` has business-scoped reusable modifier library reads/writes, and `/businesses/[businessSlug]/admin/media` has business-scoped media reads/writes/uploads/imports.
 
 ### Product Configuration Engine
 **Status:** LOCKED
@@ -188,17 +192,22 @@ Pricing order is:
 Default modifier selections are selected modifiers and consume included selection slots.
 
 ### Builder templates
-**Status:** UPDATED 2026-05-29
+**Status:** UPDATED 2026-06-04
 
 The database-supported builder templates are `standard`, `pizza`, `wings`, `sub`, `salad`, `drink`, and `combo`.
 
 Current runtime routing is:
 
-1. `pizza` -> PizzaBuilder
-2. `standard`, `wings`, `sub`, `salad`, and `drink` -> StandardItemBuilder
-3. `combo` -> unsupported/future bundle handling
+1. `pizza` -> PizzaBuilder, which remains custom for pizza-specific placement, included toppings, defaults, size-based topping pricing, and pizza UX.
+2. Non-pizza products with assigned/effective Modifier Groups -> GenericConfigurableBuilder for salads, subs, wings, pasta, coffee, appetizers, kids meals, and similar modifier-driven products.
+3. Variant-only or quantity-only products without Modifier Groups -> SimpleProductBuilder for drinks, chips, desserts, extra sauce cups, simple sides, and similar products.
+4. `combo` -> unsupported/future BundleBuilder / ComboBuilder for specials, combos, meal deals, and multi-product offers.
 
-Current custom builders are PizzaBuilder and StandardItemBuilder. Wings, subs, salads, and drinks intentionally use StandardItemBuilder until their workflows prove they need custom builders. Combo/bundle architecture is future work and should exist before true bundle specials or meal deals.
+Builder behavior and builder presentation should stay separate. `builder_template` describes product behavior/type. A future `builder_layout` should describe presentation, while theme controls colors, fonts, spacing, and brand feel. All builder layouts must share the same pricing engine and server validation.
+
+Future builder layout variants are presentation only. Possible layouts include compact accordion, visual card/Domino's-style, and step-by-step flows. Do not create separate pricing, validation, cart, or checkout logic per layout.
+
+See `project-docs/ROADMAP.md` for the current roadmap, product entry regression matrix, and deferred future layers.
 
 ## Current Progress Summary
 
@@ -206,28 +215,45 @@ Current custom builders are PizzaBuilder and StandardItemBuilder. Wings, subs, s
 |---|---|---|
 | Product vision | Locked | Broad platform direction remains intact |
 | Tech stack | Locked | Next.js, Supabase, shadcn, Stripe planned |
-| Public menu | Working demo | Uses seeded Pronto Demo records |
-| Product configurator | Working | PizzaBuilder plus StandardItemBuilder for standard/wings/sub/salad/drink products; variants, modifiers, included credits, variant-specific modifier availability/pricing, cart flow |
+| Public storefront/menu | Tenant route started | `/businesses/[businessSlug]` is the selected business storefront landing page. `/businesses/[businessSlug]/menu` loads the selected business menu and guards nested products/media by business. Legacy `/menu` still loads seeded Pronto Demo via `pronto-demo`. |
+| Product configurator | Working | ProductConfigurator resolves builder modes to PizzaBuilder, GenericConfigurableBuilder, SimpleProductBuilder, or unsupported future combo handling; variants, modifiers, included credits, variant-specific modifier availability/pricing, cart flow |
 | Cart | Working | Provider, sheet, summary bar, localStorage |
-| Checkout | Working demo | Server-side cart validation/repricing creates unpaid pickup orders; transaction/RPC still needed |
-| Staff orders | Working demo | Queue and status updates exist |
+| Checkout | Tenant route started | Legacy `/checkout` still resolves Pronto Demo/main-street. `/businesses/[businessSlug]/checkout` resolves the business and default location, validates active/orderable status, rejects cross-tenant carts, and uses server-side cart validation/repricing before creating unpaid pickup orders. Transaction/RPC still needed. |
+| Staff orders | Tenant route started | Legacy `/staff/orders` still resolves Pronto Demo/main-street. `/businesses/[businessSlug]/locations/[locationSlug]/orders` resolves business/location context, filters reads by `business_id` and `location_id`, and verifies order ownership before status updates. |
 | Admin dashboard | Working demo | Modifier access moved under product management |
-| Product admin | Working | Categories, subcategories, products, Media Library image selection, variant groups, assignments |
+| Platform Admin | Started | `/platform`, `/platform/businesses`, `/platform/businesses/new`, and `/platform/businesses/[businessId]` list, create, inspect, and activate businesses/locations; business detail links to tenant admin shell; auth protection remains future |
+| Tenant admin context | Started | `features/tenant` resolves business/location context and `/businesses/[businessSlug]/admin` shows the selected business context, default-location orderability, setup sections for Product Catalog, Variants, Modifiers, Media, Customer Preview, and Locations / Orders when a location exists; tenant-scoped Product Admin, reusable Modifier Library, Media Library, public menu reads, business-scoped checkout, and location-scoped staff orders exist. |
+| Product admin | Working | Legacy `/admin/products...` remains working for demo scope. Tenant-scoped `/businesses/[businessSlug]/admin/products...` supports business-scoped product reads, core product actions, category/subcategory saves, reusable variant saves, product variant assignment/override saves, product Modifier Group assignment/included/default saves, and variant-specific modifier availability/price rule saves. |
 | Variant admin | Working | Reusable groups/options and per-product overrides |
-| Modifier admin | In progress | Hierarchy standardized as Modifier Category -> Modifier Group -> Modifier Option Group -> Modifier Option |
-| Media Library | Working demo | `/admin/media` manages `media_assets`; products reference images through `image_media_id` |
+| Modifier admin | Working | Hierarchy standardized as Modifier Category -> Modifier Group -> Modifier Option Group -> Modifier Option. Legacy `/admin/modifiers...` remains demo-scoped; `/businesses/[businessSlug]/admin/modifiers...` uses selected business context for reusable modifier library reads/writes. |
+| Media Library | Working | Legacy `/admin/media` remains demo-scoped. `/businesses/[businessSlug]/admin/media` lists, uploads, imports, and edits media for the selected business; storage paths use selected `business_id`. Products reference images through `image_media_id`. |
 | Product modifier assignments | In progress | Attach/detach, option overrides, variant availability, and variant price overrides exist |
 | Auth/roles | Planned | Admin/staff routes are not protected yet |
 | Payments | Planned | Stripe selected but not implemented |
 | Website builder | Future | Scoped conceptually |
 | Theme system | Future | Scoped conceptually |
+| Roadmap | Current | `ROADMAP.md` records near-term order, builder-mode foundation, platform onboarding, clean database rebuild, specials, versioning, printable menus, and deferred AI work |
+| Product entry regression | In progress | `PRODUCT_ENTRY_REGRESSION_MATRIX.md` records code-path audit coverage and the remaining manual admin-to-staff verification checklist |
+| Tenant onboarding regression | Ready for manual pass | `TENANT_ONBOARDING_REGRESSION.md` records the final new-business browser checklist before deciding whether to wipe/rebuild the development database |
 
 ## Current Routes At A Glance
 
 - `/` public entry page
-- `/menu` customer menu
+- `/menu` customer menu for the legacy Pronto Demo business
+- `/businesses/[businessSlug]` tenant-scoped storefront landing page
+- `/businesses/[businessSlug]/menu` tenant-scoped public menu preview/customer entry
 - `/checkout` pickup checkout
+- `/businesses/[businessSlug]/checkout` tenant-scoped checkout using the business default location
 - `/staff/orders` staff order queue
+- `/businesses/[businessSlug]/locations/[locationSlug]/orders` tenant/location-scoped staff order queue
+- `/platform` internal Platform Admin hub
+- `/platform/businesses` internal Platform Admin business list
+- `/platform/businesses/new` internal Platform Admin create-business and first-location form
+- `/platform/businesses/[businessId]` internal Platform Admin business/location detail
+- `/businesses/[businessSlug]/admin` tenant-aware business setup landing page
+- `/businesses/[businessSlug]/admin/products...` tenant-scoped product admin shells with core product mutations
+- `/businesses/[businessSlug]/admin/modifiers...` tenant-scoped reusable modifier library management
+- `/businesses/[businessSlug]/admin/media` tenant-scoped media library management
 - `/admin` admin hub
 - `/admin/media` media library
 - `/admin/products` product management hub
@@ -272,8 +298,16 @@ Current custom builders are PizzaBuilder and StandardItemBuilder. Wings, subs, s
 
 - Order creation should become transactional before real payment use.
 - Admin and staff routes need auth/role protection.
+- Platform Admin routes are not auth-protected yet and should not be publicly exposed.
+- Platform/Tenant Admin can manage business and location activation state, but this remains internal until auth/role protection exists.
+- Legacy demo routes still depend on seeded Pronto Demo/main-street records for compatibility. Tenant-scoped public menu, checkout, staff orders, business admin, Product Admin, reusable Modifier Library, and Media Library routes now exist; remaining follow-up is deciding when to retire or redirect legacy demo routes before the clean database rebuild.
+- New-tenant manual regression must pass using `TENANT_ONBOARDING_REGRESSION.md` before wiping/rebuilding the development database.
 - Public data access should be reviewed after auth and RLS are tightened.
 - Mobile admin pages need continued 320px-430px visual checks as forms and list density evolve.
+- Draft/publish versioning, billing/subscriptions, AI Owner Copilot, multiple builder visual layouts, BundleBuilder/ComboBuilder, and printable menu builder are intentionally deferred.
+- Specials should wait until builder mode foundation and product entry regression testing are complete.
+- Product entry regression audit found no code blocker, but Specials should wait until manual browser verification passes for pizza, Chicken Salad, drink with variants, simple item, extra sauce, sub with modifiers, and wings with count/sauce.
+- Product setup warns, without blocking save, when default selected modifier options exceed included selections for that Modifier Group. Defaults consume included slots and should not be treated as magic-free.
 
 ## Change Log
 
@@ -299,3 +333,28 @@ Current custom builders are PizzaBuilder and StandardItemBuilder. Wings, subs, s
 
 - Created initial project state document.
 - Recorded locked architecture decisions from planning conversation.
+
+### 2026-06-04
+
+- Added `ROADMAP.md` as the current roadmap and future architecture decision record.
+- Recorded Builder Mode Foundation as implemented: PizzaBuilder, GenericConfigurableBuilder, SimpleProductBuilder, and future BundleBuilder/ComboBuilder.
+- Recorded shared multi-tenant database and Platform Admin onboarding decisions.
+- Added product entry regression matrix audit and manual verification gate before Specials Engine.
+
+### 2026-06-05
+
+- Added minimal Platform Admin onboarding schema support for business contact fields, location status, and setup-safe defaults.
+- Added internal Platform Admin list/detail pages for reviewing businesses, locations, setup state, and ordering flags.
+- Added internal Platform Admin create-business and first-location form. New records start in setup mode; first locations start disabled and not accepting orders.
+- Reconciled roadmap docs around Platform Admin business context, tenant-aware routing before clean rebuild, product setup warnings, builder UI polish, future versioning/print menu/AI sequencing, and deferred work.
+- Added tenant resolver helpers and the `/businesses/[businessSlug]/admin` shell. Platform Admin business detail can open the selected business admin context; Product Admin core product mutations, category/subcategory saves, reusable variant saves, product variant assignment/override saves, product Modifier Group assignment/included/default saves, and variant-specific modifier availability/price saves now work under `/businesses/[businessSlug]/admin/products...`.
+- Added tenant-scoped reusable Modifier Library routes/actions under `/businesses/[businessSlug]/admin/modifiers...` for Modifier Categories, Modifier Groups, Modifier Option Groups, Modifier Options, safe option/list deletes, option moves, and product modifier option overrides reached from modifier detail pages. Legacy `/admin/modifiers...` remains demo-scoped.
+- Added tenant-scoped Media Library route/actions under `/businesses/[businessSlug]/admin/media`. Media reads, uploads, URL imports, and metadata edits resolve `businessSlug` server-side, write selected `business_id`, and store files under the selected business id path. Legacy `/admin/media` remains demo-scoped. Public menu, checkout, and staff tenant conversion remain pending.
+- Added tenant-scoped public menu route `/businesses/[businessSlug]/menu`. The legacy `/menu` route remains pointed at `pronto-demo`. Scoped menu reads filter nested products and media to the resolved business, setup businesses show preview messaging, and setup menus disable customer ordering actions while checkout tenant conversion remains pending.
+- Reorganized the tenant admin landing page into Product Catalog, Variants, Modifiers, Media, Customer Preview, and Future / Not Ready sections. The page now explains reusable variant/modifier setup before product-specific assignment and keeps Specials plus Locations / Orders disabled until later tenant-aware flows.
+- Added business-scoped checkout route `/businesses/[businessSlug]/checkout`. Checkout resolves business/default location server-side, requires active/orderable business and location state, rejects cross-tenant carts, and keeps legacy `/checkout` on Pronto Demo/main-street.
+- Added location-scoped staff order route `/businesses/[businessSlug]/locations/[locationSlug]/orders`. Staff reads and status updates resolve tenant context server-side, filter by business/location ownership, revalidate scoped paths, and keep legacy `/staff/orders` on Pronto Demo/main-street.
+- Added Platform Admin activation controls on `/platform/businesses/[businessId]`. Platform Admin can set business status and location status/order flags; new tenants still start setup/disabled, and checkout requires active business plus active, enabled, accepting, pickup-or-delivery location state.
+- Added Product Modifier Assignment pricing warnings when product default modifiers exceed included selections for the assigned Modifier Group. The warning is informational only; pricing remains centralized in `priceConfiguredProduct`.
+- Added `TENANT_ONBOARDING_REGRESSION.md` as the final manual checklist for proving a Platform Admin-created business can be configured, activated, ordered from, and viewed in scoped staff orders without relying on `pronto-demo`.
+- Added tenant-scoped storefront landing route `/businesses/[businessSlug]`. It resolves the selected business, shows storefront/orderability status, links to the scoped menu, and only links to checkout when the default location is orderable.

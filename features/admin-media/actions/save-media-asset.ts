@@ -12,8 +12,15 @@ import {
   validateImportUrl,
   validateMediaName,
 } from "@/features/admin-media/utils/media-upload"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getMediaAdminActionBusinessSlug,
+  getMediaAdminActionHref,
+  resolveMediaAdminActionContext,
+} from "@/features/admin-media/utils/media-admin-action-context"
+import {
+  getProductAdminHref,
+  getProductListHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 type SaveMediaAssetResult =
   | {
@@ -62,20 +69,6 @@ function getFileNameFromUrl(url: string, contentType: string) {
   if (contentType.includes("gif")) return "imported-image.gif"
 
   return "imported-image.jpg"
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load media business.")
-  }
-
-  return business.id as string
 }
 
 async function assertMediaAsset(businessId: string, mediaAssetId: string) {
@@ -250,7 +243,8 @@ async function importUrl({
 export async function saveMediaAsset(
   formData: FormData
 ): Promise<SaveMediaAssetResult> {
-  const businessId = await getBusinessId()
+  const context = await resolveMediaAdminActionContext(formData)
+  const businessId = context.businessId
   const mediaAssetId = parseOptionalString(formData.get("mediaAssetId"))
   const sourceType = parseOptionalString(formData.get("sourceType"))
   const name = parseOptionalString(formData.get("name"))
@@ -339,8 +333,11 @@ export async function saveMediaAsset(
     }
   }
 
-  revalidatePath("/admin/media")
-  revalidatePath("/admin/products")
+  const businessSlug = getMediaAdminActionBusinessSlug(context)
+
+  revalidatePath(getMediaAdminActionHref(context))
+  revalidatePath(getProductAdminHref("", businessSlug))
+  revalidatePath(getProductListHref(businessSlug))
   revalidatePath("/menu")
 
   return { ok: true }

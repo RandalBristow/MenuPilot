@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getProductAdminActionRevalidatePaths,
+  resolveProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -20,24 +22,26 @@ function parseEnabled(value: FormDataEntryValue | null) {
   throw new Error("Enabled value is invalid.")
 }
 
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
+async function assertProduct(businessId: string, productId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("products")
     .select("id")
-    .eq("slug", BUSINESS_SLUG)
+    .eq("id", productId)
+    .eq("business_id", businessId)
     .single()
 
-  if (error || !business) {
-    throw new Error("Could not load product business.")
+  if (error || !data) {
+    throw new Error("Product could not be found.")
   }
-
-  return business.id as string
 }
 
 export async function setProductEnabled(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
+  const { businessId } = context
   const productId = parseString(formData.get("productId"), "Product")
   const isEnabled = parseEnabled(formData.get("isEnabled"))
+
+  await assertProduct(businessId, productId)
 
   const { error } = await supabaseAdmin
     .from("products")
@@ -49,7 +53,8 @@ export async function setProductEnabled(formData: FormData) {
     throw new Error(`Could not update product: ${error.message}`)
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath(`/admin/products/${productId}`)
+  getProductAdminActionRevalidatePaths({ context, productId }).forEach(
+    (path) => revalidatePath(path)
+  )
   revalidatePath("/menu")
 }

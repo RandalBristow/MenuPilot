@@ -68,6 +68,8 @@ type MenuPageProps = {
   onCustomize?: (productId: string) => void;
   loadingProductId?: string | null;
   headerAction?: React.ReactNode;
+  previewMessage?: string | null;
+  orderingActionsDisabled?: boolean;
 };
 
 export function MenuPage({
@@ -76,6 +78,8 @@ export function MenuPage({
   onCustomize,
   loadingProductId,
   headerAction,
+  previewMessage,
+  orderingActionsDisabled = false,
 }: MenuPageProps) {
   const groups = [...(menu.menu_groups ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
@@ -108,9 +112,11 @@ export function MenuPage({
 
             <div className="min-w-0">
               <p className="hidden text-sm text-muted-foreground md:block">
-                MenuPilot Demo
+                MenuPilot
               </p>
-              <h1 className="truncate text-lg font-bold md:hidden">Pronto</h1>
+              <h1 className="truncate text-lg font-bold md:hidden">
+                {businessName}
+              </h1>
               <h1 className="hidden text-2xl font-bold md:block">
                 {businessName}
               </h1>
@@ -146,6 +152,12 @@ export function MenuPage({
         />
       </header>
 
+      {previewMessage ? (
+        <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+          <div className="mx-auto max-w-7xl">{previewMessage}</div>
+        </div>
+      ) : null}
+
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 lg:grid-cols-[220px_1fr]">
         <aside className="hidden lg:block">
           <div className="sticky top-28 rounded-xl border bg-card p-4">
@@ -177,6 +189,7 @@ export function MenuPage({
               childGroups={selectedChildGroups}
               onCustomize={onCustomize}
               loadingProductId={loadingProductId}
+              orderingActionsDisabled={orderingActionsDisabled}
             />
           ) : (
             <p className="text-sm text-muted-foreground">No categories found.</p>

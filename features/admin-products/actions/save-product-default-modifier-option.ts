@@ -2,8 +2,15 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  resolveProductAdminActionContext,
+  type ProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
+import {
+  getProductDetailHref,
+  getProductModifierAvailabilityHref,
+  getProductModifierGroupsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -18,20 +25,6 @@ function parseBoolean(value: FormDataEntryValue | null) {
   if (value === "false") return false
 
   throw new Error("Default state is invalid.")
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
 }
 
 async function assertProductModifierOption({
@@ -87,8 +80,38 @@ async function assertProductModifierOption({
   }
 }
 
+function getActionBusinessSlug(context: ProductAdminActionContext) {
+  return context.isScoped ? context.businessSlug : undefined
+}
+
+function revalidateDefaultModifierPaths({
+  context,
+  productId,
+  modifierGroupId,
+}: {
+  context: ProductAdminActionContext
+  productId: string
+  modifierGroupId: string
+}) {
+  const businessSlug = getActionBusinessSlug(context)
+
+  if (!context.isScoped) {
+    revalidatePath(`/admin/modifiers/${modifierGroupId}`)
+  }
+  revalidatePath(getProductModifierGroupsHref(productId, businessSlug))
+  revalidatePath(
+    getProductModifierAvailabilityHref({
+      modifierGroupId,
+      productId,
+      businessSlug,
+    })
+  )
+  revalidatePath(getProductDetailHref(productId, businessSlug))
+  revalidatePath("/menu")
+}
+
 export async function setProductDefaultModifierOption(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const modifierGroupId = parseString(
     formData.get("modifierGroupId"),
@@ -101,7 +124,7 @@ export async function setProductDefaultModifierOption(formData: FormData) {
   const isDefault = parseBoolean(formData.get("isDefault"))
 
   const groupRules = await assertProductModifierOption({
-    businessId,
+    businessId: context.businessId,
     productId,
     modifierGroupId,
     modifierOptionId,
@@ -111,7 +134,7 @@ export async function setProductDefaultModifierOption(formData: FormData) {
     const { error } = await supabaseAdmin
       .from("product_default_modifier_options")
       .delete()
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
       .eq("product_id", productId)
       .eq("modifier_group_id", modifierGroupId)
       .eq("modifier_option_id", modifierOptionId)
@@ -124,7 +147,7 @@ export async function setProductDefaultModifierOption(formData: FormData) {
       const { error } = await supabaseAdmin
         .from("product_default_modifier_options")
         .delete()
-        .eq("business_id", businessId)
+        .eq("business_id", context.businessId)
         .eq("product_id", productId)
         .eq("modifier_group_id", modifierGroupId)
         .neq("modifier_option_id", modifierOptionId)
@@ -140,7 +163,7 @@ export async function setProductDefaultModifierOption(formData: FormData) {
       .from("product_default_modifier_options")
       .upsert(
         {
-          business_id: businessId,
+          business_id: context.businessId,
           product_id: productId,
           modifier_group_id: modifierGroupId,
           modifier_option_id: modifierOptionId,
@@ -160,7 +183,9 @@ export async function setProductDefaultModifierOption(formData: FormData) {
     }
   }
 
-  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
-  revalidatePath(`/admin/products/${productId}`)
-  revalidatePath("/menu")
+  revalidateDefaultModifierPaths({
+    context,
+    productId,
+    modifierGroupId,
+  })
 }

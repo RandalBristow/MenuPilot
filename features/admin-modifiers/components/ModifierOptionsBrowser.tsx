@@ -16,6 +16,7 @@ import {
   getNextModifierOptionSortOrder,
   sortModifierOptionsWithinList,
 } from "@/features/admin-modifiers/utils/modifier-option-sort-order"
+import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import type {
@@ -45,8 +46,10 @@ function formatPriceDelta(value: number | string) {
 }
 
 export function ModifierOptionsBrowser({
+  businessSlug,
   categories,
 }: {
+  businessSlug?: string
   categories: ModifierCategory[]
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(
@@ -218,6 +221,7 @@ export function ModifierOptionsBrowser({
                 description={formatPriceDelta(option.price_delta)}
                 rightAction={
                   <DeleteModifierOptionButton
+                    businessSlug={businessSlug}
                     optionId={option.id}
                     optionName={option.name}
                     modifierGroupId={selectedGroup.id}
@@ -233,7 +237,7 @@ export function ModifierOptionsBrowser({
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-5xl justify-end gap-2">
           <AdminBackButton
-            fallbackHref="/admin/modifiers"
+            fallbackHref={getModifierAdminHref("", businessSlug)}
             label="Back to modifier management"
           />
           <ThemedButton
@@ -255,6 +259,7 @@ export function ModifierOptionsBrowser({
           modifierGroupId={selectedGroup.id}
           modifierGroupName={selectedGroup.name}
           optionGroups={subgroups}
+          businessSlug={businessSlug}
           initialOptionGroupId={
             selectedSubgroupId === "all" || selectedSubgroupId === "ungrouped"
               ? null
@@ -273,6 +278,7 @@ export function ModifierOptionsBrowser({
           }}
           mode="edit"
           option={activeOption}
+          businessSlug={businessSlug}
           modifierGroupId={selectedGroup.id}
           modifierGroupName={selectedGroup.name}
           optionGroups={subgroups}

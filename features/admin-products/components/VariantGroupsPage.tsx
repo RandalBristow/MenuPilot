@@ -1,8 +1,25 @@
 import { VariantGroupsBrowser } from "@/features/admin-products/components/VariantGroupsBrowser"
 import { getVariantGroups } from "@/features/admin-products/queries/get-variant-groups"
+import type { ProductAdminBusinessContextInput } from "@/features/admin-products/utils/product-admin-business-context"
 
-export async function VariantGroupsPage() {
-  const data = await getVariantGroups()
+type VariantGroupsPageProps = {
+  businessContext?: ProductAdminBusinessContextInput
+  businessSlug?: string
+  writesEnabled?: boolean
+}
 
-  return <VariantGroupsBrowser data={data} />
+export async function VariantGroupsPage({
+  businessContext,
+  businessSlug,
+  writesEnabled = true,
+}: VariantGroupsPageProps = {}) {
+  const data = await getVariantGroups(businessContext)
+
+  return (
+    <VariantGroupsBrowser
+      data={data}
+      businessSlug={businessSlug}
+      writesEnabled={writesEnabled}
+    />
+  )
 }

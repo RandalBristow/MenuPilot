@@ -17,21 +17,19 @@ import type {
   AssignableVariantGroup,
   ProductVariantAssignmentData,
 } from "@/features/admin-products/queries/get-product-variant-assignments"
+import {
+  getProductListHref,
+  getVariantGroupDetailHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 type ProductVariantAssignmentsClientProps = {
   data: ProductVariantAssignmentData
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function getGroupDescription(group: AssignableVariantGroup) {
   return group.description ?? `${group.optionCount} options`
-}
-
-function getVariantGroupHref(groupId: string, productId?: string) {
-  const baseHref = `/admin/products/variant-groups/${groupId}`
-
-  if (!productId) return baseHref
-
-  return `${baseHref}?productId=${encodeURIComponent(productId)}`
 }
 
 function VariantGroupCard({
@@ -41,6 +39,8 @@ function VariantGroupCard({
   selected = false,
   onSelect,
   onDetach,
+  businessSlug,
+  writesEnabled,
 }: {
   group: AssignableVariantGroup
   activeProductId: string
@@ -48,8 +48,14 @@ function VariantGroupCard({
   selected?: boolean
   onSelect: (formData: FormData) => void
   onDetach: (formData: FormData) => void
+  businessSlug?: string
+  writesEnabled: boolean
 }) {
-  const groupHref = getVariantGroupHref(group.id, activeProductId)
+  const groupHref = getVariantGroupDetailHref({
+    groupId: group.id,
+    productId: activeProductId,
+    businessSlug,
+  })
 
   return (
     <ThemedCard
@@ -86,7 +92,13 @@ function VariantGroupCard({
 
         <div className="mt-1.5 flex justify-end">
           {selected ? (
-            <form action={onDetach} className="relative z-10">
+            <form
+              action={writesEnabled ? onDetach : undefined}
+              className="relative z-10"
+            >
+              {businessSlug ? (
+                <input type="hidden" name="businessSlug" value={businessSlug} />
+              ) : null}
               <input type="hidden" name="productId" value={activeProductId} />
               <input
                 type="hidden"
@@ -95,6 +107,7 @@ function VariantGroupCard({
               />
               <ThemedButton
                 type="submit"
+                disabled={!writesEnabled}
                 size="icon"
                 aria-label={`Remove ${group.name} from this product`}
                 className="size-8"
@@ -104,11 +117,18 @@ function VariantGroupCard({
               </ThemedButton>
             </form>
           ) : (
-            <form action={onSelect} className="relative z-10">
+            <form
+              action={writesEnabled ? onSelect : undefined}
+              className="relative z-10"
+            >
+              {businessSlug ? (
+                <input type="hidden" name="businessSlug" value={businessSlug} />
+              ) : null}
               <input type="hidden" name="productId" value={activeProductId} />
               <input type="hidden" name="variantGroupId" value={group.id} />
               <ThemedButton
                 type="submit"
+                disabled={!writesEnabled}
                 size="icon"
                 variant="outline"
                 aria-label={`Select ${group.name}`}
@@ -127,6 +147,8 @@ function VariantGroupCard({
 
 export function ProductVariantAssignmentsClient({
   data,
+  businessSlug,
+  writesEnabled = true,
 }: ProductVariantAssignmentsClientProps) {
   const router = useRouter()
   const {
@@ -209,6 +231,8 @@ export function ProductVariantAssignmentsClient({
                     selected
                     onSelect={handleSelect}
                     onDetach={handleDetach}
+                    businessSlug={businessSlug}
+                    writesEnabled={writesEnabled}
                   />
                 )}
               </section>
@@ -230,6 +254,8 @@ export function ProductVariantAssignmentsClient({
                       activeProductId={activeProductId}
                       onSelect={handleSelect}
                       onDetach={handleDetach}
+                      businessSlug={businessSlug}
+                      writesEnabled={writesEnabled}
                     />
                   ))
                 )}
@@ -247,7 +273,7 @@ export function ProductVariantAssignmentsClient({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end">
             <AdminBackButton
-              fallbackHref="/admin/products/list"
+              fallbackHref={getProductListHref(businessSlug)}
               label="Back to products"
             />
           </div>

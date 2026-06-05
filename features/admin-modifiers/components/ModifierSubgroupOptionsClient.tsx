@@ -31,6 +31,7 @@ import {
   getNextModifierOptionSortOrder,
   sortModifierOptionsWithinList,
 } from "@/features/admin-modifiers/utils/modifier-option-sort-order"
+import { getModifierGroupHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import type {
   ModifierGroupDetail,
   ModifierGroupDetailOption,
@@ -39,6 +40,7 @@ import type {
 } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 
 type ModifierSubgroupOptionsClientProps = {
+  businessSlug?: string
   data: {
     businessName: string
     mode: "global" | "product" | "preview"
@@ -140,12 +142,14 @@ function getOptionDescription(
 }
 
 function ModifierOptionOverridePanel({
+  businessSlug,
   open,
   onOpenChange,
   group,
   productContext,
   option,
 }: {
+  businessSlug?: string
   open: boolean
   onOpenChange: (open: boolean) => void
   group: ModifierGroupDetail
@@ -186,6 +190,9 @@ function ModifierOptionOverridePanel({
         >
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             <input type="hidden" name="productId" value={productContext.id} />
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
             <input type="hidden" name="modifierGroupId" value={group.id} />
             <input type="hidden" name="modifierOptionId" value={option.id} />
 
@@ -270,6 +277,7 @@ function ModifierOptionOverridePanel({
 }
 
 export function ModifierSubgroupOptionsClient({
+  businessSlug,
   data,
   subgroup,
 }: ModifierSubgroupOptionsClientProps) {
@@ -390,6 +398,13 @@ export function ModifierSubgroupOptionsClient({
                           action={handleDefaultToggle}
                           onClick={(event) => event.stopPropagation()}
                         >
+                          {businessSlug ? (
+                            <input
+                              type="hidden"
+                              name="businessSlug"
+                              value={businessSlug}
+                            />
+                          ) : null}
                           <input
                             type="hidden"
                             name="productId"
@@ -450,6 +465,7 @@ export function ModifierSubgroupOptionsClient({
                             </span>
                           </ThemedButton>
                           <DeleteModifierOptionButton
+                            businessSlug={businessSlug}
                             optionId={option.id}
                             optionName={option.name}
                             modifierGroupId={group.id}
@@ -478,8 +494,15 @@ export function ModifierSubgroupOptionsClient({
             <AdminBackButton
               fallbackHref={
                 productContext
-                  ? `/admin/modifiers/${group.id}?productId=${productContext.id}`
-                  : `/admin/modifiers/${group.id}`
+                  ? getModifierGroupHref({
+                      groupId: group.id,
+                      productId: productContext.id,
+                      businessSlug,
+                    })
+                  : getModifierGroupHref({
+                      groupId: group.id,
+                      businessSlug,
+                    })
               }
               label="Back to modifier subgroups"
             />
@@ -506,6 +529,7 @@ export function ModifierSubgroupOptionsClient({
           modifierGroupId={group.id}
           modifierGroupName={group.name}
           optionGroups={group.optionGroups}
+          businessSlug={businessSlug}
           initialOptionGroupId={subgroup.id}
           nextSortOrdersByOptionGroupId={nextSortOrdersByOptionGroupId}
           ungroupedNextSortOrder={ungroupedNextSortOrder}
@@ -521,6 +545,7 @@ export function ModifierSubgroupOptionsClient({
           group={group}
           productContext={productContext}
           option={activeOption}
+          businessSlug={businessSlug}
         />
       ) : activeOption ? (
         <ModifierOptionFormDialog
@@ -530,6 +555,7 @@ export function ModifierSubgroupOptionsClient({
           }}
           mode="edit"
           option={activeOption}
+          businessSlug={businessSlug}
           modifierGroupId={group.id}
           modifierGroupName={group.name}
           optionGroups={group.optionGroups}

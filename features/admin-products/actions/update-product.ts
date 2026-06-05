@@ -7,8 +7,12 @@ import {
   buildProductPayload,
   createSlug,
 } from "@/features/admin-products/utils/build-product-payload"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ProductAdminActionContext,
+  getProductAdminActionHref,
+  getProductAdminActionRevalidatePaths,
+  resolveProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
 
 function parseProductId(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -22,38 +26,35 @@ function parseEnabled(value: FormDataEntryValue | null) {
   return value === "true"
 }
 
-function parseRedirectTo(value: FormDataEntryValue | null, productId: string) {
+function parseRedirectTo(
+  value: FormDataEntryValue | null,
+  productId: string,
+  context: ProductAdminActionContext
+) {
   if (typeof value !== "string" || value.trim().length === 0) {
-    return "/admin/products"
+    return getProductAdminActionHref(context)
   }
 
   const redirectTo = value.trim()
+  const allowedRedirects = [
+    getProductAdminActionHref(context),
+    getProductAdminActionHref(context, "list"),
+    getProductAdminActionHref(context, productId),
+    getProductAdminActionHref(
+      context,
+      `variant-assignments?productId=${productId}`
+    ),
+    getProductAdminActionHref(
+      context,
+      `modifier-groups?productId=${productId}`
+    ),
+  ]
 
-  if (
-    redirectTo === "/admin/products" ||
-    redirectTo === "/admin/products/list" ||
-    redirectTo === `/admin/products/${productId}` ||
-    redirectTo === `/admin/products/variant-assignments?productId=${productId}` ||
-    redirectTo === `/admin/products/modifier-groups?productId=${productId}`
-  ) {
+  if (allowedRedirects.includes(redirectTo)) {
     return redirectTo
   }
 
-  return "/admin/products"
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
+  return getProductAdminActionHref(context)
 }
 
 async function assertProduct(businessId: string, productId: string) {
@@ -123,12 +124,13 @@ async function assertMediaAsset(
 }
 
 export async function updateProduct(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
+  const { businessId } = context
   const productId = parseProductId(formData.get("productId"))
   const { product: productPayload, menuGroupId, modifierGroupIds } =
     buildProductPayload(formData)
   const isEnabled = parseEnabled(formData.get("isEnabled"))
-  const redirectTo = parseRedirectTo(formData.get("redirectTo"), productId)
+  const redirectTo = parseRedirectTo(formData.get("redirectTo"), productId, context)
 
   await assertProduct(businessId, productId)
   await assertMenuGroup(businessId, menuGroupId)
@@ -213,8 +215,9 @@ export async function updateProduct(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath(`/admin/products/${productId}`)
+  getProductAdminActionRevalidatePaths({ context, productId }).forEach(
+    (path) => revalidatePath(path)
+  )
   revalidatePath("/menu")
   redirect(redirectTo)
 }

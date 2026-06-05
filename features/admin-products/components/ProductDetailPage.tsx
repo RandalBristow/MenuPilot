@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation"
 import { ProductDetailClient } from "@/features/admin-products/components/ProductDetailClient"
 import { getProductFormData } from "@/features/admin-products/components/ProductForm"
+import type { ProductAdminBusinessContextInput } from "@/features/admin-products/utils/product-admin-business-context"
 
 type ProductDetailPageProps = {
   productId: string
+  businessContext?: ProductAdminBusinessContextInput
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function isUuid(value: string) {
@@ -12,7 +16,12 @@ function isUuid(value: string) {
   )
 }
 
-export async function ProductDetailPage({ productId }: ProductDetailPageProps) {
+export async function ProductDetailPage({
+  productId,
+  businessContext,
+  businessSlug,
+  writesEnabled = true,
+}: ProductDetailPageProps) {
   if (!isUuid(productId)) {
     notFound()
   }
@@ -20,7 +29,7 @@ export async function ProductDetailPage({ productId }: ProductDetailPageProps) {
   let data
 
   try {
-    data = await getProductFormData(productId)
+    data = await getProductFormData(productId, businessContext)
   } catch (error) {
     if (error instanceof Error && error.message === "Could not load product.") {
       notFound()
@@ -33,5 +42,11 @@ export async function ProductDetailPage({ productId }: ProductDetailPageProps) {
     notFound()
   }
 
-  return <ProductDetailClient data={data} />
+  return (
+    <ProductDetailClient
+      data={data}
+      businessSlug={businessSlug}
+      writesEnabled={writesEnabled}
+    />
+  )
 }

@@ -2,13 +2,20 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  getProductAdminActionHref,
+  resolveProductAdminActionContext,
+  type ProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
+import {
+  getProductDetailHref,
+  getProductModifierGroupsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 import { buildProductIncludedModifierGroupPayload } from "@/features/admin-products/utils/build-product-included-modifier-group-payload"
 import {
   saveProductIncludedModifierGroupRecord,
   type IncludedModifierGroupStore,
 } from "@/features/admin-products/utils/save-product-included-modifier-group-record"
-
-const BUSINESS_SLUG = "pronto-demo"
 
 export type SaveProductIncludedModifierGroupResult =
   | {
@@ -21,20 +28,6 @@ export type SaveProductIncludedModifierGroupResult =
       message: string
       savedAt: number
     }
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
-}
 
 async function assertProductModifierAssignment({
   businessId,
@@ -58,10 +51,23 @@ async function assertProductModifierAssignment({
   }
 }
 
-function revalidateProductModifierPaths(productId: string) {
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/modifier-groups")
-  revalidatePath(`/admin/products/${productId}`)
+function getActionBusinessSlug(context: ProductAdminActionContext) {
+  return context.isScoped ? context.businessSlug : undefined
+}
+
+function revalidateProductModifierPaths({
+  context,
+  productId,
+}: {
+  context: ProductAdminActionContext
+  productId: string
+}) {
+  const businessSlug = getActionBusinessSlug(context)
+
+  revalidatePath(getProductAdminActionHref(context))
+  revalidatePath(getProductModifierGroupsHref(undefined, businessSlug))
+  revalidatePath(getProductModifierGroupsHref(productId, businessSlug))
+  revalidatePath(getProductDetailHref(productId, businessSlug))
   revalidatePath("/menu")
 }
 
@@ -159,22 +165,25 @@ export async function saveProductIncludedModifierGroup(
   formData: FormData
 ): Promise<SaveProductIncludedModifierGroupResult> {
   try {
-    const businessId = await getBusinessId()
+    const context = await resolveProductAdminActionContext(formData)
     const payload = buildProductIncludedModifierGroupPayload(formData)
 
     await assertProductModifierAssignment({
-      businessId,
+      businessId: context.businessId,
       productId: payload.productId,
       modifierGroupId: payload.modifierGroupId,
     })
 
     await saveProductIncludedModifierGroupRecord({
-      businessId,
+      businessId: context.businessId,
       payload,
       store: createIncludedModifierGroupStore(),
     })
 
-    revalidateProductModifierPaths(payload.productId)
+    revalidateProductModifierPaths({
+      context,
+      productId: payload.productId,
+    })
 
     return {
       ok: true,

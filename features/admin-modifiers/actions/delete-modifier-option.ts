@@ -6,8 +6,10 @@ import {
   safeDeleteModifierOption,
   type ModifierOptionReferenceCheck,
 } from "@/features/admin-modifiers/utils/safe-delete-modifier-option"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
 
 export type DeleteModifierOptionResult = {
   status: "deleted" | "blocked" | "error"
@@ -20,20 +22,6 @@ function parseString(value: FormDataEntryValue | null, fieldName: string) {
   }
 
   return value.trim()
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
 }
 
 async function getModifierOption(
@@ -87,17 +75,21 @@ export async function deleteModifierOption(
   formData: FormData
 ): Promise<DeleteModifierOptionResult> {
   try {
-    const businessId = await getBusinessId()
+    const context = await resolveModifierAdminActionContext(formData)
     const optionId = parseString(formData.get("optionId"), "Option")
     const modifierGroupId = parseString(
       formData.get("modifierGroupId"),
       "Modifier group"
     )
-    const option = await getModifierOption(businessId, optionId, modifierGroupId)
+    const option = await getModifierOption(
+      context.businessId,
+      optionId,
+      modifierGroupId
+    )
     const result = await safeDeleteModifierOption({
       hasReference: (check) =>
         hasModifierOptionReference({
-          businessId,
+          businessId: context.businessId,
           optionId: option.id,
           check,
         }),
@@ -106,7 +98,7 @@ export async function deleteModifierOption(
           .from("modifier_options")
           .delete()
           .eq("id", option.id)
-          .eq("business_id", businessId)
+          .eq("business_id", context.businessId)
           .eq("modifier_group_id", option.modifier_group_id)
 
         if (error) {
@@ -116,13 +108,18 @@ export async function deleteModifierOption(
     })
 
     if (result.status === "deleted") {
-      revalidatePath("/admin/modifiers")
-      revalidatePath("/admin/modifiers/options")
-      revalidatePath("/admin/modifiers/subgroups")
-      revalidatePath(`/admin/modifiers/${option.modifier_group_id}`)
+      revalidatePath(getModifierAdminActionHref(context))
+      revalidatePath(getModifierAdminActionHref(context, "options"))
+      revalidatePath(getModifierAdminActionHref(context, "subgroups"))
+      revalidatePath(
+        getModifierAdminActionHref(context, option.modifier_group_id)
+      )
       if (option.modifier_option_group_id) {
         revalidatePath(
-          `/admin/modifiers/${option.modifier_group_id}/subgroups/${option.modifier_option_group_id}`
+          getModifierAdminActionHref(
+            context,
+            `${option.modifier_group_id}/subgroups/${option.modifier_option_group_id}`
+          )
         )
       }
     }
@@ -131,7 +128,6 @@ export async function deleteModifierOption(
       status: result.status,
       message: result.message,
     }
-
   } catch (error) {
     console.error(error)
     return {

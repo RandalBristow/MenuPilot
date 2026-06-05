@@ -1,0 +1,314 @@
+# Tenant Onboarding Regression
+
+_Last updated: 2026-06-05_
+
+This checklist proves a brand-new business can be created, configured, activated, ordered from, and viewed in staff orders without relying on the seeded `pronto-demo` / `main-street` tenant.
+
+Use this before deciding whether to wipe/rebuild the development database.
+
+## Result Legend
+
+- [ ] Not tested
+- [x] Passed
+- [!] Failed / needs fix
+- [D] Deferred by current roadmap
+
+Record test business values:
+
+- Business name:
+- Business slug:
+- Location name:
+- Location slug:
+- Test date:
+- Tester:
+
+## A. Platform Admin
+
+- [ ] Open `/platform`.
+- [ ] Open `/platform/businesses`.
+- [ ] Create a new business at `/platform/businesses/new`.
+- [ ] Create the first location in the same flow.
+- [ ] Confirm the created business detail page loads at `/platform/businesses/[businessId]`.
+- [ ] Confirm business starts with status `setup`.
+- [ ] Confirm location starts with status `setup`.
+- [ ] Confirm location starts disabled.
+- [ ] Confirm location starts not accepting orders.
+- [ ] Confirm pickup and delivery are disabled by default.
+
+Expected result:
+
+- New tenant exists in the shared database.
+- Business-owned records use the new `business_id`.
+- First location uses the new `location_id`.
+- No public ordering is live immediately after creation.
+
+## B. Tenant Admin Context
+
+- [ ] From Platform business detail, click `Open Business Admin`.
+- [ ] Confirm URL is `/businesses/[businessSlug]/admin`.
+- [ ] Confirm the page shows `Managing: {Business Name}`.
+- [ ] Confirm business slug shown in the admin context is the new business slug.
+- [ ] Confirm `Back to Platform` returns to the Platform business detail.
+- [ ] Confirm `Switch Business` returns to `/platform/businesses`.
+- [ ] Confirm Product Catalog links stay under `/businesses/[businessSlug]/admin/products...`.
+- [ ] Confirm Variant links stay under `/businesses/[businessSlug]/admin/products...`.
+- [ ] Confirm Modifier links stay under `/businesses/[businessSlug]/admin/modifiers...`.
+- [ ] Confirm Media link stays under `/businesses/[businessSlug]/admin/media`.
+- [ ] Confirm Locations / Orders link points to `/businesses/[businessSlug]/locations/[locationSlug]/orders` when the location exists.
+
+Expected result:
+
+- Tenant context is explicit in the URL.
+- Admin actions are performed in the selected business context, not the seeded demo context.
+
+## C. Business Activation
+
+Before activation:
+
+- [ ] Visit `/businesses/[businessSlug]/checkout`.
+- [ ] Confirm checkout is blocked because the business/location is setup or not orderable.
+
+Activate:
+
+- [ ] Return to `/platform/businesses/[businessId]`.
+- [ ] Change business status to `active` and save.
+- [ ] Change location status to `active` and save.
+- [ ] Enable the location and save.
+- [ ] Enable pickup and save.
+- [ ] Enable accepting orders and save.
+- [ ] Leave delivery disabled unless delivery is intentionally being tested.
+
+After activation:
+
+- [ ] Confirm `/businesses/[businessSlug]/admin` shows the default location as checkout-ready.
+- [ ] Confirm `/businesses/[businessSlug]/checkout` is no longer blocked when the cart is valid.
+- [ ] Pause the business or location.
+- [ ] Confirm checkout blocks again.
+- [ ] Reactivate the business/location before continuing product/order tests.
+
+Expected result:
+
+- Checkout requires active business status plus active, enabled, accepting-orders location with pickup or delivery enabled.
+- Setup or paused business/location can still be managed in admin.
+
+## D. Product Catalog Setup
+
+Using `/businesses/[businessSlug]/admin/products...`:
+
+- [ ] Create a top-level product category.
+- [ ] Create a product subcategory.
+- [ ] Create a product in the selected business.
+- [ ] Edit the product.
+- [ ] Duplicate the product.
+- [ ] Confirm duplicated product is disabled by default.
+- [ ] Enable and disable a product.
+- [ ] Confirm product list shows only products for the selected business.
+- [ ] Confirm Pronto/demo products do not appear in the selected business product list.
+- [ ] Confirm legacy `/admin/products...` still works for Pronto demo compatibility.
+
+Expected result:
+
+- Product records are scoped to selected `business_id`.
+- Product route links remain in the scoped route family.
+
+## E. Variant Setup
+
+Using `/businesses/[businessSlug]/admin/products/variant-groups` and related product assignment routes:
+
+- [ ] Create a reusable variant group.
+- [ ] Create variant options.
+- [ ] Edit variant option labels/prices/sort order.
+- [ ] Assign the variant group to a product.
+- [ ] Set product-specific variant option overrides.
+- [ ] Confirm variant assignment appears only for the selected business.
+- [ ] Confirm another business cannot see or edit this variant group from scoped routes.
+
+Expected result:
+
+- Reusable variants are business-scoped setup.
+- Product-specific variant differences live in overrides/assignments.
+
+## F. Modifier Library Setup
+
+Using `/businesses/[businessSlug]/admin/modifiers...`:
+
+- [ ] Create a Modifier Category.
+- [ ] Create a Modifier Group.
+- [ ] Set Modifier Group selection rules.
+- [ ] Create a Modifier Option Group/List.
+- [ ] Create Modifier Options.
+- [ ] Verify Modifier Option sort order is scoped within the current Modifier Option Group/List.
+- [ ] Move an option between option groups inside the same Modifier Group.
+- [ ] Safe-delete an unused option.
+- [ ] Confirm safe-delete is blocked for an option still in use.
+- [ ] Confirm selected business sees only its own Modifier Categories, Groups, Option Groups, and Options.
+- [ ] Confirm legacy `/admin/modifiers...` still works for Pronto demo compatibility.
+
+Expected result:
+
+- Modifier hierarchy is maintained: Modifier Category -> Modifier Group -> Modifier Option Group -> Modifier Option.
+- No ungrouped Modifier Options are created during normal admin use.
+
+## G. Product Modifier Setup
+
+Using `/businesses/[businessSlug]/admin/products/modifier-groups` and related availability routes:
+
+- [ ] Attach a Modifier Group to a product.
+- [ ] Open the assigned Modifier Group's availability/defaults flow.
+- [ ] Set default modifier options.
+- [ ] Set included selections for that Modifier Group.
+- [ ] Create a product with 5 defaults and 0 included selections.
+- [ ] Confirm the defaults-vs-included warning appears on the Product Modifier Assignments card.
+- [ ] Open included settings for the assigned Modifier Group.
+- [ ] Confirm the warning also appears in the included settings sheet.
+- [ ] Set included selections to 5.
+- [ ] Confirm the warning disappears.
+- [ ] Set variant-specific modifier availability.
+- [ ] Set variant-specific modifier price override.
+- [ ] Confirm the selected business only sees and edits its own product/modifier setup.
+
+Expected result:
+
+- Warning is informational only and does not block saves.
+- Defaults consume included selections.
+- Pricing behavior is unchanged and remains centralized in `priceConfiguredProduct`.
+
+## H. Media Setup
+
+Using `/businesses/[businessSlug]/admin/media` and product edit pages:
+
+- [ ] Upload a media asset.
+- [ ] Import a media asset by URL.
+- [ ] Confirm media list shows the selected business asset.
+- [ ] Confirm media storage path uses the selected business id.
+- [ ] Edit media metadata.
+- [ ] Select media as a product image.
+- [ ] Confirm product image appears in the selected business product/menu flow.
+- [ ] Confirm Pronto/demo media does not appear in the selected business media picker/list.
+- [ ] Confirm legacy `/admin/media` still works for Pronto demo compatibility.
+
+Expected result:
+
+- Media reads/writes/uploads are scoped to selected business.
+- Product images reference selected business media through `image_media_id`.
+
+## I. Public Menu Preview
+
+Using `/businesses/[businessSlug]/menu`:
+
+- [ ] Visit scoped public menu before activation.
+- [ ] Confirm setup/preview messaging appears when business status is `setup`.
+- [ ] Confirm ordering actions are disabled while setup.
+- [ ] Confirm Pronto/demo products do not appear.
+- [ ] Activate business/location and ordering flags.
+- [ ] Visit scoped public menu again.
+- [ ] Confirm active business displays orderable menu.
+- [ ] Confirm product configurator opens for configured products.
+- [ ] Confirm product images load from selected business media.
+
+Expected result:
+
+- Public menu reads selected business data only.
+- Setup businesses can be previewed without implying real ordering is live.
+
+## J. Cart / Checkout
+
+Using `/businesses/[businessSlug]/menu` and `/businesses/[businessSlug]/checkout`:
+
+- [ ] Add a pizza/configurable item.
+- [ ] Add a simple quantity-only item.
+- [ ] Add a variant-only item if available.
+- [ ] Confirm cart checkout link points to `/businesses/[businessSlug]/checkout`.
+- [ ] Confirm scoped checkout shows selected business/location context.
+- [ ] Confirm scoped checkout blocks stale or cross-tenant cart items.
+- [ ] Submit a pickup order.
+- [ ] Confirm order succeeds.
+- [ ] Confirm order uses selected `business_id`.
+- [ ] Confirm order uses selected `location_id`.
+- [ ] Confirm server-side pricing is authoritative by checking totals against the configured product rules.
+- [ ] Confirm cart clears after successful order.
+
+Expected result:
+
+- Checkout ignores stale/tampered client prices.
+- Order creation uses resolved business/location context, not hidden ids alone.
+- Legacy `/checkout` remains Pronto demo/main-street until intentionally retired.
+
+## K. Staff Orders
+
+Using `/businesses/[businessSlug]/locations/[locationSlug]/orders`:
+
+- [ ] Visit scoped location staff orders route.
+- [ ] Confirm selected business and location names are shown.
+- [ ] Confirm submitted order appears.
+- [ ] Accept the order.
+- [ ] Mark preparing.
+- [ ] Mark ready.
+- [ ] Mark completed.
+- [ ] Confirm status changes affect only the selected business/location order.
+- [ ] Confirm an order from another business/location does not appear.
+- [ ] Confirm mismatched business/location route returns not found.
+
+Expected result:
+
+- Staff reads filter by `business_id` and `location_id`.
+- Status updates resolve business/location slugs server-side and verify order ownership.
+
+## L. Legacy Demo Safety
+
+Legacy routes intentionally remain for Pronto demo compatibility:
+
+- [ ] `/menu` still loads seeded Pronto Demo menu.
+- [ ] `/checkout` still uses Pronto Demo/main-street.
+- [ ] `/staff/orders` still shows Pronto Demo/main-street staff queue.
+- [ ] `/admin/products...` still works for Pronto demo product admin.
+- [ ] `/admin/modifiers...` still works for Pronto demo modifier admin.
+- [ ] `/admin/media` still works for Pronto demo media admin.
+- [ ] Work under the new tenant does not mutate Pronto Demo products.
+- [ ] Work under the new tenant does not mutate Pronto Demo modifiers.
+- [ ] Work under the new tenant does not mutate Pronto Demo media.
+- [ ] Orders placed under the new tenant do not appear in `/staff/orders`.
+
+Expected result:
+
+- Legacy demo compatibility remains intact until intentionally retired.
+- New tenant regression can prove the app no longer depends on `pronto-demo` for scoped flows.
+
+## Readiness Audit
+
+| Area | Status | Evidence | Manual verification needed |
+| --- | --- | --- | --- |
+| Platform Admin | Implemented | `/platform`, `/platform/businesses`, `/platform/businesses/new`, `/platform/businesses/[businessId]`; `features/platform-admin` create/detail/activation actions. | Full create-business and first-location browser pass. |
+| Tenant resolver | Implemented | `features/tenant/queries/resolve-business-context.ts`, `resolve-location-context.ts`, tenant context tests. | Verify unknown/mismatched slugs return not found in browser. |
+| Products | Implemented, needs manual verification | Tenant product routes under `/businesses/[businessSlug]/admin/products...`; scoped product action tests. | Create/edit/duplicate/enable product under a new business and verify isolation. |
+| Variants | Implemented, needs manual verification | Tenant-scoped variant group and assignment routes/actions/tests. | Create reusable variant group/options, assign to product, set overrides. |
+| Modifiers | Implemented, needs manual verification | Tenant-scoped modifier library routes/actions/tests; option move/safe delete support. | Create hierarchy, move option, safe-delete unused option, verify isolation. |
+| Media | Implemented, needs manual verification | `/businesses/[businessSlug]/admin/media`; media action tests; selected-business storage paths. | Upload/import media and confirm selected business ownership/path. |
+| Public menu | Implemented, needs manual verification | `/businesses/[businessSlug]/menu`; scoped menu query tests. | Confirm setup preview, active menu, and no Pronto products. |
+| Checkout | Implemented, needs manual verification | `/businesses/[businessSlug]/checkout`; checkout tenant context/order action tests. | Submit real order from scoped cart and confirm business/location IDs. |
+| Staff orders | Implemented, needs manual verification | `/businesses/[businessSlug]/locations/[locationSlug]/orders`; scoped staff query/action tests. | Confirm order appears and status updates remain scoped. |
+| Activation controls | Implemented, needs manual verification | Platform business detail controls; activation action tests; checkout orderability tests. | Activate/pause business/location and confirm checkout blocks/unblocks. |
+| Defaults/included warning | Implemented, needs manual verification | `getDefaultModifierIncludedSelectionWarnings`; Product Modifier Assignments UI/test. | 5 defaults + 0 included warning appears; included 5 removes it. |
+| Legacy demo compatibility | Implemented, intentionally retained | Legacy constants/fallbacks exist in menu, checkout, staff, product/modifier/media admin context helpers. | Confirm legacy routes still work and new tenant changes do not mutate Pronto data. |
+| Auth/role protection | Deferred intentionally | Docs mark Platform/Admin/Staff auth protection as deferred. | Do not expose Platform Admin publicly until auth is built. |
+| Checkout transaction/RPC | Known gap | Checkout creates order/items with server validation but still lacks transaction/RPC pattern. | Acceptable for manual regression; fix before real payment launch. |
+| Stripe/payment automation | Deferred intentionally | Payment/webhook work remains roadmap future. | Not required for new-tenant pickup order regression. |
+
+## Blocker Audit Before Clean Rebuild
+
+No code blocker is currently known for running the new-tenant manual regression.
+
+Known remaining risks before a clean database rebuild:
+
+- Manual browser regression has not passed yet.
+- Legacy demo fallbacks still exist intentionally for `/menu`, `/checkout`, `/staff/orders`, `/admin/products...`, `/admin/modifiers...`, and `/admin/media`.
+- Auth/role protection is deferred; Platform Admin must remain internal.
+- Checkout order creation still needs a transaction/RPC pattern before real payment use.
+- Stripe/payment automation is deferred.
+- Full draft/publish, specials, website builder, delivery, and billing are intentionally out of scope.
+
+Clean database rebuild recommendation:
+
+- Ready for manual tenant onboarding regression.
+- Not ready to wipe/rebuild until every section in this document passes or has a documented accepted exception.
+- After the manual pass, it is reasonable to decide whether to retire/redirect legacy demo routes or keep them as explicit compatibility routes through the rebuild.

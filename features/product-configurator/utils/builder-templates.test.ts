@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import {
   ACTIVE_BUILDER_TEMPLATES,
   BUILDER_TEMPLATES,
-  getProductBuilderRoute,
   isActiveBuilderTemplate,
   isBuilderTemplate,
 } from "./builder-templates"
@@ -40,36 +39,4 @@ describe("builder templates", () => {
     expect(isActiveBuilderTemplate("drink")).toBe(true)
     expect(isActiveBuilderTemplate("combo")).toBe(false)
   })
-
-  it("routes pizza to PizzaBuilder", () => {
-    expect(getProductBuilderRoute("pizza")).toBe("pizza")
-  })
-
-  it.each([
-    "standard",
-    "wings",
-    "sub",
-    "salad",
-    "drink",
-    "coffee",
-    "appetizer",
-    "side",
-    "pasta",
-    "kids",
-    "sauce",
-    null,
-    undefined,
-  ])(
-    "routes %s to StandardItemBuilder",
-    (builderTemplate) => {
-      expect(getProductBuilderRoute(builderTemplate)).toBe("standard")
-    }
-  )
-
-  it.each(["combo", "special", "promo", "unknown"])(
-    "routes %s to unsupported handling",
-    (builderTemplate) => {
-      expect(getProductBuilderRoute(builderTemplate)).toBe("unsupported")
-    }
-  )
 })

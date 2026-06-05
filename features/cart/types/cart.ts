@@ -10,6 +10,10 @@ export type CartModifier = {
 
 export type CartItem = {
   cartItemId: string
+  businessId?: string | null
+  businessSlug?: string | null
+  locationId?: string | null
+  locationSlug?: string | null
   productId: string
   productName: string
   variantId: string | null

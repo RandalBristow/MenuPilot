@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
 
 export type VariantGroupListItem = {
   id: string
@@ -72,17 +74,10 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
   })
 }
 
-export async function getVariantGroups() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
-
+export async function getVariantGroups(
+  businessContext: ProductAdminBusinessContextInput = {}
+) {
+  const business = await resolveProductAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("variant_groups")
     .select(
@@ -121,7 +116,7 @@ export async function getVariantGroups() {
   }))
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     groups: sortBySortOrder(groups),
   }
 }
@@ -214,17 +209,10 @@ async function getProductOptionOverrides(
 
 export async function getVariantGroupDetail(
   groupId: string,
-  productId?: string
+  productId?: string,
+  businessContext: ProductAdminBusinessContextInput = {}
 ) {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
+  const business = await resolveProductAdminBusinessContext(businessContext)
 
   const { data, error } = await supabaseAdmin
     .from("variant_groups")
@@ -273,7 +261,7 @@ export async function getVariantGroupDetail(
       | null
   }
   const context = await getVariantGroupDetailContext(
-    business.id as string,
+    business.id,
     groupId,
     productId
   )
@@ -281,14 +269,14 @@ export async function getVariantGroupDetail(
   if (!context) return null
   const overrides =
     context.mode === "product"
-      ? await getProductOptionOverrides(business.id as string, productId)
+      ? await getProductOptionOverrides(business.id, productId)
       : []
   const overridesByOptionId = new Map(
     overrides.map((override) => [override.variant_group_option_id, override])
   )
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     mode: context.mode,
     productContext: context.productContext,
     group: {

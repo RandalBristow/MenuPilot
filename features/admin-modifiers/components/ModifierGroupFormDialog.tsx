@@ -28,6 +28,7 @@ import type { RawModifierGroup } from "@/features/admin-modifiers/components/Mod
 type ModifierGroupFormMode = "create" | "edit"
 
 type ModifierGroupFormDialogProps = {
+  businessSlug?: string
   open?: boolean
   onOpenChange?: (open: boolean) => void
   categories: ModifierCategory[]
@@ -42,6 +43,7 @@ type ModifierGroupFormDialogProps = {
 }
 
 export function ModifierGroupFormDialog({
+  businessSlug,
   open,
   onOpenChange,
   categories,
@@ -105,6 +107,7 @@ export function ModifierGroupFormDialog({
     if (!group) return
 
     const formData = new FormData()
+    if (businessSlug) formData.set("businessSlug", businessSlug)
     formData.set("modifierGroupId", group.id)
     formData.set("isEnabled", String(!group.is_enabled))
 
@@ -155,6 +158,10 @@ export function ModifierGroupFormDialog({
           className={MODIFIER_FORM_CLASS}
         >
           <div className={MODIFIER_FORM_BODY_CLASS}>
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
+
             {group ? (
               <input type="hidden" name="modifierGroupId" value={group.id} />
             ) : null}

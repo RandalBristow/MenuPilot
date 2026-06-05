@@ -1472,4 +1472,74 @@ describe("validateAndPriceCart", () => {
       { optionId: "bacon", priceDelta: 2 },
     ])
   })
+
+  it("validates and reprices a simple variant-only product", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          productId: "product-pizza",
+          variantId: "size-16",
+          variantName: "Client Large",
+          quantity: 2,
+          unitPrice: 0.01,
+          totalPrice: 0.02,
+          modifiers: [],
+        }),
+      ],
+      products: [productWithVariants],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0]).toMatchObject({
+      productId: "product-pizza",
+      productName: "Build Your Own Pizza",
+      variantId: "size-16",
+      variantName: '16"',
+      quantity: 2,
+      unitPrice: 19.49,
+      lineSubtotal: 38.98,
+      modifiers: [],
+    })
+  })
+
+  it("validates and reprices a simple quantity-only product", () => {
+    const simpleProduct = {
+      id: "extra-sauce",
+      name: "Extra Sauce",
+      isEnabled: true,
+      basePrice: 0.75,
+    } satisfies CheckoutProductConfig
+
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          productId: "extra-sauce",
+          productName: "Client Sauce",
+          variantId: null,
+          variantName: null,
+          quantity: 3,
+          unitPrice: 0.01,
+          totalPrice: 0.03,
+          modifiers: [],
+        }),
+      ],
+      products: [simpleProduct],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0]).toMatchObject({
+      productId: "extra-sauce",
+      productName: "Extra Sauce",
+      variantId: null,
+      variantName: null,
+      quantity: 3,
+      unitPrice: 0.75,
+      lineSubtotal: 2.25,
+      modifiers: [],
+    })
+  })
 })

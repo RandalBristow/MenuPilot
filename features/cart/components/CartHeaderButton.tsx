@@ -5,7 +5,13 @@ import { ThemedButton } from "@/components/themed/ThemedButton"
 import { useCart } from "@/features/cart/context/CartProvider"
 import { CartSheet } from "@/features/cart/components/CartSheet"
 
-export function CartHeaderButton() {
+type CartHeaderButtonProps = {
+  checkoutHref?: string
+}
+
+export function CartHeaderButton({
+  checkoutHref = "/checkout",
+}: CartHeaderButtonProps) {
   const { itemCount } = useCart()
 
   return (
@@ -26,6 +32,7 @@ export function CartHeaderButton() {
           </span>
         </ThemedButton>
       }
+      checkoutHref={checkoutHref}
     />
   )
 }

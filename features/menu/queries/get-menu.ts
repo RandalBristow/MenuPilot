@@ -14,6 +14,104 @@ type MenuWithProductGroups = {
   }[] | null
 }
 
+type MenuBusiness = {
+  id: string
+  name: string
+  slug: string
+  status: string | null
+}
+
+type ProductWithBusinessScope = ProductWithVariantSources & {
+  business_id?: string | null
+  media_assets?:
+    | {
+        business_id?: string | null
+      }
+    | {
+        business_id?: string | null
+      }[]
+    | null
+}
+
+function clearCrossTenantMedia<T extends ProductWithBusinessScope>(
+  product: T,
+  businessId: string
+) {
+  const mediaAssets = product.media_assets
+
+  if (!mediaAssets) return product
+
+  if (Array.isArray(mediaAssets)) {
+    return {
+      ...product,
+      media_assets: mediaAssets.filter(
+        (asset) => !asset.business_id || asset.business_id === businessId
+      ),
+    }
+  }
+
+  if (mediaAssets.business_id && mediaAssets.business_id !== businessId) {
+    return {
+      ...product,
+      media_assets: null,
+    }
+  }
+
+  return product
+}
+
+function productBelongsToBusiness(
+  product: ProductWithVariantSources | null,
+  businessId: string
+) {
+  if (!product) return false
+
+  const scopedProduct = product as ProductWithBusinessScope
+
+  return !scopedProduct.business_id || scopedProduct.business_id === businessId
+}
+
+function isNonNull<T>(value: T | null): value is T {
+  return value !== null
+}
+
+export function applyMenuBusinessScope<T extends MenuWithProductGroups>(
+  menu: T,
+  businessId: string
+) {
+  return {
+    ...menu,
+    menu_groups: (menu.menu_groups ?? []).map((menuGroup) => ({
+      ...menuGroup,
+      product_groups: (menuGroup.product_groups ?? [])
+        .map((productGroup) => {
+          const products = productGroup.products
+
+          if (Array.isArray(products)) {
+            const scopedProducts = products
+              .filter((product) => productBelongsToBusiness(product, businessId))
+              .map((product) => clearCrossTenantMedia(product, businessId))
+
+            return {
+              ...productGroup,
+              products: scopedProducts,
+            }
+          }
+
+          if (!productBelongsToBusiness(products, businessId)) return null
+
+          return {
+            ...productGroup,
+            products: products
+              ? clearCrossTenantMedia(products, businessId)
+              : products,
+          }
+        })
+        .filter(isNonNull),
+    })),
+  }
+}
+
 function applyEffectiveVariantsToMenu<T extends MenuWithProductGroups>(menu: T) {
   return {
     ...menu,
@@ -38,10 +136,14 @@ function applyEffectiveVariantsToMenu<T extends MenuWithProductGroups>(menu: T) 
   }
 }
 
+export function isSetupBusiness(business: Pick<MenuBusiness, "status">) {
+  return business.status === "setup"
+}
+
 export async function getMenuByBusinessSlug(businessSlug: string) {
   const { data: business, error: businessError } = await supabase
     .from("businesses")
-    .select("id, name, slug")
+    .select("id, name, slug, status")
     .eq("slug", businessSlug)
     .single()
 
@@ -69,6 +171,7 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
           sort_order,
           products (
             id,
+            business_id,
             name,
             slug,
             description,
@@ -80,6 +183,7 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
             image_media_id,
             media_assets (
               id,
+              business_id,
               public_url,
               alt_text,
               caption,
@@ -122,7 +226,9 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
   }
 
   return {
-    business,
-    menus: (menus ?? []).map(applyEffectiveVariantsToMenu),
+    business: business as MenuBusiness,
+    menus: (menus ?? [])
+      .map((menu) => applyMenuBusinessScope(menu, business.id))
+      .map(applyEffectiveVariantsToMenu),
   }
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { ImageIcon, Plus } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
@@ -10,6 +11,7 @@ import { MediaAssetFormSheet } from "@/features/admin-media/components/MediaAsse
 import type { MediaAsset } from "@/features/admin-media/queries/get-media-assets"
 
 type MediaLibraryClientProps = {
+  businessSlug?: string
   businessName: string
   assets: MediaAsset[]
 }
@@ -23,6 +25,7 @@ function getAssetTitle(asset: MediaAsset) {
 }
 
 export function MediaLibraryClient({
+  businessSlug,
   businessName,
   assets,
 }: MediaLibraryClientProps) {
@@ -52,8 +55,24 @@ export function MediaLibraryClient({
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
             title="Media Library"
-            description={`Manage reusable media assets for ${businessName}.`}
+            description={`Managing: ${businessName}`}
           />
+          {businessSlug ? (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>Business slug: {businessSlug}</span>
+              <span aria-hidden="true">/</span>
+              <Link
+                href={`/businesses/${encodeURIComponent(businessSlug)}/admin`}
+                className="font-medium hover:text-foreground"
+              >
+                Back to tenant admin
+              </Link>
+              <span aria-hidden="true">/</span>
+              <Link href="/platform/businesses" className="font-medium hover:text-foreground">
+                Switch Business
+              </Link>
+            </div>
+          ) : null}
           <label className="sr-only" htmlFor="media-library-search">
             Search media assets
           </label>
@@ -150,7 +169,11 @@ export function MediaLibraryClient({
         <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-5xl justify-end gap-2">
             <AdminBackButton
-              fallbackHref="/admin"
+              fallbackHref={
+                businessSlug
+                  ? `/businesses/${encodeURIComponent(businessSlug)}/admin`
+                  : "/admin"
+              }
               label="Back to admin dashboard"
             />
             <ThemedButton
@@ -172,6 +195,7 @@ export function MediaLibraryClient({
         open={createOpen}
         onOpenChange={setCreateOpen}
         asset={null}
+        businessSlug={businessSlug}
       />
       <MediaAssetFormSheet
         key={activeAsset?.id ?? "edit-closed"}
@@ -180,6 +204,7 @@ export function MediaLibraryClient({
           if (!open) setActiveAsset(null)
         }}
         asset={activeAsset}
+        businessSlug={businessSlug}
       />
     </main>
   )

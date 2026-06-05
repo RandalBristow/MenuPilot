@@ -56,9 +56,11 @@ export function ProductPanelHeader({
 export function ProductPanelFooter({
   closeControl,
   submitLabel,
+  submitDisabled = false,
 }: {
   closeControl: ReactNode
   submitLabel?: string
+  submitDisabled?: boolean
 }) {
   return (
     <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
@@ -67,6 +69,7 @@ export function ProductPanelFooter({
         <ThemedButton
           type="submit"
           size="icon"
+          disabled={submitDisabled}
           aria-label={submitLabel}
           className="size-10"
         >
@@ -81,6 +84,7 @@ export function ProductPanelFooter({
 export function ProductUpdateHiddenFields({
   product,
   redirectTo,
+  businessSlug,
   includeInfo = true,
   includeMenuPlacement = true,
   includeAvailability = true,
@@ -88,6 +92,7 @@ export function ProductUpdateHiddenFields({
 }: {
   product: ExistingProduct
   redirectTo: string
+  businessSlug?: string
   includeInfo?: boolean
   includeMenuPlacement?: boolean
   includeAvailability?: boolean
@@ -97,6 +102,9 @@ export function ProductUpdateHiddenFields({
     <>
       <input type="hidden" name="productId" value={product.id} />
       <input type="hidden" name="redirectTo" value={redirectTo} />
+      {businessSlug ? (
+        <input type="hidden" name="businessSlug" value={businessSlug} />
+      ) : null}
 
       {includeInfo ? (
         <>

@@ -4,8 +4,10 @@ import {
   AdminProductsBrowser,
   type AdminMenuGroup,
 } from "@/features/admin-products/components/AdminProductsBrowser"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
 
 type RawProductGroup = {
   id: string
@@ -82,17 +84,10 @@ function mapMenuGroup(group: RawMenuGroup): AdminMenuGroup {
   }
 }
 
-async function getAdminProductsPageData() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
-
+export async function getAdminProductsPageData(
+  businessContext: ProductAdminBusinessContextInput = {}
+) {
+  const business = await resolveProductAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("menu_groups")
     .select(
@@ -127,13 +122,24 @@ async function getAdminProductsPageData() {
   }
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     menuGroups: sortBySortOrder(((data ?? []) as RawMenuGroup[]).map(mapMenuGroup)),
   }
 }
 
-export async function AdminProductsPage() {
-  const { businessName, menuGroups } = await getAdminProductsPageData()
+type AdminProductsPageProps = {
+  businessContext?: ProductAdminBusinessContextInput
+  businessSlug?: string
+  writesEnabled?: boolean
+}
+
+export async function AdminProductsPage({
+  businessContext,
+  businessSlug,
+  writesEnabled = true,
+}: AdminProductsPageProps = {}) {
+  const { businessName, menuGroups } =
+    await getAdminProductsPageData(businessContext)
 
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
@@ -147,7 +153,11 @@ export async function AdminProductsPage() {
         </div>
 
         <div className="min-h-0 flex-1">
-          <AdminProductsBrowser menuGroups={menuGroups} />
+          <AdminProductsBrowser
+            menuGroups={menuGroups}
+            businessSlug={businessSlug}
+            writesEnabled={writesEnabled}
+          />
         </div>
       </div>
     </main>

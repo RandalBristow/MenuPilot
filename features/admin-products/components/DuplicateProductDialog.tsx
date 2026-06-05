@@ -19,15 +19,20 @@ import {
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import { getProductDetailHref } from "@/features/admin-products/utils/product-admin-routes"
 
 type DuplicateProductDialogProps = {
   productId: string
   productName: string
+  disabled?: boolean
+  redirectBusinessSlug?: string
 }
 
 export function DuplicateProductDialog({
   productId,
   productName,
+  disabled = false,
+  redirectBusinessSlug,
 }: DuplicateProductDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -41,7 +46,9 @@ export function DuplicateProductDialog({
     if (duplicateResult.status === "duplicated") {
       formRef.current?.reset()
       setOpen(false)
-      router.push(`/admin/products/${duplicateResult.productId}`)
+      router.push(
+        getProductDetailHref(duplicateResult.productId, redirectBusinessSlug)
+      )
       router.refresh()
       return
     }
@@ -61,6 +68,7 @@ export function DuplicateProductDialog({
         type="button"
         size="icon"
         variant="outline"
+        disabled={disabled}
         aria-label={`Duplicate product ${productName}`}
         className="size-8 bg-background text-foreground hover:bg-muted"
         onClick={(event) => {
@@ -93,6 +101,13 @@ export function DuplicateProductDialog({
         >
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             <input type="hidden" name="productId" value={productId} />
+            {redirectBusinessSlug ? (
+              <input
+                type="hidden"
+                name="businessSlug"
+                value={redirectBusinessSlug}
+              />
+            ) : null}
 
             {result ? (
               <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

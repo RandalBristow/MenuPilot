@@ -10,6 +10,12 @@ import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatus
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { DuplicateProductDialog } from "@/features/admin-products/components/DuplicateProductDialog"
+import {
+  getProductAdminHref,
+  getProductDetailHref,
+  getProductModifierGroupsHref,
+  getProductVariantAssignmentsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 export type AdminProduct = {
   id: string
@@ -40,6 +46,8 @@ export type AdminMenuGroup = {
 
 type ProductCategoryBrowserProps = {
   menuGroups: AdminMenuGroup[]
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function sortBySortOrder<T extends { sort_order: number }>(items: T[]) {
@@ -62,6 +70,8 @@ function getProductGroups(group: AdminMenuGroup) {
 
 export function AdminProductsBrowser({
   menuGroups,
+  businessSlug,
+  writesEnabled = true,
 }: ProductCategoryBrowserProps) {
   const router = useRouter()
   const sortedGroups = useMemo(() => sortBySortOrder(menuGroups), [menuGroups])
@@ -163,12 +173,16 @@ export function AdminProductsBrowser({
                             tabIndex={0}
                             aria-label={`Open product ${product.name}`}
                             onClick={() =>
-                              router.push(`/admin/products/${product.id}`)
+                              router.push(
+                                getProductDetailHref(product.id, businessSlug)
+                              )
                             }
                             onKeyDown={(event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault()
-                                router.push(`/admin/products/${product.id}`)
+                                router.push(
+                                  getProductDetailHref(product.id, businessSlug)
+                                )
                               }
                             }}
                             className="cursor-pointer overflow-hidden border bg-background py-0"
@@ -192,7 +206,10 @@ export function AdminProductsBrowser({
                                     onClick={(event) => {
                                       event.stopPropagation()
                                       router.push(
-                                        `/admin/products/variant-assignments?productId=${product.id}`
+                                        getProductVariantAssignmentsHref(
+                                          product.id,
+                                          businessSlug
+                                        )
                                       )
                                     }}
                                   >
@@ -207,7 +224,10 @@ export function AdminProductsBrowser({
                                     onClick={(event) => {
                                       event.stopPropagation()
                                       router.push(
-                                        `/admin/products/modifier-groups?productId=${product.id}`
+                                        getProductModifierGroupsHref(
+                                          product.id,
+                                          businessSlug
+                                        )
                                       )
                                     }}
                                   >
@@ -216,6 +236,8 @@ export function AdminProductsBrowser({
                                   <DuplicateProductDialog
                                     productId={product.id}
                                     productName={product.name}
+                                    disabled={!writesEnabled}
+                                    redirectBusinessSlug={businessSlug}
                                   />
                                 </>
                               }
@@ -250,19 +272,31 @@ export function AdminProductsBrowser({
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-6xl justify-end gap-2">
           <AdminBackButton
-            fallbackHref="/admin/products"
+            fallbackHref={getProductAdminHref("", businessSlug)}
             label="Back to product management"
           />
-          <ThemedButton
-            asChild
-            size="icon"
-            aria-label="New product"
-            className="size-10 rounded-md p-0 shadow-sm sm:size-8"
-          >
-            <Link href="/admin/products/new">
+          {writesEnabled ? (
+            <ThemedButton
+              asChild
+              size="icon"
+              aria-label="New product"
+              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+            >
+              <Link href={getProductAdminHref("new", businessSlug)}>
+                <Plus aria-hidden="true" />
+              </Link>
+            </ThemedButton>
+          ) : (
+            <ThemedButton
+              type="button"
+              size="icon"
+              disabled
+              aria-label="New product unavailable until scoped product writes are converted"
+              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+            >
               <Plus aria-hidden="true" />
-            </Link>
-          </ThemedButton>
+            </ThemedButton>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type MediaAdminBusinessContextInput,
+  resolveMediaAdminBusinessContext,
+} from "@/features/admin-media/utils/media-admin-business-context"
 
 export type MediaAsset = {
   id: string
@@ -14,17 +16,10 @@ export type MediaAsset = {
   created_at: string
 }
 
-export async function getMediaAssets() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load media business.")
-  }
-
+export async function getMediaAssets(
+  businessContext: MediaAdminBusinessContextInput = {}
+) {
+  const business = await resolveMediaAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("media_assets")
     .select(
@@ -48,7 +43,7 @@ export async function getMediaAssets() {
   }
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     assets: (data ?? []) as MediaAsset[],
   }
 }

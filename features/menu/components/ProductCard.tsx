@@ -48,6 +48,7 @@ type ProductCardProps = {
   product: Product;
   onCustomize?: (productId: string) => void;
   isLoading?: boolean;
+  orderingActionsDisabled?: boolean;
 };
 
 function getStartingPrice(product: Product) {
@@ -99,6 +100,7 @@ export function ProductCard({
   product,
   onCustomize,
   isLoading = false,
+  orderingActionsDisabled = false,
 }: ProductCardProps) {
   const startingPrice = getStartingPrice(product);
   const canCustomize =
@@ -165,13 +167,15 @@ export function ProductCard({
 
             <ThemedButton
               size="sm"
-              disabled={isLoading || !canCustomize}
+              disabled={orderingActionsDisabled || isLoading || !canCustomize}
               onClick={handleCustomize}
             >
-              {!canCustomize
-                ? "Unavailable"
-                : isLoading
-                  ? "Loading..."
+              {orderingActionsDisabled
+                ? "Preview only"
+                : !canCustomize
+                  ? "Unavailable"
+                  : isLoading
+                    ? "Loading..."
                   : "Customize"}
             </ThemedButton>
           </div>

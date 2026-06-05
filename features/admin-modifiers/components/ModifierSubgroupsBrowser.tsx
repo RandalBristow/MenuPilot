@@ -14,6 +14,7 @@ import {
   MODIFIER_ADMIN_ROW_CARD_CLASS,
   MODIFIER_ADMIN_ROW_CLASS,
 } from "@/features/admin-modifiers/components/modifier-admin-row-styles"
+import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import type {
@@ -32,8 +33,10 @@ function getGroups(categories: ModifierCategory[]) {
 }
 
 export function ModifierSubgroupsBrowser({
+  businessSlug,
   categories,
 }: {
+  businessSlug?: string
   categories: ModifierCategory[]
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(
@@ -99,6 +102,7 @@ export function ModifierSubgroupsBrowser({
 
       {selectedGroup ? (
         <SubgroupRows
+          businessSlug={businessSlug}
           group={selectedGroup}
           subgroups={subgroups}
         />
@@ -112,9 +116,11 @@ export function ModifierSubgroupsBrowser({
 }
 
 function SubgroupRows({
+  businessSlug,
   group,
   subgroups,
 }: {
+  businessSlug?: string
   group: RawModifierGroup
   subgroups: RawModifierOptionGroup[]
 }) {
@@ -174,7 +180,7 @@ function SubgroupRows({
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-5xl justify-end gap-2">
           <AdminBackButton
-            fallbackHref="/admin/modifiers"
+            fallbackHref={getModifierAdminHref("", businessSlug)}
             label="Back to modifier management"
           />
           <ThemedButton
@@ -196,6 +202,7 @@ function SubgroupRows({
         modifierGroupId={group.id}
         modifierGroupName={group.name}
         nextSortOrder={nextSortOrder}
+        businessSlug={businessSlug}
       />
 
       {activeSubgroup ? (
@@ -209,6 +216,7 @@ function SubgroupRows({
           modifierGroupName={group.name}
           nextSortOrder={nextSortOrder}
           optionGroup={activeSubgroup}
+          businessSlug={businessSlug}
         />
       ) : null}
 

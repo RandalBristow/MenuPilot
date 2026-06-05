@@ -22,6 +22,7 @@ import { getProductConfig } from "@/features/product-configurator/queries/get-pr
 
 type CartSheetProps = {
   trigger: ReactElement
+  checkoutHref?: string
 }
 
 type ModifierGroup = {
@@ -56,7 +57,7 @@ function formatPlacement(placement: CartModifier["placement"]) {
   return placement.charAt(0).toUpperCase() + placement.slice(1)
 }
 
-export function CartSheet({ trigger }: CartSheetProps) {
+export function CartSheet({ trigger, checkoutHref = "/checkout" }: CartSheetProps) {
   const { items, subtotal, removeItem, clearCart } = useCart()
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CartItem | null>(null)
@@ -75,7 +76,9 @@ export function CartSheet({ trigger }: CartSheetProps) {
     setLoadingEditItemId(item.cartItemId)
 
     try {
-      const config = await getProductConfig(item.productId)
+      const config = await getProductConfig(item.productId, {
+        businessSlug: item.businessSlug,
+      })
 
       setEditingProduct(config as unknown as ProductConfig)
       setEditingItem(item)
@@ -236,7 +239,7 @@ export function CartSheet({ trigger }: CartSheetProps) {
 
             <div className="grid gap-2">
               <ThemedButton asChild className="h-11 w-full">
-                <Link href="/checkout">Continue to Checkout</Link>
+                <Link href={checkoutHref}>Continue to Checkout</Link>
               </ThemedButton>
 
               <ThemedButton
@@ -261,6 +264,7 @@ export function CartSheet({ trigger }: CartSheetProps) {
           onOpenChange={handleEditOpenChange}
           mode="edit"
           cartItem={editingItem}
+          businessSlug={editingItem.businessSlug}
         />
       ) : null}
     </>

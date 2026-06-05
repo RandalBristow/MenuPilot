@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  getProductAdminActionHref,
+  resolveProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
 
-const BUSINESS_SLUG = "pronto-demo"
 const MENU_NAME = "Main Menu"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
@@ -36,21 +39,11 @@ function parseSortOrder(value: FormDataEntryValue | null) {
   return sortOrder
 }
 
-async function getBusinessAndMenu() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
-
+async function getMenuId(businessId: string) {
   const { data: menu, error: menuError } = await supabaseAdmin
     .from("menus")
     .select("id")
-    .eq("business_id", business.id)
+    .eq("business_id", businessId)
     .eq("name", MENU_NAME)
     .single()
 
@@ -58,14 +51,43 @@ async function getBusinessAndMenu() {
     throw new Error("Could not load product menu.")
   }
 
-  return {
-    businessId: business.id as string,
-    menuId: menu.id as string,
+  return menu.id as string
+}
+
+async function assertCategoryBelongsToBusiness({
+  businessId,
+  menuId,
+  categoryId,
+}: {
+  businessId: string
+  menuId: string
+  categoryId: string
+}) {
+  const { data: category, error } = await supabaseAdmin
+    .from("menu_groups")
+    .select("id")
+    .eq("id", categoryId)
+    .eq("business_id", businessId)
+    .eq("menu_id", menuId)
+    .is("parent_group_id", null)
+    .single()
+
+  if (error || !category) {
+    throw new Error("Category could not be found.")
   }
 }
 
+function revalidateCategoryPaths(context: Awaited<ReturnType<typeof resolveProductAdminActionContext>>) {
+  revalidatePath(getProductAdminActionHref(context))
+  revalidatePath(getProductAdminActionHref(context, "categories"))
+  revalidatePath(getProductAdminActionHref(context, "subcategories"))
+  revalidatePath(getProductAdminActionHref(context, "list"))
+  revalidatePath("/menu")
+}
+
 export async function saveProductCategory(formData: FormData) {
-  const { businessId, menuId } = await getBusinessAndMenu()
+  const context = await resolveProductAdminActionContext(formData)
+  const menuId = await getMenuId(context.businessId)
   const categoryId = parseNullableString(formData.get("categoryId"))
   const name = parseString(formData.get("name"), "Category name")
   const description = parseNullableString(formData.get("description"))
@@ -73,6 +95,12 @@ export async function saveProductCategory(formData: FormData) {
   const isEnabled = parseEnabled(formData.get("isEnabled"))
 
   if (categoryId) {
+    await assertCategoryBelongsToBusiness({
+      businessId: context.businessId,
+      menuId,
+      categoryId,
+    })
+
     const { error } = await supabaseAdmin
       .from("menu_groups")
       .update({
@@ -82,7 +110,7 @@ export async function saveProductCategory(formData: FormData) {
         is_enabled: isEnabled,
       })
       .eq("id", categoryId)
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
       .eq("menu_id", menuId)
       .is("parent_group_id", null)
 
@@ -91,7 +119,7 @@ export async function saveProductCategory(formData: FormData) {
     }
   } else {
     const { error } = await supabaseAdmin.from("menu_groups").insert({
-      business_id: businessId,
+      business_id: context.businessId,
       menu_id: menuId,
       parent_group_id: null,
       name,
@@ -105,8 +133,5 @@ export async function saveProductCategory(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/categories")
-  revalidatePath("/admin/products/list")
-  revalidatePath("/menu")
+  revalidateCategoryPaths(context)
 }

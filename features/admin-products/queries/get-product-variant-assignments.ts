@@ -3,8 +3,10 @@ import {
   getProductManagementData,
   type ProductManagementData,
 } from "@/features/admin-products/queries/get-product-management-data"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
 
 export type AssignableVariantGroup = {
   id: string
@@ -55,20 +57,6 @@ export type ProductVariantAssignmentData = {
   selectedProductName: string | null
   attachedGroups: ProductVariantGroupAssignment[]
   availableGroups: AssignableVariantGroup[]
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 function sortBySortOrder<T extends { sort_order: number; name: string }>(
@@ -298,12 +286,14 @@ async function getVariantOptionOverrides(
 }
 
 export async function getProductVariantAssignmentData(
-  requestedProductId?: string
+  requestedProductId?: string,
+  businessContext: ProductAdminBusinessContextInput = {}
 ): Promise<ProductVariantAssignmentData> {
-  const [productData, businessId] = await Promise.all([
-    getProductManagementData(requestedProductId),
-    getBusinessId(),
-  ])
+  const business = await resolveProductAdminBusinessContext(businessContext)
+  const businessId = business.id
+  const productData = await getProductManagementData(requestedProductId, {
+    business,
+  })
   const { products, selectedProductId } = productData
   const [variantGroups, attachedGroups, overrides] = await Promise.all([
     getAssignableVariantGroups(businessId),

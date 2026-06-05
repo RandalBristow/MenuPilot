@@ -20,11 +20,14 @@ import {
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
 import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
+import { getProductListHref } from "@/features/admin-products/utils/product-admin-routes"
+import {
   ACTIVE_BUILDER_TEMPLATES,
   BUILDER_TEMPLATE_LABELS,
 } from "@/features/product-configurator/utils/builder-templates"
-
-const BUSINESS_SLUG = "pronto-demo"
 
 export type MenuGroup = {
   id: string
@@ -73,6 +76,9 @@ export type ProductFormData = {
 
 type ProductFormProps = {
   productId?: string
+  businessContext?: ProductAdminBusinessContextInput
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function sortBySortOrder<T extends { sort_order: number; name: string }>(
@@ -190,17 +196,10 @@ async function getExistingProduct(
 }
 
 export async function getProductFormData(
-  productId?: string
+  productId?: string,
+  businessContext: ProductAdminBusinessContextInput = {}
 ): Promise<ProductFormData> {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
+  const business = await resolveProductAdminBusinessContext(businessContext)
 
   const [menuGroupsResult, mediaAssetsResult, modifierGroupsResult, product] =
     await Promise.all([
@@ -242,7 +241,7 @@ export async function getProductFormData(
   }
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     menuGroups: sortBySortOrder((menuGroupsResult.data ?? []) as MenuGroup[]),
     mediaAssets: (mediaAssetsResult.data ?? []) as MediaAssetOption[],
     modifierGroups: sortBySortOrder(
@@ -252,9 +251,14 @@ export async function getProductFormData(
   }
 }
 
-export async function ProductForm({ productId }: ProductFormProps) {
+export async function ProductForm({
+  productId,
+  businessContext,
+  businessSlug,
+  writesEnabled = true,
+}: ProductFormProps) {
   const { businessName, menuGroups, mediaAssets, product } =
-    await getProductFormData(productId)
+    await getProductFormData(productId, businessContext)
   const isEditMode = product !== null
 
   return (
@@ -277,10 +281,16 @@ export async function ProductForm({ productId }: ProductFormProps) {
         </ThemedSheetHeader>
 
         <form
-          action={isEditMode ? updateProduct : createProduct}
+          action={
+            writesEnabled ? (isEditMode ? updateProduct : createProduct) : undefined
+          }
           className="flex min-h-0 flex-1 flex-col"
         >
           <div className={PRODUCT_ADMIN_PANEL_BODY_CLASS}>
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
+
             {product ? (
               <>
                 <input type="hidden" name="productId" value={product.id} />
@@ -399,11 +409,12 @@ export async function ProductForm({ productId }: ProductFormProps) {
 
           <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
             <AdminBackButton
-              fallbackHref="/admin/products/list"
+              fallbackHref={getProductListHref(businessSlug)}
               label="Back to products"
             />
             <ThemedButton
               type="submit"
+              disabled={!writesEnabled}
               size="icon"
               aria-label={isEditMode ? "Save product" : "Create product"}
               className="size-10"

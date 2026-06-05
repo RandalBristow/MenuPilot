@@ -2,8 +2,15 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  getModifierAdminActionBusinessSlug,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
+import {
+  getProductDetailHref,
+  getProductModifierGroupsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -60,20 +67,6 @@ function isMissingOverrideTableError(error: { code?: string; message: string }) 
   )
 }
 
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
-}
-
 async function assertProductModifierOption({
   businessId,
   productId,
@@ -85,6 +78,17 @@ async function assertProductModifierOption({
   modifierGroupId: string
   modifierOptionId: string
 }) {
+  const { data: product, error: productError } = await supabaseAdmin
+    .from("products")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("id", productId)
+    .single()
+
+  if (productError || !product) {
+    throw new Error("Selected product is invalid.")
+  }
+
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("product_modifier_groups")
     .select("id")
@@ -112,7 +116,7 @@ async function assertProductModifierOption({
 }
 
 export async function saveProductModifierOptionOverride(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveModifierAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const modifierGroupId = parseString(
     formData.get("modifierGroupId"),
@@ -137,7 +141,7 @@ export async function saveProductModifierOptionOverride(formData: FormData) {
   )
 
   await assertProductModifierOption({
-    businessId,
+    businessId: context.businessId,
     productId,
     modifierGroupId,
     modifierOptionId,
@@ -147,7 +151,7 @@ export async function saveProductModifierOptionOverride(formData: FormData) {
     .from("product_modifier_option_overrides")
     .upsert(
       {
-        business_id: businessId,
+        business_id: context.businessId,
         product_id: productId,
         modifier_option_id: modifierOptionId,
         price_delta_override: priceDeltaOverride,
@@ -170,9 +174,11 @@ export async function saveProductModifierOptionOverride(formData: FormData) {
     throw new Error(`Could not save modifier option override: ${error.message}`)
   }
 
-  revalidatePath("/admin/modifiers")
-  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
-  revalidatePath("/admin/products/modifier-groups")
-  revalidatePath(`/admin/products/${productId}`)
+  const businessSlug = getModifierAdminActionBusinessSlug(context)
+
+  revalidatePath(getModifierAdminActionHref(context))
+  revalidatePath(getModifierAdminActionHref(context, modifierGroupId))
+  revalidatePath(getProductModifierGroupsHref(productId, businessSlug))
+  revalidatePath(getProductDetailHref(productId, businessSlug))
   revalidatePath("/menu")
 }

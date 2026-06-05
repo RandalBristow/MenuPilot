@@ -26,6 +26,10 @@ import {
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
 import {
+  getProductDetailHref,
+  getProductListHref,
+} from "@/features/admin-products/utils/product-admin-routes"
+import {
   ACTIVE_BUILDER_TEMPLATES,
   BUILDER_TEMPLATE_LABELS,
 } from "@/features/product-configurator/utils/builder-templates"
@@ -36,6 +40,8 @@ import type {
 
 type ProductDetailClientProps = {
   data: ProductFormData
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function getProductPlacementLabel(
@@ -53,7 +59,11 @@ function getProductPlacementLabel(
   return `${parent.name} / ${group.name}`
 }
 
-export function ProductDetailClient({ data }: ProductDetailClientProps) {
+export function ProductDetailClient({
+  data,
+  businessSlug,
+  writesEnabled = true,
+}: ProductDetailClientProps) {
   const { product, menuGroups, mediaAssets, businessName } = data
 
   if (!product) {
@@ -66,6 +76,8 @@ export function ProductDetailClient({ data }: ProductDetailClientProps) {
       menuGroups={menuGroups}
       mediaAssets={mediaAssets}
       businessName={businessName}
+      businessSlug={businessSlug}
+      writesEnabled={writesEnabled}
     />
   )
 }
@@ -75,11 +87,15 @@ function ProductDetailEditor({
   menuGroups,
   mediaAssets,
   businessName,
+  businessSlug,
+  writesEnabled,
 }: {
   product: ExistingProduct
   menuGroups: ProductFormData["menuGroups"]
   mediaAssets: ProductFormData["mediaAssets"]
   businessName: string
+  businessSlug?: string
+  writesEnabled: boolean
 }) {
   const [isEnabled, setIsEnabled] = useState(product.is_enabled)
   const [hasVariants, setHasVariants] = useState(product.has_variants)
@@ -101,6 +117,8 @@ function ProductDetailEditor({
               <DuplicateProductDialog
                 productId={product.id}
                 productName={product.name}
+                disabled={!writesEnabled}
+                redirectBusinessSlug={businessSlug}
               />
             </div>
             <ThemedSheetDescription>
@@ -111,11 +129,15 @@ function ProductDetailEditor({
             </p>
           </ThemedSheetHeader>
 
-          <form action={updateProduct} className="flex min-h-0 flex-1 flex-col">
+          <form
+            action={writesEnabled ? updateProduct : undefined}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className={cn(PRODUCT_ADMIN_PANEL_BODY_CLASS, "pb-4")}>
               <ProductUpdateHiddenFields
                 product={product}
-                redirectTo="/admin/products/list"
+                redirectTo={getProductDetailHref(product.id, businessSlug)}
+                businessSlug={businessSlug}
                 includeInfo={false}
                 includeMenuPlacement={false}
                 includeAvailability={false}
@@ -225,11 +247,12 @@ function ProductDetailEditor({
             <ProductPanelFooter
               closeControl={
                 <AdminBackButton
-                  fallbackHref="/admin/products/list"
+                  fallbackHref={getProductListHref(businessSlug)}
                   label="Back to products"
                 />
               }
               submitLabel="Save product"
+              submitDisabled={!writesEnabled}
             />
           </form>
         </ThemedSheetContent>

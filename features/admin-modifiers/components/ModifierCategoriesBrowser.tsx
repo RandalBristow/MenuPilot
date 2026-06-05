@@ -10,12 +10,15 @@ import {
   MODIFIER_ADMIN_ROW_CARD_CLASS,
   MODIFIER_ADMIN_ROW_CLASS,
 } from "@/features/admin-modifiers/components/modifier-admin-row-styles"
+import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import type { ModifierCategory } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 export function ModifierCategoriesBrowser({
+  businessSlug,
   categories,
 }: {
+  businessSlug?: string
   categories: ModifierCategory[]
 }) {
   const [activeCategory, setActiveCategory] =
@@ -70,10 +73,11 @@ export function ModifierCategoriesBrowser({
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-5xl justify-end gap-2">
           <AdminBackButton
-            fallbackHref="/admin/modifiers"
+            fallbackHref={getModifierAdminHref("", businessSlug)}
             label="Back to modifier management"
           />
           <ModifierCategoryFormDialog
+            businessSlug={businessSlug}
             triggerIcon={<Plus aria-hidden="true" />}
             triggerAriaLabel="Add modifier category"
           />
@@ -88,6 +92,7 @@ export function ModifierCategoriesBrowser({
           }}
           mode="edit"
           category={activeCategory}
+          businessSlug={businessSlug}
         />
       ) : null}
     </div>

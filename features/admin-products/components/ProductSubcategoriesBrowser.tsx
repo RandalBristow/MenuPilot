@@ -23,6 +23,7 @@ import {
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import { getProductAdminHref } from "@/features/admin-products/utils/product-admin-routes"
 import type {
   ProductSubcategory,
   ProductSubcategoryParent,
@@ -43,6 +44,8 @@ type ProductSubcategoriesBrowserProps = {
   categories: ProductSubcategoryParent[]
   subcategories: ProductSubcategory[]
   initialCategoryId?: string
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function getNextSortOrder(subcategories: ProductSubcategory[]) {
@@ -60,6 +63,8 @@ function SubcategoryFormPanel({
   categories,
   selectedCategoryId,
   nextSortOrder,
+  businessSlug,
+  writesEnabled,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -67,6 +72,8 @@ function SubcategoryFormPanel({
   categories: ProductSubcategoryParent[]
   selectedCategoryId: string
   nextSortOrder: number
+  businessSlug?: string
+  writesEnabled: boolean
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -106,9 +113,12 @@ function SubcategoryFormPanel({
         <form
           key={`${panelState.mode}-${subcategory?.id ?? "new"}`}
           ref={formRef}
-          action={handleSubmit}
+          action={writesEnabled ? handleSubmit : undefined}
           className="flex min-h-0 flex-1 flex-col"
         >
+          {businessSlug ? (
+            <input type="hidden" name="businessSlug" value={businessSlug} />
+          ) : null}
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             {subcategory ? (
               <>
@@ -236,6 +246,7 @@ function SubcategoryFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
+              disabled={!writesEnabled}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -255,6 +266,8 @@ export function ProductSubcategoriesBrowser({
   categories,
   subcategories,
   initialCategoryId,
+  businessSlug,
+  writesEnabled = true,
 }: ProductSubcategoriesBrowserProps) {
   const [selectedCategoryId] = useState<string>(
     categories.some((category) => category.id === initialCategoryId)
@@ -347,7 +360,7 @@ export function ProductSubcategoriesBrowser({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
             <AdminBackButton
-              fallbackHref="/admin/products/categories"
+              fallbackHref={getProductAdminHref("categories", businessSlug)}
               label="Back to product categories"
             />
             <ThemedButton
@@ -355,7 +368,7 @@ export function ProductSubcategoriesBrowser({
               size="icon"
               aria-label="New Subcategory"
               className="size-10 rounded-md p-0 shadow-sm sm:size-8"
-              disabled={!selectedCategoryId}
+              disabled={!selectedCategoryId || !writesEnabled}
               onClick={() =>
                 setPanelState({ mode: "create", subcategory: null })
               }
@@ -377,6 +390,8 @@ export function ProductSubcategoriesBrowser({
         categories={categories}
         selectedCategoryId={selectedCategoryId}
         nextSortOrder={nextSortOrder}
+        businessSlug={businessSlug}
+        writesEnabled={writesEnabled}
       />
     </main>
   )

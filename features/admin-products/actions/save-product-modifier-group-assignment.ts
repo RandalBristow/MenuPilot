@@ -2,8 +2,15 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getProductAdminActionHref,
+  resolveProductAdminActionContext,
+  type ProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
+import {
+  getProductDetailHref,
+  getProductModifierGroupsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 function isMissingModifierOverrideTableError(error: {
   code?: string
@@ -22,20 +29,6 @@ function parseString(value: FormDataEntryValue | null, fieldName: string) {
   }
 
   return value.trim()
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 async function assertProduct(businessId: string, productId: string) {
@@ -172,16 +165,31 @@ async function deleteProductIncludedModifierGroup({
   }
 }
 
-function revalidateProductModifierPaths(productId: string) {
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/modifier-groups")
-  revalidatePath(`/admin/products/${productId}`)
-  revalidatePath("/admin/modifiers")
+function getActionBusinessSlug(context: ProductAdminActionContext) {
+  return context.isScoped ? context.businessSlug : undefined
+}
+
+function revalidateProductModifierPaths({
+  context,
+  productId,
+}: {
+  context: ProductAdminActionContext
+  productId: string
+}) {
+  const businessSlug = getActionBusinessSlug(context)
+
+  revalidatePath(getProductAdminActionHref(context))
+  revalidatePath(getProductModifierGroupsHref(undefined, businessSlug))
+  revalidatePath(getProductModifierGroupsHref(productId, businessSlug))
+  revalidatePath(getProductDetailHref(productId, businessSlug))
+  if (!context.isScoped) {
+    revalidatePath("/admin/modifiers")
+  }
   revalidatePath("/menu")
 }
 
 export async function attachProductModifierGroup(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const modifierGroupId = parseString(
     formData.get("modifierGroupId"),
@@ -189,17 +197,17 @@ export async function attachProductModifierGroup(formData: FormData) {
   )
 
   await Promise.all([
-    assertProduct(businessId, productId),
-    assertModifierGroup(businessId, modifierGroupId),
+    assertProduct(context.businessId, productId),
+    assertModifierGroup(context.businessId, modifierGroupId),
   ])
 
   const { error } = await supabaseAdmin.from("product_modifier_groups").upsert(
     {
-      business_id: businessId,
+      business_id: context.businessId,
       product_id: productId,
       modifier_group_id: modifierGroupId,
       is_enabled: true,
-      sort_order: await getNextSortOrder(businessId, productId),
+      sort_order: await getNextSortOrder(context.businessId, productId),
     },
     {
       onConflict: "product_id,modifier_group_id",
@@ -210,19 +218,20 @@ export async function attachProductModifierGroup(formData: FormData) {
     throw new Error(`Could not attach modifier group: ${error.message}`)
   }
 
-  revalidateProductModifierPaths(productId)
+  revalidateProductModifierPaths({ context, productId })
 }
 
 export async function detachProductModifierGroup(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const assignmentId = parseString(formData.get("assignmentId"), "Assignment")
+  await assertProduct(context.businessId, productId)
 
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("product_modifier_groups")
     .select("id, product_id, modifier_group_id")
     .eq("id", assignmentId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .eq("product_id", productId)
     .single()
 
@@ -231,17 +240,17 @@ export async function detachProductModifierGroup(formData: FormData) {
   }
 
   await deleteProductModifierOptionOverrides({
-    businessId,
+    businessId: context.businessId,
     productId,
     modifierGroupId: assignment.modifier_group_id as string,
   })
   await deleteProductDefaultModifierOptions({
-    businessId,
+    businessId: context.businessId,
     productId,
     modifierGroupId: assignment.modifier_group_id as string,
   })
   await deleteProductIncludedModifierGroup({
-    businessId,
+    businessId: context.businessId,
     productId,
     modifierGroupId: assignment.modifier_group_id as string,
   })
@@ -250,12 +259,12 @@ export async function detachProductModifierGroup(formData: FormData) {
     .from("product_modifier_groups")
     .delete()
     .eq("id", assignmentId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .eq("product_id", productId)
 
   if (error) {
     throw new Error(`Could not detach modifier group: ${error.message}`)
   }
 
-  revalidateProductModifierPaths(productId)
+  revalidateProductModifierPaths({ context, productId })
 }

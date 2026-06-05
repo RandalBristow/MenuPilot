@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
 
 type SelectionType = "single" | "multiple"
 
@@ -52,22 +54,8 @@ function parseOptionalInteger(
   return parseInteger(value, fieldName)
 }
 
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
-}
-
 export async function updateModifierGroup(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveModifierAdminActionContext(formData)
   const modifierGroupId = parseString(
     formData.get("modifierGroupId"),
     "Modifier group"
@@ -89,11 +77,22 @@ export async function updateModifierGroup(formData: FormData) {
     .from("modifier_categories")
     .select("id")
     .eq("id", categoryId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .single()
 
   if (categoryError || !category) {
     throw new Error("Selected modifier category is invalid.")
+  }
+
+  const { data: modifierGroup, error: modifierGroupError } = await supabaseAdmin
+    .from("modifier_groups")
+    .select("id")
+    .eq("id", modifierGroupId)
+    .eq("business_id", context.businessId)
+    .single()
+
+  if (modifierGroupError || !modifierGroup) {
+    throw new Error("Selected modifier group is invalid.")
   }
 
   const { error } = await supabaseAdmin
@@ -109,15 +108,15 @@ export async function updateModifierGroup(formData: FormData) {
       sort_order: sortOrder,
     })
     .eq("id", modifierGroupId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
 
   if (error) {
     throw new Error(`Could not update modifier group: ${error.message}`)
   }
 
-  revalidatePath("/admin/modifiers")
-  revalidatePath("/admin/modifiers/groups")
-  revalidatePath("/admin/modifiers/subgroups")
-  revalidatePath("/admin/modifiers/options")
-  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
+  revalidatePath(getModifierAdminActionHref(context))
+  revalidatePath(getModifierAdminActionHref(context, "groups"))
+  revalidatePath(getModifierAdminActionHref(context, "subgroups"))
+  revalidatePath(getModifierAdminActionHref(context, "options"))
+  revalidatePath(getModifierAdminActionHref(context, modifierGroupId))
 }

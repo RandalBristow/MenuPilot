@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { AlertTriangle, ArrowLeft } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedHeading } from "@/components/themed/ThemedHeading"
@@ -9,6 +11,24 @@ import {
   type StaffOrder,
   type StaffOrderModifier,
 } from "@/features/staff-orders/types/staff-order"
+import { cn } from "@/lib/utils"
+
+type StaffOrdersPageProps = {
+  businessSlug?: string | null
+  locationSlug?: string | null
+  businessName?: string | null
+  locationName?: string | null
+  locationStatus?: string | null
+  isLocationEnabled?: boolean | null
+  isAcceptingOrders?: boolean | null
+  adminHref?: string | null
+  isLegacy?: boolean
+}
+
+type StaffOrderActionScope = {
+  businessSlug?: string | null
+  locationSlug?: string | null
+}
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -86,7 +106,13 @@ function StatusBadge({ children }: { children: React.ReactNode }) {
   )
 }
 
-function StatusButtons({ order }: { order: StaffOrder }) {
+function StatusButtons({
+  order,
+  actionScope,
+}: {
+  order: StaffOrder
+  actionScope: StaffOrderActionScope
+}) {
   const actions = getAllowedNextStaffOrderStatuses(order.orderStatus)
 
   if (actions.length === 0) {
@@ -103,6 +129,20 @@ function StatusButtons({ order }: { order: StaffOrder }) {
         <form key={status} action={updateOrderStatus}>
           <input type="hidden" name="orderId" value={order.id} />
           <input type="hidden" name="status" value={status} />
+          {actionScope.businessSlug ? (
+            <input
+              type="hidden"
+              name="businessSlug"
+              value={actionScope.businessSlug}
+            />
+          ) : null}
+          {actionScope.locationSlug ? (
+            <input
+              type="hidden"
+              name="locationSlug"
+              value={actionScope.locationSlug}
+            />
+          ) : null}
           <ThemedButton
             type="submit"
             variant={status === "canceled" ? "destructive" : "outline"}
@@ -160,7 +200,13 @@ function OrderItems({ order }: { order: StaffOrder }) {
   )
 }
 
-function OrderCard({ order }: { order: StaffOrder }) {
+function OrderCard({
+  order,
+  actionScope,
+}: {
+  order: StaffOrder
+  actionScope: StaffOrderActionScope
+}) {
   return (
     <ThemedCard className={getOrderCardClassName(order.orderStatus)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -194,7 +240,7 @@ function OrderCard({ order }: { order: StaffOrder }) {
       </div>
 
       <OrderItems order={order} />
-      <StatusButtons order={order} />
+      <StatusButtons order={order} actionScope={actionScope} />
     </ThemedCard>
   )
 }
@@ -203,10 +249,12 @@ function OrdersSection({
   title,
   description,
   orders,
+  actionScope,
 }: {
   title: string
   description: string
   orders: StaffOrder[]
+  actionScope: StaffOrderActionScope
 }) {
   if (orders.length === 0) return null
 
@@ -224,30 +272,151 @@ function OrdersSection({
 
       <div className="space-y-4">
         {orders.map((order) => (
-          <OrderCard key={order.id} order={order} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            actionScope={actionScope}
+          />
         ))}
       </div>
     </section>
   )
 }
 
-export async function StaffOrdersPage() {
-  const orders = await getRecentStaffOrders()
+function getLocationWarning({
+  locationStatus,
+  isLocationEnabled,
+  isAcceptingOrders,
+}: StaffOrdersPageProps) {
+  const warnings = []
+
+  if (locationStatus && locationStatus !== "active") {
+    warnings.push(`Location status is ${locationStatus}.`)
+  }
+
+  if (isLocationEnabled === false) {
+    warnings.push("Location is disabled.")
+  }
+
+  if (isAcceptingOrders === false) {
+    warnings.push("Location is not accepting new orders.")
+  }
+
+  return warnings.join(" ")
+}
+
+function LocationStatePill({
+  label,
+  isPositive,
+}: {
+  label: string
+  isPositive: boolean
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit rounded-full border px-2 py-0.5 text-xs font-medium",
+        isPositive
+          ? "border-success/30 bg-success/10 text-success"
+          : "border-destructive/30 bg-destructive/10 text-destructive"
+      )}
+    >
+      {label}
+    </span>
+  )
+}
+
+export async function StaffOrdersPage({
+  businessSlug = null,
+  locationSlug = null,
+  businessName = "Pronto Demo",
+  locationName = "Main Street",
+  locationStatus = "active",
+  isLocationEnabled = true,
+  isAcceptingOrders = true,
+  adminHref = null,
+  isLegacy = false,
+}: StaffOrdersPageProps = {}) {
+  const orders = await getRecentStaffOrders({ businessSlug, locationSlug })
   const activeOrders = orders.filter((order) =>
     isActiveStatus(order.orderStatus)
   )
   const terminalOrders = orders.filter((order) =>
     isTerminalStatus(order.orderStatus)
   )
+  const locationWarning = getLocationWarning({
+    locationStatus,
+    isLocationEnabled,
+    isAcceptingOrders,
+  })
+  const actionScope = { businessSlug, locationSlug }
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
-        <div className="space-y-2">
-          <ThemedHeading>Staff Orders</ThemedHeading>
-          <p className="text-sm text-muted-foreground">
-            Recent orders for Pronto Demo, Main Street.
-          </p>
+        <div className="space-y-4">
+          {adminHref ? (
+            <Link
+              href={adminHref}
+              className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              Back to business admin
+            </Link>
+          ) : null}
+
+          <div className="space-y-2">
+            <ThemedHeading>Staff Orders</ThemedHeading>
+            <p className="text-sm text-muted-foreground">
+              Recent orders for {businessName}, {locationName}.
+            </p>
+            {isLegacy ? (
+              <p className="text-xs font-medium text-muted-foreground">
+                Legacy demo route. Use the business/location-scoped order route
+                for tenant-specific staff work.
+              </p>
+            ) : null}
+          </div>
+
+          <ThemedCard className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold">{locationName}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Location order queue for {businessName}.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge>{locationStatus ?? "unknown"}</StatusBadge>
+                <LocationStatePill
+                  label={isLocationEnabled ? "Enabled" : "Disabled"}
+                  isPositive={Boolean(isLocationEnabled)}
+                />
+                <LocationStatePill
+                  label={
+                    isAcceptingOrders
+                      ? "Accepting orders"
+                      : "Not accepting orders"
+                  }
+                  isPositive={Boolean(isAcceptingOrders)}
+                />
+              </div>
+            </div>
+          </ThemedCard>
+
+          {locationWarning ? (
+            <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertTriangle
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
+              <p>
+                {locationWarning} Existing orders remain visible for staff
+                review and status updates.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         {orders.length === 0 ? (
@@ -263,12 +432,14 @@ export async function StaffOrdersPage() {
               title="Active orders"
               description="New and in-progress orders that need staff attention."
               orders={activeOrders}
+              actionScope={actionScope}
             />
 
             <OrdersSection
               title="Completed and canceled"
               description="Recently closed orders for quick reference."
               orders={terminalOrders}
+              actionScope={actionScope}
             />
           </div>
         )}

@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
 
 export type ProductSubcategoryParent = {
   id: string
@@ -29,17 +31,10 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
   })
 }
 
-export async function getProductSubcategories() {
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
-
+export async function getProductSubcategories(
+  businessContext: ProductAdminBusinessContextInput = {}
+) {
+  const business = await resolveProductAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("menu_groups")
     .select("id, parent_group_id, name, description, sort_order, is_enabled")
@@ -62,7 +57,7 @@ export async function getProductSubcategories() {
   )
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     categories: sortBySortOrder(categories),
     subcategories: sortBySortOrder(subcategories),
   }

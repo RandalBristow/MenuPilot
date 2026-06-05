@@ -24,6 +24,7 @@ import {
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import type { ProductCategory } from "@/features/admin-products/queries/get-product-categories"
+import { getProductAdminHref } from "@/features/admin-products/utils/product-admin-routes"
 
 type CategoryPanelState =
   | {
@@ -38,6 +39,8 @@ type CategoryPanelState =
 type ProductCategoriesBrowserProps = {
   businessName: string
   categories: ProductCategory[]
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function getNextSortOrder(categories: ProductCategory[]) {
@@ -51,11 +54,15 @@ function CategoryFormPanel({
   onOpenChange,
   panelState,
   nextSortOrder,
+  businessSlug,
+  writesEnabled,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   panelState: CategoryPanelState | null
   nextSortOrder: number
+  businessSlug?: string
+  writesEnabled: boolean
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -95,9 +102,12 @@ function CategoryFormPanel({
         <form
           key={`${panelState.mode}-${category?.id ?? "new"}`}
           ref={formRef}
-          action={handleSubmit}
+          action={writesEnabled ? handleSubmit : undefined}
           className="flex min-h-0 flex-1 flex-col"
         >
+          {businessSlug ? (
+            <input type="hidden" name="businessSlug" value={businessSlug} />
+          ) : null}
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             {category ? (
               <>
@@ -202,6 +212,7 @@ function CategoryFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
+              disabled={!writesEnabled}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -219,6 +230,8 @@ function CategoryFormPanel({
 export function ProductCategoriesBrowser({
   businessName,
   categories,
+  businessSlug,
+  writesEnabled = true,
 }: ProductCategoriesBrowserProps) {
   const router = useRouter()
   const [panelState, setPanelState] = useState<CategoryPanelState | null>(null)
@@ -278,7 +291,10 @@ export function ProductCategoriesBrowser({
                       onClick={(event) => {
                         event.stopPropagation()
                         router.push(
-                          `/admin/products/subcategories?categoryId=${category.id}`
+                          getProductAdminHref(
+                            `subcategories?categoryId=${category.id}`,
+                            businessSlug
+                          )
                         )
                       }}
                     >
@@ -294,7 +310,7 @@ export function ProductCategoriesBrowser({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
             <AdminBackButton
-              fallbackHref="/admin/products"
+              fallbackHref={getProductAdminHref("", businessSlug)}
               label="Back to product management"
             />
             <ThemedButton
@@ -302,6 +318,7 @@ export function ProductCategoriesBrowser({
               size="icon"
               aria-label="New Category"
               className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+              disabled={!writesEnabled}
               onClick={() => setPanelState({ mode: "create", category: null })}
             >
               <Plus aria-hidden="true" />
@@ -319,6 +336,8 @@ export function ProductCategoriesBrowser({
         }}
         panelState={panelState}
         nextSortOrder={nextSortOrder}
+        businessSlug={businessSlug}
+        writesEnabled={writesEnabled}
       />
     </main>
   )

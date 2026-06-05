@@ -14,10 +14,13 @@ import {
 } from "@/features/admin-products/actions/save-product-variant-modifier-option-availability"
 import { isModifierOptionAvailableForVariant } from "@/features/admin-products/utils/variant-modifier-availability"
 import type { ProductModifierAvailabilityData } from "@/features/admin-products/queries/get-product-modifier-availability"
+import { getProductModifierGroupsHref } from "@/features/admin-products/utils/product-admin-routes"
 import { getVariantModifierOptionPriceOverride } from "@/features/product-configurator/utils/variant-modifier-pricing"
 
 type ProductModifierAvailabilityClientProps = {
   data: ProductModifierAvailabilityData
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 type OptionGroupFilter = {
@@ -31,6 +34,8 @@ function formatPrice(value: number | string) {
 
 export function ProductModifierAvailabilityClient({
   data,
+  businessSlug,
+  writesEnabled = true,
 }: ProductModifierAvailabilityClientProps) {
   const router = useRouter()
   const [selectedVariantOptionId, setSelectedVariantOptionId] = useState(
@@ -130,6 +135,9 @@ export function ProductModifierAvailabilityClient({
 
     return (
       <>
+        {businessSlug ? (
+          <input type="hidden" name="businessSlug" value={businessSlug} />
+        ) : null}
         <input type="hidden" name="productId" value={data.product.id} />
         <input
           type="hidden"
@@ -299,7 +307,12 @@ export function ProductModifierAvailabilityClient({
                         </p>
                       </div>
 
-                      <form action={handleAvailabilityToggle} className="shrink-0">
+                      <form
+                        action={
+                          writesEnabled ? handleAvailabilityToggle : undefined
+                        }
+                        className="shrink-0"
+                      >
                         {renderRuleInputs({ optionId: option.id })}
                         <input
                           type="hidden"
@@ -308,6 +321,7 @@ export function ProductModifierAvailabilityClient({
                         />
                         <ThemedButton
                           type="submit"
+                          disabled={!writesEnabled}
                           size="icon"
                           variant="outline"
                           aria-label={
@@ -328,7 +342,9 @@ export function ProductModifierAvailabilityClient({
 
                     {isEditingPrice ? (
                       <form
-                        action={handlePriceOverrideSubmit}
+                        action={
+                          writesEnabled ? handlePriceOverrideSubmit : undefined
+                        }
                         className="flex items-end gap-2"
                       >
                         {renderRuleInputs({ optionId: option.id })}
@@ -347,6 +363,7 @@ export function ProductModifierAvailabilityClient({
                         </label>
                         <ThemedButton
                           type="submit"
+                          disabled={!writesEnabled}
                           size="icon"
                           aria-label="Save price override"
                           className="size-9"
@@ -371,11 +388,18 @@ export function ProductModifierAvailabilityClient({
                         </p>
                         <div className="ml-auto flex items-center gap-1.5">
                           {isPriceOverridden ? (
-                            <form action={handlePriceOverrideSubmit}>
+                            <form
+                              action={
+                                writesEnabled
+                                  ? handlePriceOverrideSubmit
+                                  : undefined
+                              }
+                            >
                               {renderRuleInputs({ optionId: option.id })}
                               <input type="hidden" name="priceDelta" value="" />
                               <ThemedButton
                                 type="submit"
+                                disabled={!writesEnabled}
                                 size="icon"
                                 variant="outline"
                                 aria-label="Clear price override"
@@ -414,7 +438,10 @@ export function ProductModifierAvailabilityClient({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end">
             <AdminBackButton
-              fallbackHref={`/admin/products/modifier-groups?productId=${data.product.id}`}
+              fallbackHref={getProductModifierGroupsHref(
+                data.product.id,
+                businessSlug
+              )}
               label="Back to modifier assignments"
             />
           </div>

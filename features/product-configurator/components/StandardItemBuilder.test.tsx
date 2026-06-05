@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { CartProvider } from "@/features/cart/context/CartProvider"
 import type { CartItem } from "@/features/cart/types/cart"
 import type { ProductConfig } from "./ProductConfigurator"
-import { StandardItemBuilder } from "./StandardItemBuilder"
+import { GenericConfigurableBuilder } from "./GenericConfigurableBuilder"
 
 function buildModifierGroup(
   overrides: Partial<
@@ -91,7 +91,7 @@ function buildProduct(overrides: Partial<ProductConfig> = {}): ProductConfig {
   }
 }
 
-function renderStandardItemBuilder({
+function renderGenericConfigurableBuilder({
   product = buildProduct(),
   mode = "create",
   cartItem = null,
@@ -102,7 +102,7 @@ function renderStandardItemBuilder({
 } = {}) {
   return render(
     <CartProvider>
-      <StandardItemBuilder
+      <GenericConfigurableBuilder
         product={product}
         open
         onOpenChange={() => undefined}
@@ -113,9 +113,9 @@ function renderStandardItemBuilder({
   )
 }
 
-describe("StandardItemBuilder", () => {
+describe("GenericConfigurableBuilder", () => {
   it("renders assigned variants and modifier groups for a salad product", () => {
-    renderStandardItemBuilder()
+    renderGenericConfigurableBuilder()
 
     expect(screen.getByText("Choose an option")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /regular/i })).toBeInTheDocument()
@@ -127,8 +127,25 @@ describe("StandardItemBuilder", () => {
     expect(screen.getAllByText("Fresh salad")).toHaveLength(1)
   })
 
+  it("shows quantity before variant and modifier selections", () => {
+    renderGenericConfigurableBuilder()
+
+    const quantityHeading = screen.getByText("Quantity")
+    const variantHeading = screen.getByText("Choose an option")
+    const modifierHeading = screen.getByText("Dressing")
+
+    expect(
+      quantityHeading.compareDocumentPosition(variantHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      quantityHeading.compareDocumentPosition(modifierHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
   it("groups modifier options by modifier option group", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         product_modifier_groups: [
           {
@@ -186,7 +203,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("applies product default modifiers for non-pizza products in create mode", async () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         product_default_modifier_options: [
           {
@@ -210,7 +227,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("default selected modifiers consume included selections", async () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         base_price: 8,
         has_variants: false,
@@ -284,14 +301,14 @@ describe("StandardItemBuilder", () => {
   })
 
   it("blocks add to cart when a required modifier group has no selection", () => {
-    renderStandardItemBuilder()
+    renderGenericConfigurableBuilder()
 
     expect(screen.getByText("Please choose at least 1.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /add to cart/i })).toBeDisabled()
   })
 
   it("filters modifier options by selected variant availability", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         product_variant_modifier_option_availability_rules: [
           {
@@ -313,7 +330,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("updates modifier option prices by selected variant", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         product_modifier_groups: [
           {
@@ -364,7 +381,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("keeps quantity-only behavior for products without variants or modifiers", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         builder_template: "standard",
         has_variants: false,
@@ -379,7 +396,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("preserves saved cart selections in edit mode", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       mode: "edit",
       cartItem: {
         cartItemId: "cart-salad",
@@ -413,7 +430,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("supports products with variants but no modifiers", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         product_modifier_groups: [],
       }),
@@ -426,7 +443,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("supports products with modifiers but no variants", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         has_variants: false,
         variants: [],
@@ -453,7 +470,7 @@ describe("StandardItemBuilder", () => {
   })
 
   it("uses generic placement labels when a non-pizza group supports placement", () => {
-    renderStandardItemBuilder({
+    renderGenericConfigurableBuilder({
       product: buildProduct({
         product_modifier_groups: [
           {

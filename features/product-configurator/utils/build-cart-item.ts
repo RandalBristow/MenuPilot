@@ -8,6 +8,10 @@ export type CartItemVariantSnapshot = {
 
 export type BuildCartItemInput = {
   cartItemId: string
+  businessId?: string | null
+  businessSlug?: string | null
+  locationId?: string | null
+  locationSlug?: string | null
   productId: string
   productName: string
   selectedVariant: CartItemVariantSnapshot
@@ -18,6 +22,10 @@ export type BuildCartItemInput = {
 
 export function buildConfiguredCartItem({
   cartItemId,
+  businessId,
+  businessSlug,
+  locationId,
+  locationSlug,
   productId,
   productName,
   selectedVariant,
@@ -27,6 +35,10 @@ export function buildConfiguredCartItem({
 }: BuildCartItemInput): CartItem {
   return {
     cartItemId,
+    businessId,
+    businessSlug,
+    locationId,
+    locationSlug,
     productId,
     productName,
     variantId: selectedVariant?.id ?? null,

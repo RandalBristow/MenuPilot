@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ModifierAdminBusinessContextInput,
+  resolveModifierAdminBusinessContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-business-context"
 
 export type ProductModifierOptionOverride = {
   id: string | null
@@ -95,23 +97,6 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
 
     return first.name.localeCompare(second.name)
   })
-}
-
-async function getBusiness() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return {
-    id: business.id as string,
-    name: business.name as string,
-  }
 }
 
 async function getProductContext(businessId: string, productId?: string) {
@@ -248,9 +233,10 @@ function isMissingOverrideTableError(error: { code?: string; message: string }) 
 
 export async function getModifierGroupDetail(
   groupId: string,
-  productId?: string
+  productId?: string,
+  businessContext: ModifierAdminBusinessContextInput = {}
 ) {
-  const business = await getBusiness()
+  const business = await resolveModifierAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("modifier_groups")
     .select(

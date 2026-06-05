@@ -19,8 +19,10 @@ import {
   type ProductVariantModifierOptionPriceOverrideCopyRecord,
   type ProductVariantOptionOverrideCopyRecord,
 } from "@/features/admin-products/utils/duplicate-product"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getProductAdminActionRevalidatePaths,
+  resolveProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -32,20 +34,6 @@ function parseString(value: FormDataEntryValue | null, fieldName: string) {
 
 function parseBoolean(value: FormDataEntryValue | null) {
   return value === "true"
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 async function findProduct(
@@ -115,11 +103,28 @@ async function createProduct(product: NewProductRecord) {
   return { id: data.id as string }
 }
 
-async function deleteProduct(productId: string) {
+async function assertMediaAsset(businessId: string, mediaAssetId: string | null) {
+  if (!mediaAssetId) return
+
+  const { data, error } = await supabaseAdmin
+    .from("media_assets")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("id", mediaAssetId)
+    .eq("is_archived", false)
+    .single()
+
+  if (error || !data) {
+    throw new Error("Selected product image is invalid.")
+  }
+}
+
+async function deleteProduct(businessId: string, productId: string) {
   const { error } = await supabaseAdmin
     .from("products")
     .delete()
     .eq("id", productId)
+    .eq("business_id", businessId)
 
   if (error) {
     throw new Error(`Could not clean up duplicate product: ${error.message}`)
@@ -148,10 +153,11 @@ async function getNextProductGroupSortOrder({
   return Number(data?.[0]?.sort_order ?? 0) + 1
 }
 
-async function listProductGroups(productId: string) {
+async function listProductGroups(businessId: string, productId: string) {
   const { data, error } = await supabaseAdmin
     .from("product_groups")
     .select("business_id, product_id, menu_group_id, is_primary, sort_order")
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -171,10 +177,11 @@ async function insertProductGroups(records: ProductGroupCopyRecord[]) {
   }
 }
 
-async function listProductVariantGroups(productId: string) {
+async function listProductVariantGroups(businessId: string, productId: string) {
   const { data, error } = await supabaseAdmin
     .from("product_variant_groups")
     .select("business_id, product_id, variant_group_id, is_enabled, sort_order")
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -198,7 +205,10 @@ async function insertProductVariantGroups(
   }
 }
 
-async function listProductVariantOptionOverrides(productId: string) {
+async function listProductVariantOptionOverrides(
+  businessId: string,
+  productId: string
+) {
   const { data, error } = await supabaseAdmin
     .from("product_variant_option_overrides")
     .select(
@@ -213,6 +223,7 @@ async function listProductVariantOptionOverrides(productId: string) {
       sort_order
     `
     )
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -242,10 +253,11 @@ async function insertProductVariantOptionOverrides(
   }
 }
 
-async function listProductModifierGroups(productId: string) {
+async function listProductModifierGroups(businessId: string, productId: string) {
   const { data, error } = await supabaseAdmin
     .from("product_modifier_groups")
     .select("business_id, product_id, modifier_group_id, is_enabled, sort_order")
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -269,7 +281,10 @@ async function insertProductModifierGroups(
   }
 }
 
-async function listProductModifierOptionOverrides(productId: string) {
+async function listProductModifierOptionOverrides(
+  businessId: string,
+  productId: string
+) {
   const { data, error } = await supabaseAdmin
     .from("product_modifier_option_overrides")
     .select(
@@ -283,6 +298,7 @@ async function listProductModifierOptionOverrides(productId: string) {
       sort_order
     `
     )
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -313,7 +329,10 @@ async function insertProductModifierOptionOverrides(
   }
 }
 
-async function listProductDefaultModifierOptions(productId: string) {
+async function listProductDefaultModifierOptions(
+  businessId: string,
+  productId: string
+) {
   const { data, error } = await supabaseAdmin
     .from("product_default_modifier_options")
     .select(
@@ -330,6 +349,7 @@ async function listProductDefaultModifierOptions(productId: string) {
       sort_order
     `
     )
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -357,7 +377,10 @@ async function insertProductDefaultModifierOptions(
   }
 }
 
-async function listProductIncludedModifierGroups(productId: string) {
+async function listProductIncludedModifierGroups(
+  businessId: string,
+  productId: string
+) {
   const { data, error } = await supabaseAdmin
     .from("product_included_modifier_groups")
     .select(
@@ -370,6 +393,7 @@ async function listProductIncludedModifierGroups(productId: string) {
       charge_for_extra
     `
     )
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -397,6 +421,7 @@ async function insertProductIncludedModifierGroups(
 }
 
 async function listProductVariantModifierOptionAvailabilityRules(
+  businessId: string,
   productId: string
 ) {
   const { data, error } = await supabaseAdmin
@@ -412,6 +437,7 @@ async function listProductVariantModifierOptionAvailabilityRules(
       is_enabled
     `
     )
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -437,6 +463,7 @@ async function insertProductVariantModifierOptionAvailabilityRules(
 }
 
 async function listProductVariantModifierOptionPriceOverrides(
+  businessId: string,
   productId: string
 ) {
   const { data, error } = await supabaseAdmin
@@ -452,6 +479,7 @@ async function listProductVariantModifierOptionPriceOverrides(
       is_enabled
     `
     )
+    .eq("business_id", businessId)
     .eq("product_id", productId)
 
   if (error) {
@@ -482,29 +510,51 @@ async function insertProductVariantModifierOptionPriceOverrides(
   }
 }
 
-function createStore(businessId: string): ProductDuplicateStore {
+function createStore({
+  businessId,
+  copyImage,
+}: {
+  businessId: string
+  copyImage: boolean
+}): ProductDuplicateStore {
   return {
-    findProduct: (productId) => findProduct(businessId, productId),
+    async findProduct(productId) {
+      const product = await findProduct(businessId, productId)
+
+      if (copyImage) {
+        await assertMediaAsset(businessId, product?.image_media_id ?? null)
+      }
+
+      return product
+    },
     createProduct,
-    deleteProduct,
+    deleteProduct: (productId) => deleteProduct(businessId, productId),
     getNextProductGroupSortOrder,
-    listProductGroups,
+    listProductGroups: (productId) => listProductGroups(businessId, productId),
     insertProductGroups,
-    listProductVariantGroups,
+    listProductVariantGroups: (productId) =>
+      listProductVariantGroups(businessId, productId),
     insertProductVariantGroups,
-    listProductVariantOptionOverrides,
+    listProductVariantOptionOverrides: (productId) =>
+      listProductVariantOptionOverrides(businessId, productId),
     insertProductVariantOptionOverrides,
-    listProductModifierGroups,
+    listProductModifierGroups: (productId) =>
+      listProductModifierGroups(businessId, productId),
     insertProductModifierGroups,
-    listProductModifierOptionOverrides,
+    listProductModifierOptionOverrides: (productId) =>
+      listProductModifierOptionOverrides(businessId, productId),
     insertProductModifierOptionOverrides,
-    listProductDefaultModifierOptions,
+    listProductDefaultModifierOptions: (productId) =>
+      listProductDefaultModifierOptions(businessId, productId),
     insertProductDefaultModifierOptions,
-    listProductIncludedModifierGroups,
+    listProductIncludedModifierGroups: (productId) =>
+      listProductIncludedModifierGroups(businessId, productId),
     insertProductIncludedModifierGroups,
-    listProductVariantModifierOptionAvailabilityRules,
+    listProductVariantModifierOptionAvailabilityRules: (productId) =>
+      listProductVariantModifierOptionAvailabilityRules(businessId, productId),
     insertProductVariantModifierOptionAvailabilityRules,
-    listProductVariantModifierOptionPriceOverrides,
+    listProductVariantModifierOptionPriceOverrides: (productId) =>
+      listProductVariantModifierOptionPriceOverrides(businessId, productId),
     insertProductVariantModifierOptionPriceOverrides,
   }
 }
@@ -522,16 +572,19 @@ export async function duplicateProduct(
   formData: FormData
 ): Promise<DuplicateProductResult> {
   try {
-    const businessId = await getBusinessId()
+    const context = await resolveProductAdminActionContext(formData)
+    const { businessId } = context
+    const input = parseDuplicateProductInput(formData)
     const result = await duplicateProductSetup({
-      input: parseDuplicateProductInput(formData),
-      store: createStore(businessId),
+      input,
+      store: createStore({ businessId, copyImage: input.copyImage }),
     })
 
     if (result.status === "duplicated") {
-      revalidatePath("/admin/products")
-      revalidatePath("/admin/products/list")
-      revalidatePath(`/admin/products/${result.productId}`)
+      getProductAdminActionRevalidatePaths({
+        context,
+        productId: result.productId,
+      }).forEach((path) => revalidatePath(path))
     }
 
     return result

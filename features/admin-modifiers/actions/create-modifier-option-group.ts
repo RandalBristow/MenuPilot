@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -39,20 +41,6 @@ function parseOptionalSortOrder(value: FormDataEntryValue | null) {
   return sortOrder
 }
 
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
-}
-
 async function getNextSortOrder(businessId: string, modifierGroupId: string) {
   const { data, error } = await supabaseAdmin
     .from("modifier_option_groups")
@@ -70,7 +58,7 @@ async function getNextSortOrder(businessId: string, modifierGroupId: string) {
 }
 
 export async function createModifierOptionGroup(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveModifierAdminActionContext(formData)
   const modifierGroupId = parseString(
     formData.get("modifierGroupId"),
     "Modifier group"
@@ -84,7 +72,7 @@ export async function createModifierOptionGroup(formData: FormData) {
     .from("modifier_groups")
     .select("id")
     .eq("id", modifierGroupId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .single()
 
   if (modifierGroupError || !modifierGroup) {
@@ -92,10 +80,11 @@ export async function createModifierOptionGroup(formData: FormData) {
   }
 
   const sortOrder =
-    requestedSortOrder ?? (await getNextSortOrder(businessId, modifierGroupId))
+    requestedSortOrder ??
+    (await getNextSortOrder(context.businessId, modifierGroupId))
 
   const { error } = await supabaseAdmin.from("modifier_option_groups").insert({
-    business_id: businessId,
+    business_id: context.businessId,
     modifier_group_id: modifierGroupId,
     name,
     description,
@@ -107,8 +96,8 @@ export async function createModifierOptionGroup(formData: FormData) {
     throw new Error(`Could not create modifier subgroup: ${error.message}`)
   }
 
-  revalidatePath("/admin/modifiers")
-  revalidatePath("/admin/modifiers/subgroups")
-  revalidatePath("/admin/modifiers/options")
-  revalidatePath(`/admin/modifiers/${modifierGroupId}`)
+  revalidatePath(getModifierAdminActionHref(context))
+  revalidatePath(getModifierAdminActionHref(context, "subgroups"))
+  revalidatePath(getModifierAdminActionHref(context, "options"))
+  revalidatePath(getModifierAdminActionHref(context, modifierGroupId))
 }

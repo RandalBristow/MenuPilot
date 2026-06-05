@@ -1,8 +1,10 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
 import type { VariantModifierOptionAvailabilityRule } from "@/features/admin-products/utils/variant-modifier-availability"
 import type { VariantModifierOptionPriceOverride } from "@/features/product-configurator/utils/variant-modifier-pricing"
-
-const BUSINESS_SLUG = "pronto-demo"
 
 export type ProductModifierAvailabilityVariantOption = {
   id: string
@@ -98,23 +100,16 @@ function getFirstRelation<T>(value: T | T[] | null | undefined) {
 export async function getProductModifierAvailabilityData({
   productId,
   modifierGroupId,
+  businessContext = {},
 }: {
   productId?: string
   modifierGroupId: string
+  businessContext?: ProductAdminBusinessContextInput
 }): Promise<ProductModifierAvailabilityData | null> {
   if (!productId) return null
 
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id, name")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (businessError || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  const businessId = business.id as string
+  const business = await resolveProductAdminBusinessContext(businessContext)
+  const businessId = business.id
 
   const [
     { data: product, error: productError },
@@ -300,7 +295,7 @@ export async function getProductModifierAvailabilityData({
   )
 
   return {
-    businessName: business.name as string,
+    businessName: business.name,
     product: {
       id: product.id as string,
       name: product.name as string,

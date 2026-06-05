@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useActionState, useCallback, useEffect, useRef, useState } from "react"
-import { Check, LinkIcon, Settings, Unlink, X } from "lucide-react"
+import { AlertTriangle, Check, LinkIcon, Settings, Unlink, X } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -28,6 +28,14 @@ import {
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import { getIncludedSummary } from "@/features/admin-products/utils/product-included-modifier-summary"
+import {
+  getProductListHref,
+  getProductModifierAvailabilityHref,
+} from "@/features/admin-products/utils/product-admin-routes"
+import {
+  getDefaultModifierIncludedSelectionWarnings,
+  type DefaultModifierIncludedSelectionWarning,
+} from "@/features/admin-products/utils/default-modifier-included-selection-warnings"
 import type {
   ProductModifierGroupManagementData,
   ProductModifierGroupOption,
@@ -35,6 +43,8 @@ import type {
 
 type ProductModifierGroupsClientProps = {
   data: ProductModifierGroupManagementData
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 type ModifierGroupCardProps = {
@@ -42,10 +52,13 @@ type ModifierGroupCardProps = {
   activeProductId: string
   assignmentId?: string
   includedRule?: ProductModifierGroupOptionAssignment["includedRule"]
+  setupWarning?: DefaultModifierIncludedSelectionWarning
   selected?: boolean
   onAttach: (formData: FormData) => void
   onDetach: (formData: FormData) => void
   onSettingsSaved: () => void
+  businessSlug?: string
+  writesEnabled: boolean
 }
 
 type ProductModifierGroupOptionAssignment =
@@ -57,25 +70,26 @@ function getGroupDescription(group: ProductModifierGroupOption) {
   return `${requiredLabel} - ${group.selection_type}`
 }
 
-function getModifierGroupHref(groupId: string, productId?: string) {
-  const baseHref = `/admin/modifiers/${groupId}`
-
-  if (!productId) return baseHref
-
-  return `${baseHref}?productId=${encodeURIComponent(productId)}`
-}
-
 function ModifierGroupCard({
   group,
   activeProductId,
   assignmentId,
   includedRule,
+  setupWarning,
   selected = false,
   onAttach,
   onDetach,
   onSettingsSaved,
+  businessSlug,
+  writesEnabled,
 }: ModifierGroupCardProps) {
-  const groupHref = getModifierGroupHref(group.id, activeProductId)
+  const groupHref = businessSlug
+    ? getProductModifierAvailabilityHref({
+        modifierGroupId: group.id,
+        productId: activeProductId,
+        businessSlug,
+      })
+    : `/admin/modifiers/${group.id}?productId=${encodeURIComponent(activeProductId)}`
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsState, settingsAction, isSavingSettings] = useActionState(
     saveProductIncludedModifierGroupAction,
@@ -130,6 +144,20 @@ function ModifierGroupCard({
                 {includedSummary}
               </p>
             ) : null}
+            {setupWarning ? (
+              <div className="relative z-10 mt-2 flex gap-2 rounded-md border border-accent/40 bg-accent/10 px-2.5 py-2 text-xs leading-5 text-accent-foreground">
+                <AlertTriangle
+                  aria-hidden="true"
+                  className="mt-0.5 size-3.5 shrink-0"
+                />
+                <p>
+                  Pricing warning: {setupWarning.defaultCount} defaults
+                  selected, {setupWarning.includedCount} included selections.
+                  Increase included selections if these defaults should be part
+                  of the base price.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-1.5 flex justify-end">
@@ -142,7 +170,11 @@ function ModifierGroupCard({
                   className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
                 >
                   <Link
-                    href={`/admin/products/modifier-groups/${group.id}/availability?productId=${activeProductId}`}
+                    href={getProductModifierAvailabilityHref({
+                      modifierGroupId: group.id,
+                      productId: activeProductId,
+                      businessSlug,
+                    })}
                     aria-label="Manage modifier availability"
                   >
                     Manage Availability
@@ -154,12 +186,20 @@ function ModifierGroupCard({
                   variant="outline"
                   aria-label={`Included settings for ${group.name}`}
                   className="size-8 bg-background text-foreground hover:bg-muted"
+                  disabled={!writesEnabled}
                   onClick={() => setSettingsOpen(true)}
                 >
                   <Settings aria-hidden="true" />
                   <span className="sr-only">Included settings</span>
                 </ThemedButton>
-                <form action={onDetach}>
+                <form action={writesEnabled ? onDetach : undefined}>
+                  {businessSlug ? (
+                    <input
+                      type="hidden"
+                      name="businessSlug"
+                      value={businessSlug}
+                    />
+                  ) : null}
                   <input type="hidden" name="productId" value={activeProductId} />
                   <input
                     type="hidden"
@@ -168,6 +208,7 @@ function ModifierGroupCard({
                   />
                   <ThemedButton
                     type="submit"
+                    disabled={!writesEnabled}
                     size="icon"
                     aria-label={`Remove ${group.name} from this product`}
                     className="size-8"
@@ -178,11 +219,22 @@ function ModifierGroupCard({
                 </form>
               </div>
             ) : (
-              <form action={onAttach} className="relative z-10">
+              <form
+                action={writesEnabled ? onAttach : undefined}
+                className="relative z-10"
+              >
+                {businessSlug ? (
+                  <input
+                    type="hidden"
+                    name="businessSlug"
+                    value={businessSlug}
+                  />
+                ) : null}
                 <input type="hidden" name="productId" value={activeProductId} />
                 <input type="hidden" name="modifierGroupId" value={group.id} />
                 <ThemedButton
                   type="submit"
+                  disabled={!writesEnabled}
                   size="icon"
                   variant="outline"
                   aria-label={`Attach ${group.name}`}
@@ -212,7 +264,7 @@ function ModifierGroupCard({
 
           <form
             ref={formRef}
-            action={settingsAction}
+            action={writesEnabled ? settingsAction : undefined}
             className="flex min-h-0 flex-1 flex-col"
           >
             <div className={PRODUCT_ADMIN_PANEL_BODY_CLASS}>
@@ -226,8 +278,21 @@ function ModifierGroupCard({
                   {settingsState.message}
                 </p>
               ) : null}
+              {businessSlug ? (
+                <input type="hidden" name="businessSlug" value={businessSlug} />
+              ) : null}
               <input type="hidden" name="productId" value={activeProductId} />
               <input type="hidden" name="modifierGroupId" value={group.id} />
+
+              {setupWarning ? (
+                <div className="flex gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm leading-6 text-accent-foreground">
+                  <AlertTriangle
+                    aria-hidden="true"
+                    className="mt-1 size-4 shrink-0"
+                  />
+                  <p>{setupWarning.message}</p>
+                </div>
+              ) : null}
 
               <label className="grid gap-2 text-sm">
                 <span className="font-medium">Included selections</span>
@@ -272,7 +337,7 @@ function ModifierGroupCard({
                   value="true"
                   variant="destructive"
                   aria-label="Clear included settings"
-                  disabled={isSavingSettings}
+                  disabled={isSavingSettings || !writesEnabled}
                   className="mr-auto h-10 bg-destructive/10 px-3 text-destructive hover:bg-destructive/20"
                 >
                   Clear
@@ -293,7 +358,7 @@ function ModifierGroupCard({
                 type="submit"
                 size="icon"
                 aria-label="Save included settings"
-                disabled={isSavingSettings}
+                disabled={isSavingSettings || !writesEnabled}
                 className="size-10"
               >
                 <Check aria-hidden="true" />
@@ -309,6 +374,8 @@ function ModifierGroupCard({
 
 export function ProductModifierGroupsClient({
   data,
+  businessSlug,
+  writesEnabled = true,
 }: ProductModifierGroupsClientProps) {
   const router = useRouter()
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -319,6 +386,7 @@ export function ProductModifierGroupsClient({
     selectedProductName,
     modifierCategories,
     modifierAssignments,
+    defaultModifierOptions,
   } = data
   const activeProductId = selectedProductId ?? ""
   const activeProductName = selectedProductName ?? "this product"
@@ -340,6 +408,22 @@ export function ProductModifierGroupsClient({
   )
   const attachedGroups = allGroups.filter((group) =>
     assignmentsByGroupId.has(group.id)
+  )
+  const setupWarnings = getDefaultModifierIncludedSelectionWarnings({
+    product: {
+      id: activeProductId,
+      name: activeProductName,
+    },
+    assignedModifierGroups: attachedGroups,
+    defaultModifierOptions,
+    includedModifierGroupRules: modifierAssignments.map((assignment) => ({
+      product_id: assignment.product_id,
+      modifier_group_id: assignment.modifier_group_id,
+      included_quantity: assignment.includedRule?.included_quantity ?? 0,
+    })),
+  })
+  const setupWarningsByGroupId = new Map(
+    setupWarnings.map((warning) => [warning.modifierGroupId, warning])
   )
   const availableGroups = allGroups.filter(
     (group) => !assignmentsByGroupId.has(group.id)
@@ -453,10 +537,13 @@ export function ProductModifierGroupsClient({
                       includedRule={
                         assignmentsByGroupId.get(group.id)?.includedRule
                       }
+                      setupWarning={setupWarningsByGroupId.get(group.id)}
                       selected
                       onAttach={handleAttach}
                       onDetach={handleDetach}
                       onSettingsSaved={handleSettingsSaved}
+                      businessSlug={businessSlug}
+                      writesEnabled={writesEnabled}
                     />
                   ))
                 )}
@@ -490,6 +577,8 @@ export function ProductModifierGroupsClient({
                       onAttach={handleAttach}
                       onDetach={handleDetach}
                       onSettingsSaved={handleSettingsSaved}
+                      businessSlug={businessSlug}
+                      writesEnabled={writesEnabled}
                     />
                   ))
                 )}
@@ -507,7 +596,7 @@ export function ProductModifierGroupsClient({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end">
             <AdminBackButton
-              fallbackHref="/admin/products/list"
+              fallbackHref={getProductListHref(businessSlug)}
               label="Back to products"
             />
           </div>

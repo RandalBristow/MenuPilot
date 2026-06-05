@@ -129,6 +129,9 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 - Do not duplicate the product description in the scrollable builder body when it already appears in the header.
 - Modifier Option Groups inside product builders should render through the shared builder option group accordion/list component instead of builder-specific row implementations.
 - Use `ThemedAccordion` for themed collapsible product-builder sections. Keep accordion triggers as real buttons with accessible expanded state and a visible chevron.
+- Builder behavior and builder presentation are separate. `builder_template` describes product behavior/type; future `builder_layout` should describe presentation; theme controls colors, fonts, spacing, and brand feel.
+- Future pizza layouts may include compact accordion, visual card layout, or step-by-step layout, but they must share the same pricing engine and server validation.
+- When a product builder shows quantity controls, place Quantity before variant, modifier, or option selections for consistent scanning.
 - Selected modifier option rows should keep the warm selected highlight and show a clear checkmark.
 - Do not prefix selected modifier option labels with text such as "Selected:".
 - The selected checkmark must use a fixed-size slot so row height and price alignment do not shift between selected and unselected rows.

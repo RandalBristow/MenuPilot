@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
 
 type SelectionType = "single" | "multiple"
 
@@ -48,20 +50,6 @@ function parseOptionalInteger(
   return parseInteger(value, fieldName)
 }
 
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
-}
-
 async function getNextSortOrder(businessId: string, categoryId: string) {
   const { data, error } = await supabaseAdmin
     .from("modifier_groups")
@@ -79,7 +67,7 @@ async function getNextSortOrder(businessId: string, categoryId: string) {
 }
 
 export async function createModifierGroup(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveModifierAdminActionContext(formData)
   const categoryId = parseString(formData.get("categoryId"), "Category")
   const name = parseString(formData.get("name"), "Group name")
   const selectionType = parseSelectionType(formData.get("selectionType"))
@@ -99,7 +87,7 @@ export async function createModifierGroup(formData: FormData) {
     .from("modifier_categories")
     .select("id")
     .eq("id", categoryId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .single()
 
   if (categoryError || !category) {
@@ -107,10 +95,10 @@ export async function createModifierGroup(formData: FormData) {
   }
 
   const sortOrder =
-    requestedSortOrder ?? (await getNextSortOrder(businessId, categoryId))
+    requestedSortOrder ?? (await getNextSortOrder(context.businessId, categoryId))
 
   const { error } = await supabaseAdmin.from("modifier_groups").insert({
-    business_id: businessId,
+    business_id: context.businessId,
     modifier_category_id: categoryId,
     name,
     selection_type: selectionType,
@@ -125,8 +113,8 @@ export async function createModifierGroup(formData: FormData) {
     throw new Error(`Could not create modifier group: ${error.message}`)
   }
 
-  revalidatePath("/admin/modifiers")
-  revalidatePath("/admin/modifiers/groups")
-  revalidatePath("/admin/modifiers/subgroups")
-  revalidatePath("/admin/modifiers/options")
+  revalidatePath(getModifierAdminActionHref(context))
+  revalidatePath(getModifierAdminActionHref(context, "groups"))
+  revalidatePath(getModifierAdminActionHref(context, "subgroups"))
+  revalidatePath(getModifierAdminActionHref(context, "options"))
 }

@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getProductAdminActionHref,
+  resolveProductAdminActionContext,
+  type ProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
+import { getVariantGroupDetailHref } from "@/features/admin-products/utils/product-admin-routes"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -44,20 +48,6 @@ function parseSortOrder(value: FormDataEntryValue | null) {
 
 function parseBoolean(value: FormDataEntryValue | null) {
   return value === "true"
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 async function assertVariantGroup(businessId: string, groupId: string) {
@@ -134,8 +124,34 @@ async function clearDefaultOptions(businessId: string, groupId: string) {
   }
 }
 
+function getVariantGroupDetailActionHref({
+  context,
+  groupId,
+}: {
+  context: ProductAdminActionContext
+  groupId: string
+}) {
+  return getVariantGroupDetailHref({
+    groupId,
+    businessSlug: context.isScoped ? context.businessSlug : undefined,
+  })
+}
+
+function revalidateVariantGroupOptionPaths({
+  context,
+  groupId,
+}: {
+  context: ProductAdminActionContext
+  groupId: string
+}) {
+  revalidatePath(getProductAdminActionHref(context))
+  revalidatePath(getProductAdminActionHref(context, "variant-groups"))
+  revalidatePath(getVariantGroupDetailActionHref({ context, groupId }))
+  revalidatePath("/menu")
+}
+
 export async function saveVariantGroupOption(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const groupId = parseString(formData.get("groupId"), "Variant group")
   const optionId = parseNullableString(formData.get("optionId"))
   const name = parseString(formData.get("name"), "Option name")
@@ -144,15 +160,15 @@ export async function saveVariantGroupOption(formData: FormData) {
   const isEnabled = parseBoolean(formData.get("isEnabled"))
   let isDefault = parseBoolean(formData.get("isDefault"))
 
-  await assertVariantGroup(businessId, groupId)
-  const existingOption = await getExistingOption(businessId, optionId)
+  await assertVariantGroup(context.businessId, groupId)
+  const existingOption = await getExistingOption(context.businessId, optionId)
 
   if (existingOption && existingOption.variant_group_id !== groupId) {
     throw new Error("Variant option cannot be moved between groups yet.")
   }
 
   const hasAnotherDefault = await groupHasDefaultOption(
-    businessId,
+    context.businessId,
     groupId,
     optionId
   )
@@ -162,7 +178,7 @@ export async function saveVariantGroupOption(formData: FormData) {
   }
 
   if (isDefault) {
-    await clearDefaultOptions(businessId, groupId)
+    await clearDefaultOptions(context.businessId, groupId)
   }
 
   if (optionId) {
@@ -176,14 +192,14 @@ export async function saveVariantGroupOption(formData: FormData) {
         sort_order: sortOrder,
       })
       .eq("id", optionId)
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
 
     if (error) {
       throw new Error(`Could not update variant option: ${error.message}`)
     }
   } else {
     const { error } = await supabaseAdmin.from("variant_group_options").insert({
-      business_id: businessId,
+      business_id: context.businessId,
       variant_group_id: groupId,
       name,
       base_price: basePrice,
@@ -197,8 +213,5 @@ export async function saveVariantGroupOption(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/variant-groups")
-  revalidatePath(`/admin/products/variant-groups/${groupId}`)
-  revalidatePath("/menu")
+  revalidateVariantGroupOptionPaths({ context, groupId })
 }

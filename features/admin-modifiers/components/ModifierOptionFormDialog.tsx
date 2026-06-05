@@ -30,6 +30,7 @@ import type {
 type ModifierOptionFormMode = "create" | "edit"
 
 type ModifierOptionFormDialogProps = {
+  businessSlug?: string
   open: boolean
   onOpenChange: (open: boolean) => void
   modifierGroupId: string
@@ -43,6 +44,7 @@ type ModifierOptionFormDialogProps = {
 }
 
 export function ModifierOptionFormDialog({
+  businessSlug,
   open,
   onOpenChange,
   modifierGroupId,
@@ -118,6 +120,7 @@ export function ModifierOptionFormDialog({
     if (!option) return
 
     const formData = new FormData()
+    if (businessSlug) formData.set("businessSlug", businessSlug)
     formData.set("optionId", option.id)
     formData.set("modifierGroupId", modifierGroupId)
     formData.set("isEnabled", String(!option.is_enabled))
@@ -146,6 +149,10 @@ export function ModifierOptionFormDialog({
           className={MODIFIER_FORM_CLASS}
         >
           <div className={MODIFIER_FORM_BODY_CLASS}>
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
+
             <input
               type="hidden"
               name="modifierGroupId"

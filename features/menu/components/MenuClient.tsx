@@ -8,11 +8,14 @@ import {
 } from "@/features/product-configurator/components/ProductConfigurator"
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
 import { CartHeaderButton } from "@/features/cart/components/CartHeaderButton"
+import { getMenuCheckoutHref } from "@/features/menu/utils/menu-checkout-routes"
 
 type MenuPageProps = React.ComponentProps<typeof MenuPage>
 
 type MenuClientProps = {
   businessName: MenuPageProps["businessName"]
+  businessSlug?: string | null
+  businessStatus?: string | null
   menu: MenuPageProps["menu"]
 }
 
@@ -22,11 +25,18 @@ function canCustomizeProduct(product: ProductConfig) {
   return product.variants.some((variant) => variant.is_enabled)
 }
 
-export function MenuClient({ businessName, menu }: MenuClientProps) {
+export function MenuClient({
+  businessName,
+  businessSlug,
+  businessStatus,
+  menu,
+}: MenuClientProps) {
   const [open, setOpen] = useState(false)
   const [productConfig, setProductConfig] = useState<ProductConfig | null>(null)
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const isSetupPreview = businessStatus === "setup"
+  const checkoutHref = getMenuCheckoutHref(businessSlug)
 
   async function handleCustomize(productId: string) {
     if (loadingProductId) return
@@ -35,7 +45,7 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
     setLoadingProductId(productId)
 
     try {
-      const config = await getProductConfig(productId)
+      const config = await getProductConfig(productId, { businessSlug })
       const product = config as unknown as ProductConfig
 
       if (!canCustomizeProduct(product)) {
@@ -68,7 +78,15 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
         menu={menu}
         onCustomize={handleCustomize}
         loadingProductId={loadingProductId}
-        headerAction={<CartHeaderButton />}
+        headerAction={
+          isSetupPreview ? null : <CartHeaderButton checkoutHref={checkoutHref} />
+        }
+        previewMessage={
+          isSetupPreview
+            ? "Preview mode: this business is in setup and is not accepting public orders."
+            : null
+        }
+        orderingActionsDisabled={isSetupPreview}
       />
 
       {productConfig ? (
@@ -77,6 +95,7 @@ export function MenuClient({ businessName, menu }: MenuClientProps) {
           open={open}
           onOpenChange={setOpen}
           mode="create"
+          businessSlug={businessSlug}
         />
       ) : null}
     </>

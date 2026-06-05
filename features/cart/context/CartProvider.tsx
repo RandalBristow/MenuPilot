@@ -41,6 +41,18 @@ function isCartItem(value: unknown): value is CartItem {
 
   return (
     typeof value.cartItemId === "string" &&
+    (typeof value.businessId === "string" ||
+      value.businessId === null ||
+      value.businessId === undefined) &&
+    (typeof value.businessSlug === "string" ||
+      value.businessSlug === null ||
+      value.businessSlug === undefined) &&
+    (typeof value.locationId === "string" ||
+      value.locationId === null ||
+      value.locationId === undefined) &&
+    (typeof value.locationSlug === "string" ||
+      value.locationSlug === null ||
+      value.locationSlug === undefined) &&
     typeof value.productId === "string" &&
     typeof value.productName === "string" &&
     (typeof value.variantId === "string" || value.variantId === null) &&

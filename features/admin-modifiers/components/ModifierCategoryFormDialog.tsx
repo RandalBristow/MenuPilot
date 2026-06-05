@@ -27,6 +27,7 @@ import type { ModifierCategory } from "@/features/admin-modifiers/components/Mod
 type ModifierCategoryFormMode = "create" | "edit"
 
 type ModifierCategoryFormDialogProps = {
+  businessSlug?: string
   open?: boolean
   onOpenChange?: (open: boolean) => void
   mode?: ModifierCategoryFormMode
@@ -38,6 +39,7 @@ type ModifierCategoryFormDialogProps = {
 }
 
 export function ModifierCategoryFormDialog({
+  businessSlug,
   open,
   onOpenChange,
   mode = "create",
@@ -78,6 +80,7 @@ export function ModifierCategoryFormDialog({
     if (!category) return
 
     const formData = new FormData()
+    if (businessSlug) formData.set("businessSlug", businessSlug)
     formData.set("categoryId", category.id)
     formData.set("isEnabled", String(!category.is_enabled))
 
@@ -129,6 +132,10 @@ export function ModifierCategoryFormDialog({
           className={MODIFIER_FORM_CLASS}
         >
           <div className={MODIFIER_FORM_BODY_CLASS}>
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
+
             {category ? (
               <input type="hidden" name="categoryId" value={category.id} />
             ) : null}

@@ -2,9 +2,16 @@
 
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  getProductAdminActionHref,
+  resolveProductAdminActionContext,
+  type ProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
+import {
+  getProductDetailHref,
+  getProductVariantAssignmentsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 import { getVariantGroupAssignmentEnableError } from "@/features/admin-products/utils/variant-group-assignment-rules"
-
-const BUSINESS_SLUG = "pronto-demo"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -73,20 +80,6 @@ function parseNullableBoolean(value: FormDataEntryValue | null) {
   if (value === "false") return false
 
   return null
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 async function assertProduct(businessId: string, productId: string) {
@@ -247,6 +240,26 @@ async function getVariantGroupOptionIds(
   return (data ?? []).map((option) => option.id as string)
 }
 
+function getActionBusinessSlug(context: ProductAdminActionContext) {
+  return context.isScoped ? context.businessSlug : undefined
+}
+
+function revalidateVariantAssignmentPaths({
+  context,
+  productId,
+}: {
+  context: ProductAdminActionContext
+  productId: string
+}) {
+  const businessSlug = getActionBusinessSlug(context)
+
+  revalidatePath(getProductAdminActionHref(context))
+  revalidatePath(getProductVariantAssignmentsHref(undefined, businessSlug))
+  revalidatePath(getProductVariantAssignmentsHref(productId, businessSlug))
+  revalidatePath(getProductDetailHref(productId, businessSlug))
+  revalidatePath("/menu")
+}
+
 async function deleteProductVariantOptionOverrides({
   businessId,
   productId,
@@ -273,7 +286,7 @@ async function deleteProductVariantOptionOverrides({
 }
 
 export async function saveProductVariantGroupAssignment(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const assignmentId = parseNullableString(formData.get("assignmentId"))
   const productId = parseString(formData.get("productId"), "Product")
   const variantGroupId = parseString(
@@ -284,12 +297,12 @@ export async function saveProductVariantGroupAssignment(formData: FormData) {
   const sortOrder = parseSortOrder(formData.get("sortOrder"))
 
   await Promise.all([
-    assertProduct(businessId, productId),
-    assertVariantGroup(businessId, variantGroupId),
+    assertProduct(context.businessId, productId),
+    assertVariantGroup(context.businessId, variantGroupId),
   ])
 
   const existingAssignment = await getExistingAssignment(
-    businessId,
+    context.businessId,
     assignmentId
   )
 
@@ -303,7 +316,7 @@ export async function saveProductVariantGroupAssignment(formData: FormData) {
 
   const enableError = getVariantGroupAssignmentEnableError({
     assignments: await getProductVariantGroupAssignmentStates(
-      businessId,
+      context.businessId,
       productId
     ),
     assignmentId,
@@ -322,14 +335,14 @@ export async function saveProductVariantGroupAssignment(formData: FormData) {
         sort_order: sortOrder,
       })
       .eq("id", assignmentId)
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
 
     if (error) {
       throw new Error(`Could not update variant assignment: ${error.message}`)
     }
   } else {
     const { error } = await supabaseAdmin.from("product_variant_groups").insert({
-      business_id: businessId,
+      business_id: context.businessId,
       product_id: productId,
       variant_group_id: variantGroupId,
       is_enabled: isEnabled,
@@ -341,18 +354,16 @@ export async function saveProductVariantGroupAssignment(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/variant-assignments")
-  revalidatePath(`/admin/products/${productId}`)
-  revalidatePath("/menu")
+  revalidateVariantAssignmentPaths({ context, productId })
 }
 
 export async function detachProductVariantGroupAssignment(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const assignmentId = parseString(formData.get("assignmentId"), "Assignment")
   const productId = parseString(formData.get("productId"), "Product")
+  await assertProduct(context.businessId, productId)
   const existingAssignment = await getExistingAssignment(
-    businessId,
+    context.businessId,
     assignmentId
   )
 
@@ -361,7 +372,7 @@ export async function detachProductVariantGroupAssignment(formData: FormData) {
   }
 
   await deleteProductVariantOptionOverrides({
-    businessId,
+    businessId: context.businessId,
     productId,
     variantGroupId: existingAssignment.variant_group_id,
   })
@@ -370,21 +381,18 @@ export async function detachProductVariantGroupAssignment(formData: FormData) {
     .from("product_variant_groups")
     .delete()
     .eq("id", assignmentId)
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .eq("product_id", productId)
 
   if (error) {
     throw new Error(`Could not detach variant group: ${error.message}`)
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/variant-assignments")
-  revalidatePath(`/admin/products/${productId}`)
-  revalidatePath("/menu")
+  revalidateVariantAssignmentPaths({ context, productId })
 }
 
 export async function selectProductVariantGroupAssignment(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const variantGroupId = parseString(
     formData.get("variantGroupId"),
@@ -392,14 +400,14 @@ export async function selectProductVariantGroupAssignment(formData: FormData) {
   )
 
   await Promise.all([
-    assertProduct(businessId, productId),
-    assertVariantGroup(businessId, variantGroupId),
+    assertProduct(context.businessId, productId),
+    assertVariantGroup(context.businessId, variantGroupId),
   ])
 
   const { error: disableError } = await supabaseAdmin
     .from("product_variant_groups")
     .update({ is_enabled: false })
-    .eq("business_id", businessId)
+    .eq("business_id", context.businessId)
     .eq("product_id", productId)
 
   if (disableError) {
@@ -410,7 +418,7 @@ export async function selectProductVariantGroupAssignment(formData: FormData) {
 
   const { error } = await supabaseAdmin.from("product_variant_groups").upsert(
     {
-      business_id: businessId,
+      business_id: context.businessId,
       product_id: productId,
       variant_group_id: variantGroupId,
       is_enabled: true,
@@ -425,14 +433,11 @@ export async function selectProductVariantGroupAssignment(formData: FormData) {
     throw new Error(`Could not select variant group: ${error.message}`)
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/variant-assignments")
-  revalidatePath(`/admin/products/${productId}`)
-  revalidatePath("/menu")
+  revalidateVariantAssignmentPaths({ context, productId })
 }
 
 export async function saveProductVariantOptionOverride(formData: FormData) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const optionId = parseString(formData.get("variantGroupOptionId"), "Option")
   const priceOverride = parseNullableNumber(
@@ -450,21 +455,21 @@ export async function saveProductVariantOptionOverride(formData: FormData) {
     "Sort order override"
   )
 
-  await assertProduct(businessId, productId)
+  await assertProduct(context.businessId, productId)
   const activeVariantGroupId = await getActiveVariantGroupId(
-    businessId,
+    context.businessId,
     productId
   )
-  await assertVariantGroupOption(businessId, activeVariantGroupId, optionId)
+  await assertVariantGroupOption(context.businessId, activeVariantGroupId, optionId)
 
   if (isDefault) {
     const optionIds = await getVariantGroupOptionIds(
-      businessId,
+      context.businessId,
       activeVariantGroupId
     )
 
     await clearProductDefaultOverrides({
-      businessId,
+      businessId: context.businessId,
       productId,
       optionIds,
       selectedOptionId: optionId,
@@ -475,7 +480,7 @@ export async function saveProductVariantOptionOverride(formData: FormData) {
     .from("product_variant_option_overrides")
     .upsert(
       {
-        business_id: businessId,
+        business_id: context.businessId,
         product_id: productId,
         variant_group_option_id: optionId,
         price_override: priceOverride,
@@ -493,8 +498,5 @@ export async function saveProductVariantOptionOverride(formData: FormData) {
     throw new Error(`Could not save variant option override: ${error.message}`)
   }
 
-  revalidatePath("/admin/products")
-  revalidatePath("/admin/products/variant-assignments")
-  revalidatePath(`/admin/products/${productId}`)
-  revalidatePath("/menu")
+  revalidateVariantAssignmentPaths({ context, productId })
 }

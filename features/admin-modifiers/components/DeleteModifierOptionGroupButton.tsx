@@ -11,6 +11,7 @@ import {
 } from "@/features/admin-modifiers/actions/delete-modifier-option-group"
 
 type DeleteModifierOptionGroupButtonProps = {
+  businessSlug?: string
   modifierGroupId: string
   modifierOptionGroupId: string
   optionGroupName: string
@@ -18,6 +19,7 @@ type DeleteModifierOptionGroupButtonProps = {
 }
 
 export function DeleteModifierOptionGroupButton({
+  businessSlug,
   modifierGroupId,
   modifierOptionGroupId,
   optionGroupName,
@@ -39,6 +41,7 @@ export function DeleteModifierOptionGroupButton({
 
     try {
       const formData = new FormData()
+      if (businessSlug) formData.set("businessSlug", businessSlug)
       formData.set("modifierGroupId", modifierGroupId)
       formData.set("modifierOptionGroupId", modifierOptionGroupId)
 

@@ -3,8 +3,10 @@ import {
   getProductFormData,
   type ProductFormData,
 } from "@/features/admin-products/components/ProductForm"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  type ProductAdminBusinessContextInput,
+  resolveProductAdminBusinessContext,
+} from "@/features/admin-products/utils/product-admin-business-context"
 
 export type ProductOption = {
   id: string
@@ -51,24 +53,19 @@ export type ProductModifierGroupManagementData = ProductManagementData & {
       charge_for_extra: boolean
     } | null
   }[]
+  defaultModifierOptions: {
+    id: string
+    product_id: string
+    modifier_group_id: string
+    modifier_option_id: string
+    is_enabled: boolean
+  }[]
 }
 
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
-}
-
-export async function getProductOptions(): Promise<ProductOption[]> {
-  const businessId = await getBusinessId()
+export async function getProductOptions(
+  businessContext: ProductAdminBusinessContextInput = {}
+): Promise<ProductOption[]> {
+  const business = await resolveProductAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
     .from("products")
     .select(
@@ -82,7 +79,7 @@ export async function getProductOptions(): Promise<ProductOption[]> {
       )
     `
     )
-    .eq("business_id", businessId)
+    .eq("business_id", business.id)
     .order("name", { ascending: true })
 
   if (error) {
@@ -116,14 +113,18 @@ export async function getProductOptions(): Promise<ProductOption[]> {
 }
 
 export async function getProductManagementData(
-  requestedProductId?: string
+  requestedProductId?: string,
+  businessContext: ProductAdminBusinessContextInput = {}
 ): Promise<ProductManagementData> {
-  const products = await getProductOptions()
+  const business = await resolveProductAdminBusinessContext(businessContext)
+  const products = await getProductOptions({ business })
   const selectedProductId =
     products.find((product) => product.id === requestedProductId)?.id ??
     products[0]?.id ??
     null
-  const formData = await getProductFormData(selectedProductId ?? undefined)
+  const formData = await getProductFormData(selectedProductId ?? undefined, {
+    business,
+  })
 
   return {
     ...formData,
@@ -148,13 +149,20 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
 }
 
 export async function getProductModifierGroupManagementData(
-  requestedProductId?: string
+  requestedProductId?: string,
+  businessContext: ProductAdminBusinessContextInput = {}
 ): Promise<ProductModifierGroupManagementData> {
-  const [productData, businessId] = await Promise.all([
-    getProductManagementData(requestedProductId),
-    getBusinessId(),
-  ])
-  const [{ data, error }, assignmentsResult, includedRulesResult] = await Promise.all([
+  const business = await resolveProductAdminBusinessContext(businessContext)
+  const businessId = business.id
+  const productData = await getProductManagementData(requestedProductId, {
+    business,
+  })
+  const [
+    { data, error },
+    assignmentsResult,
+    includedRulesResult,
+    defaultModifierOptionsResult,
+  ] = await Promise.all([
     supabaseAdmin
     .from("modifier_categories")
     .select(
@@ -190,6 +198,15 @@ export async function getProductModifierGroupManagementData(
           .eq("business_id", businessId)
           .eq("product_id", productData.selectedProductId)
       : Promise.resolve({ data: [], error: null }),
+    productData.selectedProductId
+      ? supabaseAdmin
+          .from("product_default_modifier_options")
+          .select(
+            "id, product_id, modifier_group_id, modifier_option_id, is_enabled"
+          )
+          .eq("business_id", businessId)
+          .eq("product_id", productData.selectedProductId)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   if (error) {
@@ -206,6 +223,11 @@ export async function getProductModifierGroupManagementData(
       `Could not load included modifier rules: ${includedRulesResult.error.message}`
     )
   }
+  if (defaultModifierOptionsResult.error) {
+    throw new Error(
+      `Could not load default modifier options: ${defaultModifierOptionsResult.error.message}`
+    )
+  }
 
   const modifierCategories = ((data ?? []) as ProductModifierCategory[]).map(
     (category) => ({
@@ -217,6 +239,8 @@ export async function getProductModifierGroupManagementData(
   return {
     ...productData,
     modifierCategories: sortBySortOrder(modifierCategories),
+    defaultModifierOptions: (defaultModifierOptionsResult.data ??
+      []) as ProductModifierGroupManagementData["defaultModifierOptions"],
     modifierAssignments: (assignmentsResult.data ?? []).map((assignment) => {
       const includedRule =
         includedRulesResult.data?.find(

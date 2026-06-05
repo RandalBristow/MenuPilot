@@ -36,12 +36,13 @@ type SelectedModifier = {
   multiplier: number
 }
 
-type StandardItemBuilderProps = {
+export type StandardItemBuilderProps = {
   product: ProductConfig
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
   cartItem?: CartItem | null
+  businessSlug?: string | null
 }
 
 function getInitialSelectedModifiers(cartItem?: CartItem | null) {
@@ -100,6 +101,7 @@ export function StandardItemBuilder({
   onOpenChange,
   mode,
   cartItem = null,
+  businessSlug = null,
 }: StandardItemBuilderProps) {
   const sortedVariants = useMemo(
     () =>
@@ -352,6 +354,10 @@ export function StandardItemBuilder({
 
     const nextCartItem: CartItem = {
       cartItemId: cartItem?.cartItemId ?? crypto.randomUUID(),
+      businessId: product.business_id ?? cartItem?.businessId,
+      businessSlug: businessSlug ?? cartItem?.businessSlug,
+      locationId: cartItem?.locationId,
+      locationSlug: cartItem?.locationSlug,
       productId: product.id,
       productName: product.name,
       variantId: selectedVariant?.id ?? null,
@@ -384,38 +390,6 @@ export function StandardItemBuilder({
         </DialogHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          {sortedVariants.length > 0 ? (
-            <ThemedCard className="p-4">
-              <h3 className="mb-3 text-lg font-semibold">Choose an option</h3>
-              <div className="grid gap-2">
-                {sortedVariants.map((variant) => (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    onClick={() => handleVariantChange(variant.id)}
-                    className={`flex min-h-12 items-center justify-between rounded-lg border p-3 text-left ${
-                      variantId === variant.id
-                        ? "border-accent bg-accent/20"
-                        : ""
-                    }`}
-                  >
-                    <span className="font-medium">{variant.name}</span>
-                    <span className="text-sm font-semibold">
-                      ${Number(variant.base_price).toFixed(2)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </ThemedCard>
-          ) : product.has_variants ? (
-            <ThemedCard className="p-4">
-              <h3 className="mb-2 text-lg font-semibold">Choose an option</h3>
-              <p className="text-sm text-muted-foreground">
-                This item is not currently available.
-              </p>
-            </ThemedCard>
-          ) : null}
-
           <ThemedCard className="p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -448,6 +422,38 @@ export function StandardItemBuilder({
               </div>
             </div>
           </ThemedCard>
+
+          {sortedVariants.length > 0 ? (
+            <ThemedCard className="p-4">
+              <h3 className="mb-3 text-lg font-semibold">Choose an option</h3>
+              <div className="grid gap-2">
+                {sortedVariants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => handleVariantChange(variant.id)}
+                    className={`flex min-h-12 items-center justify-between rounded-lg border p-3 text-left ${
+                      variantId === variant.id
+                        ? "border-accent bg-accent/20"
+                        : ""
+                    }`}
+                  >
+                    <span className="font-medium">{variant.name}</span>
+                    <span className="text-sm font-semibold">
+                      ${Number(variant.base_price).toFixed(2)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </ThemedCard>
+          ) : product.has_variants ? (
+            <ThemedCard className="p-4">
+              <h3 className="mb-2 text-lg font-semibold">Choose an option</h3>
+              <p className="text-sm text-muted-foreground">
+                This item is not currently available.
+              </p>
+            </ThemedCard>
+          ) : null}
 
           {modifierGroups.map((group) => (
             <ThemedCard key={group.id} className="p-4">

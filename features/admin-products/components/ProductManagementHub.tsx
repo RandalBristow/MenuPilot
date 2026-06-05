@@ -3,31 +3,37 @@ import { ChevronRight } from "lucide-react"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ThemedPageShell } from "@/components/themed/ThemedPageShell"
+import { getProductAdminHref } from "@/features/admin-products/utils/product-admin-routes"
 
 const productHubLinks = [
   {
     title: "Product Categories",
-    href: "/admin/products/categories",
+    path: "categories",
     description: "Manage product categories and their subcategories.",
   },
   {
     title: "Variant Groups",
-    href: "/admin/products/variant-groups",
+    path: "variant-groups",
     description: "Manage reusable size, drink, and count groups.",
   },
   {
     title: "Modifier Groups",
-    href: "/admin/modifiers/groups",
-    description: "Manage reusable product modifier groups.",
+    path: "modifier-groups",
+    legacyHref: "/admin/modifiers/groups",
+    description: "Review product modifier assignments.",
   },
   {
     title: "Products",
-    href: "/admin/products/list",
+    path: "list",
     description: "Browse and edit product records.",
   },
 ]
 
-export function ProductManagementHub() {
+export function ProductManagementHub({
+  businessSlug,
+}: {
+  businessSlug?: string
+} = {}) {
   return (
     <ThemedPageShell
       maxWidth="lg"
@@ -44,8 +50,12 @@ export function ProductManagementHub() {
           <div className="grid gap-3">
             {productHubLinks.map((item) => (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.path}
+                href={
+                  item.legacyHref && !businessSlug
+                    ? item.legacyHref
+                    : getProductAdminHref(item.path, businessSlug)
+                }
                 aria-label={`Open ${item.title}`}
                 className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >

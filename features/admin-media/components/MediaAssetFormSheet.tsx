@@ -25,6 +25,7 @@ import {
 import type { MediaAsset } from "@/features/admin-media/queries/get-media-assets"
 
 type MediaAssetFormSheetProps = {
+  businessSlug?: string
   open: boolean
   onOpenChange: (open: boolean) => void
   asset: MediaAsset | null
@@ -45,6 +46,7 @@ function formatFileSize(bytes: number) {
 }
 
 export function MediaAssetFormSheet({
+  businessSlug,
   open,
   onOpenChange,
   asset,
@@ -197,6 +199,10 @@ export function MediaAssetFormSheet({
 
         <form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className={PRODUCT_ADMIN_PANEL_BODY_CLASS}>
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
+
             {asset ? (
               <input type="hidden" name="mediaAssetId" value={asset.id} />
             ) : null}

@@ -3,11 +3,17 @@
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
+  resolveProductAdminActionContext,
+  type ProductAdminActionContext,
+} from "@/features/admin-products/utils/product-admin-action-context"
+import {
+  getProductModifierAvailabilityHref,
+  getVariantGroupDetailHref,
+} from "@/features/admin-products/utils/product-admin-routes"
+import {
   buildVariantModifierAvailabilityRulePayload,
   buildVariantModifierPriceOverridePayload,
 } from "@/features/admin-products/utils/variant-modifier-availability"
-
-const BUSINESS_SLUG = "pronto-demo"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -36,20 +42,6 @@ function parseOptionalPrice(value: FormDataEntryValue | null) {
   }
 
   return parsedValue
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load product business.")
-  }
-
-  return business.id as string
 }
 
 async function assertProductVariantModifierContext({
@@ -123,10 +115,50 @@ async function assertProductVariantModifierContext({
   }
 }
 
+function getActionBusinessSlug(context: ProductAdminActionContext) {
+  return context.isScoped ? context.businessSlug : undefined
+}
+
+function revalidateVariantModifierPaths({
+  context,
+  productId,
+  variantGroupId,
+  modifierGroupId,
+}: {
+  context: ProductAdminActionContext
+  productId: string
+  variantGroupId: string
+  modifierGroupId: string
+}) {
+  const businessSlug = getActionBusinessSlug(context)
+
+  revalidatePath(
+    getVariantGroupDetailHref({
+      groupId: variantGroupId,
+      businessSlug,
+    })
+  )
+  revalidatePath(
+    getVariantGroupDetailHref({
+      groupId: variantGroupId,
+      productId,
+      businessSlug,
+    })
+  )
+  revalidatePath(
+    getProductModifierAvailabilityHref({
+      modifierGroupId,
+      productId,
+      businessSlug,
+    })
+  )
+  revalidatePath("/menu")
+}
+
 export async function setProductVariantModifierOptionAvailability(
   formData: FormData
 ) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const variantGroupId = parseString(
     formData.get("variantGroupId"),
@@ -147,7 +179,7 @@ export async function setProductVariantModifierOptionAvailability(
   const isAvailable = parseBoolean(formData.get("isAvailable"))
 
   await assertProductVariantModifierContext({
-    businessId,
+    businessId: context.businessId,
     productId,
     variantGroupId,
     variantGroupOptionId,
@@ -159,7 +191,7 @@ export async function setProductVariantModifierOptionAvailability(
     const { error } = await supabaseAdmin
       .from("product_variant_modifier_option_availability_rules")
       .delete()
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
       .eq("product_id", productId)
       .eq("variant_group_option_id", variantGroupOptionId)
       .eq("modifier_group_id", modifierGroupId)
@@ -173,7 +205,7 @@ export async function setProductVariantModifierOptionAvailability(
       .from("product_variant_modifier_option_availability_rules")
       .upsert(
         buildVariantModifierAvailabilityRulePayload({
-          businessId,
+          businessId: context.businessId,
           productId,
           variantGroupOptionId,
           modifierGroupId,
@@ -190,20 +222,18 @@ export async function setProductVariantModifierOptionAvailability(
     }
   }
 
-  revalidatePath(`/admin/products/variant-groups/${variantGroupId}`)
-  revalidatePath(
-    `/admin/products/variant-groups/${variantGroupId}?productId=${productId}`
-  )
-  revalidatePath(
-    `/admin/products/modifier-groups/${modifierGroupId}/availability?productId=${productId}`
-  )
-  revalidatePath("/menu")
+  revalidateVariantModifierPaths({
+    context,
+    productId,
+    variantGroupId,
+    modifierGroupId,
+  })
 }
 
 export async function setProductVariantModifierOptionPriceOverride(
   formData: FormData
 ) {
-  const businessId = await getBusinessId()
+  const context = await resolveProductAdminActionContext(formData)
   const productId = parseString(formData.get("productId"), "Product")
   const variantGroupId = parseString(
     formData.get("variantGroupId"),
@@ -224,7 +254,7 @@ export async function setProductVariantModifierOptionPriceOverride(
   const priceDelta = parseOptionalPrice(formData.get("priceDelta"))
 
   await assertProductVariantModifierContext({
-    businessId,
+    businessId: context.businessId,
     productId,
     variantGroupId,
     variantGroupOptionId,
@@ -236,7 +266,7 @@ export async function setProductVariantModifierOptionPriceOverride(
     const { error } = await supabaseAdmin
       .from("product_variant_modifier_option_price_overrides")
       .delete()
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
       .eq("product_id", productId)
       .eq("variant_group_option_id", variantGroupOptionId)
       .eq("modifier_group_id", modifierGroupId)
@@ -250,7 +280,7 @@ export async function setProductVariantModifierOptionPriceOverride(
       .from("product_variant_modifier_option_price_overrides")
       .upsert(
         buildVariantModifierPriceOverridePayload({
-          businessId,
+          businessId: context.businessId,
           productId,
           variantGroupOptionId,
           modifierGroupId,
@@ -268,8 +298,10 @@ export async function setProductVariantModifierOptionPriceOverride(
     }
   }
 
-  revalidatePath(
-    `/admin/products/modifier-groups/${modifierGroupId}/availability?productId=${productId}`
-  )
-  revalidatePath("/menu")
+  revalidateVariantModifierPaths({
+    context,
+    productId,
+    variantGroupId,
+    modifierGroupId,
+  })
 }

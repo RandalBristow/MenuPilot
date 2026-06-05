@@ -19,12 +19,14 @@ type CheckoutFormData = {
 type CheckoutFormProps = {
   onSubmit: (formData: CheckoutFormData) => void | Promise<void>
   isSubmitting?: boolean
+  isSubmitBlocked?: boolean
   errorMessage?: string | null
 }
 
 export function CheckoutForm({
   onSubmit,
   isSubmitting = false,
+  isSubmitBlocked = false,
   errorMessage,
 }: CheckoutFormProps) {
   const [customerName, setCustomerName] = useState("")
@@ -42,7 +44,7 @@ export function CheckoutForm({
   function handleFormSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!canSubmit || isSubmitting) return
+    if (!canSubmit || isSubmitBlocked || isSubmitting) return
 
     onSubmit({
       customerName,
@@ -149,7 +151,7 @@ export function CheckoutForm({
 
         <ThemedButton
           type="submit"
-          disabled={!canSubmit || isSubmitting}
+          disabled={!canSubmit || isSubmitBlocked || isSubmitting}
           className="h-11 w-full"
         >
           {isSubmitting ? "Placing order..." : "Place Order"}

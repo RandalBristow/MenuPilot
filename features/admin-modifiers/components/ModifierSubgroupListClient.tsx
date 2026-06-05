@@ -16,10 +16,16 @@ import {
   getNextModifierOptionGroupSortOrder,
   sortModifierOptionGroups,
 } from "@/features/admin-modifiers/utils/modifier-option-group-sort-order"
+import {
+  getModifierAdminHref,
+  getModifierOptionGroupHref,
+} from "@/features/admin-modifiers/utils/modifier-admin-routes"
+import { getProductModifierGroupsHref } from "@/features/admin-products/utils/product-admin-routes"
 import type { ModifierGroupDetail } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 import type { ModifierGroupProductContext } from "@/features/admin-modifiers/queries/get-modifier-group-detail"
 
 type ModifierSubgroupListClientProps = {
+  businessSlug?: string
   data: {
     businessName: string
     mode: "global" | "product" | "preview"
@@ -28,13 +34,8 @@ type ModifierSubgroupListClientProps = {
   }
 }
 
-function getProductScopedHref(href: string, productId?: string) {
-  if (!productId) return href
-
-  return `${href}?productId=${encodeURIComponent(productId)}`
-}
-
 export function ModifierSubgroupListClient({
+  businessSlug,
   data,
 }: ModifierSubgroupListClientProps) {
   const router = useRouter()
@@ -130,10 +131,12 @@ export function ModifierSubgroupListClient({
                         onClick={(event) => {
                           event.stopPropagation()
                           router.push(
-                            getProductScopedHref(
-                              `/admin/modifiers/${group.id}/subgroups/${subgroup.id}`,
-                              productContext?.id
-                            )
+                            getModifierOptionGroupHref({
+                              groupId: group.id,
+                              optionGroupId: subgroup.id,
+                              productId: productContext?.id,
+                              businessSlug,
+                            })
                           )
                         }}
                       >
@@ -142,6 +145,7 @@ export function ModifierSubgroupListClient({
                       </ThemedButton>
                       {mode === "preview" ? null : (
                         <DeleteModifierOptionGroupButton
+                          businessSlug={businessSlug}
                           modifierGroupId={group.id}
                           modifierOptionGroupId={subgroup.id}
                           optionGroupName={subgroup.name}
@@ -161,10 +165,13 @@ export function ModifierSubgroupListClient({
             <AdminBackButton
               fallbackHref={
                 productContext
-                  ? `/admin/products/modifier-groups?productId=${productContext.id}`
+                  ? getProductModifierGroupsHref(productContext.id, businessSlug)
                   : group.modifier_category_id
-                    ? `/admin/modifiers/groups/${group.modifier_category_id}`
-                    : "/admin/modifiers/groups"
+                    ? getModifierAdminHref(
+                        `groups/${group.modifier_category_id}`,
+                        businessSlug
+                      )
+                    : getModifierAdminHref("groups", businessSlug)
               }
               label="Back to modifier groups"
             />
@@ -190,6 +197,7 @@ export function ModifierSubgroupListClient({
         modifierGroupId={group.id}
         modifierGroupName={group.name}
         nextSortOrder={nextSortOrder}
+        businessSlug={businessSlug}
       />
 
       {activeOptionGroup ? (
@@ -203,6 +211,7 @@ export function ModifierSubgroupListClient({
           modifierGroupName={group.name}
           nextSortOrder={nextSortOrder}
           optionGroup={activeOptionGroup}
+          businessSlug={businessSlug}
         />
       ) : null}
     </main>

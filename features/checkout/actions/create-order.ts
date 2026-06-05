@@ -10,6 +10,11 @@ import {
 import { loadCheckoutProductConfig } from "@/features/checkout/queries/load-checkout-product-config"
 import { validateAndPriceCart } from "@/features/checkout/utils/validate-and-price-cart"
 import { buildCheckoutValidationFailure } from "@/features/checkout/utils/checkout-action-result"
+import {
+  getCheckoutOrderability,
+  validateCartTenantContext,
+} from "@/features/checkout/utils/checkout-tenant-context"
+import { resolveCheckoutTenantContext } from "@/features/checkout/utils/resolve-checkout-tenant-context"
 
 type CreateOrderInput = {
   customerName: string
@@ -18,6 +23,8 @@ type CreateOrderInput = {
   fulfillmentType: "pickup" | "delivery"
   specialInstructions?: string
   items: CartItem[]
+  businessSlug?: string | null
+  locationSlug?: string | null
 }
 
 export type CreateOrderResult =
@@ -57,29 +64,41 @@ export async function createOrder(
     return buildCheckoutValidationFailure([{ message: "Cart is empty." }])
   }
 
-  const { data: business, error: businessError } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", "pronto-demo")
-    .single()
+  const tenantContext = await resolveCheckoutTenantContext({
+    businessSlug: input.businessSlug,
+    locationSlug: input.locationSlug,
+  })
 
-  if (businessError || !business) {
-    throw new Error("Could not load business.")
+  if (!tenantContext) {
+    return buildCheckoutValidationFailure([
+      { message: "This checkout is not available right now." },
+    ])
   }
 
-  const { data: location, error: locationError } = await supabaseAdmin
-    .from("locations")
-    .select("id")
-    .eq("business_id", business.id)
-    .eq("slug", "main-street")
-    .single()
+  const orderability = getCheckoutOrderability({
+    business: tenantContext.business,
+    location: tenantContext.location,
+    fulfillmentType: input.fulfillmentType,
+  })
 
-  if (locationError || !location) {
-    throw new Error("Could not load location.")
+  if (!orderability.ok) {
+    return buildCheckoutValidationFailure([{ message: orderability.reason }])
+  }
+
+  const cartTenantValidation = validateCartTenantContext({
+    items: input.items,
+    business: tenantContext.business,
+    allowLegacyItems: tenantContext.isLegacyDemo,
+  })
+
+  if (!cartTenantValidation.ok) {
+    return buildCheckoutValidationFailure([
+      { message: cartTenantValidation.reason },
+    ])
   }
 
   const productConfigs = await loadCheckoutProductConfig({
-    businessId: business.id,
+    businessId: tenantContext.business.id,
     productIds: input.items.map((item) => item.productId),
   })
   const validationResult = validateAndPriceCart({
@@ -97,8 +116,8 @@ export async function createOrder(
     .from("orders")
     .insert(
       buildOrderInsertPayload({
-        businessId: business.id,
-        locationId: location.id,
+        businessId: tenantContext.business.id,
+        locationId: tenantContext.location.id,
         orderNumber: generateOrderNumber(),
         customerName: input.customerName,
         customerPhone: input.customerPhone,
@@ -120,7 +139,7 @@ export async function createOrder(
       .from("order_items")
       .insert(
         buildOrderItemInsertPayload({
-          businessId: business.id,
+          businessId: tenantContext.business.id,
           orderId: order.id,
           item,
         })
@@ -134,7 +153,7 @@ export async function createOrder(
 
     if (item.modifiers.length > 0) {
       const modifierRows = buildOrderModifierInsertPayload({
-        businessId: business.id,
+        businessId: tenantContext.business.id,
         orderItemId: orderItem.id,
         modifiers: item.modifiers,
       })

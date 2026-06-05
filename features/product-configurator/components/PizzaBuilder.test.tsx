@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest"
-import { render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { CartProvider } from "@/features/cart/context/CartProvider"
 import { PizzaBuilder, type ProductConfig } from "./PizzaBuilder"
@@ -113,5 +113,25 @@ describe("PizzaBuilder", () => {
     expect(screen.getByRole("button", { name: /add to cart/i }))
       .toHaveTextContent("$10.00")
   })
-})
 
+  it("shows quantity before pizza selections", () => {
+    renderPizzaBuilder()
+
+    const quantityHeading = screen.getByText("Quantity")
+    const sizeHeading = screen.getByText("Choose Your Size")
+
+    expect(
+      quantityHeading.compareDocumentPosition(sizeHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it("multiplies the pizza total by quantity", () => {
+    renderPizzaBuilder()
+
+    fireEvent.click(screen.getByRole("button", { name: /increase quantity/i }))
+
+    expect(screen.getByRole("button", { name: /add to cart/i }))
+      .toHaveTextContent("$20.00")
+  })
+})

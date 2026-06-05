@@ -11,6 +11,10 @@ import {
   MODIFIER_ADMIN_ROW_CARD_CLASS,
   MODIFIER_ADMIN_ROW_CLASS,
 } from "@/features/admin-modifiers/components/modifier-admin-row-styles"
+import {
+  getModifierAdminHref,
+  getModifierGroupHref,
+} from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 
@@ -54,6 +58,7 @@ export type ModifierCategory = {
 }
 
 type ModifiersCategoryBrowserProps = {
+  businessSlug?: string
   categories: ModifierCategory[]
 }
 
@@ -104,13 +109,15 @@ function CategoryFilter({
 }
 
 function ModifierGroupCard({
+  businessSlug,
   group,
 }: {
+  businessSlug?: string
   group: RawModifierGroup
 }) {
   return (
     <Link
-      href={`/admin/modifiers/${group.id}`}
+      href={getModifierGroupHref({ groupId: group.id, businessSlug })}
       aria-label={`Open modifier group ${group.name}`}
       className={group.is_enabled ? "block" : "block opacity-75"}
     >
@@ -133,6 +140,7 @@ function ModifierGroupCard({
 }
 
 export function ModifiersCategoryBrowser({
+  businessSlug,
   categories,
 }: ModifiersCategoryBrowserProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -177,6 +185,7 @@ export function ModifiersCategoryBrowser({
             {selectedCategory.modifier_groups.map((group) => (
               <ModifierGroupCard
                 key={group.id}
+                businessSlug={businessSlug}
                 group={group}
               />
             ))}
@@ -187,10 +196,11 @@ export function ModifiersCategoryBrowser({
       <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-5xl justify-end gap-2">
           <AdminBackButton
-            fallbackHref="/admin/modifiers"
+            fallbackHref={getModifierAdminHref("", businessSlug)}
             label="Back to modifier management"
           />
           <ModifierGroupFormDialog
+            businessSlug={businessSlug}
             categories={categories}
             selectedCategoryId={selectedCategory.id}
             triggerIcon={<Plus aria-hidden="true" />}

@@ -8,7 +8,21 @@ import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
 import { ThemedButton } from "@/components/themed/ThemedButton";
 import Link from "next/link";
 
-export function CheckoutPage() {
+type CheckoutPageProps = {
+  businessSlug?: string | null
+  businessName?: string | null
+  locationName?: string | null
+  menuHref?: string
+  orderBlockedReason?: string | null
+}
+
+export function CheckoutPage({
+  businessSlug = null,
+  businessName = null,
+  locationName = null,
+  menuHref = "/menu",
+  orderBlockedReason = null,
+}: CheckoutPageProps) {
   const { items, clearCart } = useCart();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,6 +43,7 @@ export function CheckoutPage() {
       const result = await createOrder({
         ...formData,
         items,
+        businessSlug,
       });
 
       if (!result.ok) {
@@ -57,7 +72,7 @@ export function CheckoutPage() {
           <p className="mt-4 text-2xl font-bold">{orderNumber}</p>
 
           <ThemedButton asChild className="mt-6">
-            <Link href="/menu">Back to Menu</Link>
+            <Link href={menuHref}>Back to Menu</Link>
           </ThemedButton>
         </div>
       </main>
@@ -74,7 +89,7 @@ export function CheckoutPage() {
           </p>
 
           <ThemedButton asChild className="mt-6">
-            <Link href="/menu">View Menu</Link>
+            <Link href={menuHref}>View Menu</Link>
           </ThemedButton>
         </div>
       </main>
@@ -89,12 +104,30 @@ export function CheckoutPage() {
           <p className="mt-2 text-muted-foreground">
             Enter your details and review your order.
           </p>
+          {businessName ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Ordering from <span className="font-medium text-foreground">{businessName}</span>
+              {locationName ? (
+                <>
+                  {" "}
+                  at <span className="font-medium text-foreground">{locationName}</span>
+                </>
+              ) : null}
+              .
+            </p>
+          ) : null}
+          {orderBlockedReason ? (
+            <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {orderBlockedReason}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
           <CheckoutForm
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            isSubmitBlocked={Boolean(orderBlockedReason)}
             errorMessage={submitError}
           />
 

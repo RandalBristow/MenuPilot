@@ -25,6 +25,10 @@ import {
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import {
+  getProductAdminHref,
+  getProductVariantAssignmentsHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 import type {
   VariantGroupDetail,
   VariantGroupOption,
@@ -38,6 +42,8 @@ type VariantGroupDetailClientProps = {
     group: VariantGroupDetail
     productContext: VariantGroupProductContext
   }
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 type OptionPanelState =
@@ -132,14 +138,16 @@ function getOptionDescription(
 
 function getBackHref({
   productContext,
+  businessSlug,
 }: {
   productContext: VariantGroupProductContext
+  businessSlug?: string
 }) {
   if (productContext) {
-    return `/admin/products/variant-assignments?productId=${productContext.id}`
+    return getProductVariantAssignmentsHref(productContext.id, businessSlug)
   }
 
-  return "/admin/products/variant-groups"
+  return getProductAdminHref("variant-groups", businessSlug)
 }
 
 function OptionFormPanel({
@@ -149,6 +157,8 @@ function OptionFormPanel({
   productContext,
   panelState,
   nextSortOrder,
+  businessSlug,
+  writesEnabled,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -156,6 +166,8 @@ function OptionFormPanel({
   productContext: VariantGroupProductContext
   panelState: OptionPanelState | null
   nextSortOrder: number
+  businessSlug?: string
+  writesEnabled: boolean
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -210,10 +222,13 @@ function OptionFormPanel({
         <form
           key={`${panelState.mode}-${option?.id ?? "new"}`}
           ref={formRef}
-          action={handleSubmit}
+          action={writesEnabled ? handleSubmit : undefined}
           className="flex min-h-0 flex-1 flex-col"
         >
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
+            {businessSlug ? (
+              <input type="hidden" name="businessSlug" value={businessSlug} />
+            ) : null}
             <input type="hidden" name="groupId" value={group.id} />
             {option ? (
               <input type="hidden" name="optionId" value={option.id} />
@@ -437,6 +452,7 @@ function OptionFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
+              disabled={!writesEnabled}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -453,6 +469,8 @@ function OptionFormPanel({
 
 export function VariantGroupDetailClient({
   data,
+  businessSlug,
+  writesEnabled = true,
 }: VariantGroupDetailClientProps) {
   const { group, mode, productContext } = data
   const [optionPanelState, setOptionPanelState] =
@@ -461,7 +479,7 @@ export function VariantGroupDetailClient({
   const isProductMode = mode === "product"
   const isPreviewMode = mode === "preview"
   const isProductScopedMode = mode !== "global"
-  const backHref = getBackHref({ productContext })
+  const backHref = getBackHref({ productContext, businessSlug })
   const description = isProductMode
     ? `Product-specific options for ${productContext?.name ?? data.businessName}.`
     : isPreviewMode
@@ -560,6 +578,7 @@ export function VariantGroupDetailClient({
                 size="icon"
                 aria-label="New Variant Group Option"
                 className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                disabled={!writesEnabled}
                 onClick={() =>
                   setOptionPanelState({ mode: "create", option: null })
                 }
@@ -582,6 +601,8 @@ export function VariantGroupDetailClient({
         productContext={isProductMode ? productContext : null}
         panelState={optionPanelState}
         nextSortOrder={nextSortOrder}
+        businessSlug={businessSlug}
+        writesEnabled={writesEnabled}
       />
     </main>
   )

@@ -23,12 +23,18 @@ import {
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import type { VariantGroupListItem } from "@/features/admin-products/queries/get-variant-groups"
+import {
+  getProductAdminHref,
+  getVariantGroupDetailHref,
+} from "@/features/admin-products/utils/product-admin-routes"
 
 type VariantGroupsBrowserProps = {
   data: {
     businessName: string
     groups: VariantGroupListItem[]
   }
+  businessSlug?: string
+  writesEnabled?: boolean
 }
 
 function getNextSortOrder(groups: VariantGroupListItem[]) {
@@ -42,11 +48,15 @@ function VariantGroupFormPanel({
   onOpenChange,
   nextSortOrder,
   group,
+  businessSlug,
+  writesEnabled,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   nextSortOrder: number
   group?: VariantGroupListItem | null
+  businessSlug?: string
+  writesEnabled: boolean
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -79,11 +89,15 @@ function VariantGroupFormPanel({
 
         <form
           ref={formRef}
-          action={handleSubmit}
+          action={writesEnabled ? handleSubmit : undefined}
           className="flex min-h-0 flex-1 flex-col"
         >
           <div className={`${PRODUCT_ADMIN_PANEL_BODY_CLASS} pb-4`}>
             <div className="grid gap-4">
+              {businessSlug ? (
+                <input type="hidden" name="businessSlug" value={businessSlug} />
+              ) : null}
+
               {group ? (
                 <input type="hidden" name="groupId" value={group.id} />
               ) : null}
@@ -183,6 +197,7 @@ function VariantGroupFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
+              disabled={!writesEnabled}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -197,7 +212,11 @@ function VariantGroupFormPanel({
   )
 }
 
-export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
+export function VariantGroupsBrowser({
+  data,
+  businessSlug,
+  writesEnabled = true,
+}: VariantGroupsBrowserProps) {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [activeGroup, setActiveGroup] = useState<VariantGroupListItem | null>(
@@ -264,7 +283,12 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
                     className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
                     onClick={(event) => {
                       event.stopPropagation()
-                      router.push(`/admin/products/variant-groups/${group.id}`)
+                      router.push(
+                        getVariantGroupDetailHref({
+                          groupId: group.id,
+                          businessSlug,
+                        })
+                      )
                     }}
                   >
                     Manage Options
@@ -278,7 +302,7 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
             <AdminBackButton
-              fallbackHref="/admin/products"
+              fallbackHref={getProductAdminHref("", businessSlug)}
               label="Back to product management"
             />
             <ThemedButton
@@ -286,6 +310,7 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
               size="icon"
               aria-label="New Variant Group"
               className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+              disabled={!writesEnabled}
               onClick={() => setIsCreating(true)}
             >
               <Plus aria-hidden="true" />
@@ -299,6 +324,8 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
         open={isCreating}
         onOpenChange={setIsCreating}
         nextSortOrder={nextSortOrder}
+        businessSlug={businessSlug}
+        writesEnabled={writesEnabled}
       />
 
       {activeGroup ? (
@@ -309,6 +336,8 @@ export function VariantGroupsBrowser({ data }: VariantGroupsBrowserProps) {
           }}
           nextSortOrder={nextSortOrder}
           group={activeGroup}
+          businessSlug={businessSlug}
+          writesEnabled={writesEnabled}
         />
       ) : null}
     </main>

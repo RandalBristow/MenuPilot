@@ -96,6 +96,7 @@ type ProductDefaultModifierOption = {
 
 export type ProductConfig = {
   id: string;
+  business_id?: string | null;
   name: string;
   description: string | null;
   builder_template: string | null;
@@ -121,6 +122,7 @@ type PizzaBuilderProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingCartItem?: CartItem | null;
+  businessSlug?: string | null;
 };
 
 type IncludedModifierGroup = {
@@ -147,6 +149,10 @@ function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
   );
 }
 
+function getInitialQuantity(editingCartItem?: CartItem | null) {
+  return editingCartItem?.quantity ?? 1;
+}
+
 function hasEnabledModifierGroup(
   item: ProductModifierGroup,
 ): item is ProductModifierGroup & { modifier_groups: ModifierGroup } {
@@ -158,6 +164,7 @@ export function PizzaBuilder({
   open,
   onOpenChange,
   editingCartItem = null,
+  businessSlug = null,
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
     () =>
@@ -175,6 +182,7 @@ export function PizzaBuilder({
   const [selectedModifiers, setSelectedModifiers] = useState<
     Record<string, SelectedModifier>
   >(() => getInitialSelectedModifiers(editingCartItem));
+  const [quantity, setQuantity] = useState(getInitialQuantity(editingCartItem));
   const hasAppliedDefaultModifiersRef = useRef(false);
 
   const { addItem, updateItem } = useCart();
@@ -242,11 +250,13 @@ export function PizzaBuilder({
         modifierGroups,
         selectedModifiers,
         productDefaultModifierOptions: product.product_default_modifier_options,
+        quantity,
       }),
     [
       modifierGroups,
       product.base_price,
       product.product_default_modifier_options,
+      quantity,
       selectedModifiers,
       selectedVariant,
     ],
@@ -294,7 +304,8 @@ export function PizzaBuilder({
     );
   }
 
-  const total = pricing.unitPrice;
+  const unitTotal = pricing.unitPrice;
+  const total = pricing.lineTotal;
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -403,16 +414,19 @@ export function PizzaBuilder({
       })
       .filter(Boolean) as CartModifier[];
 
-    const quantity = editingCartItem?.quantity ?? 1;
     const cartItem: CartItem = {
       cartItemId: editingCartItem?.cartItemId ?? crypto.randomUUID(),
+      businessId: product.business_id ?? editingCartItem?.businessId,
+      businessSlug: businessSlug ?? editingCartItem?.businessSlug,
+      locationId: editingCartItem?.locationId,
+      locationSlug: editingCartItem?.locationSlug,
       productId: product.id,
       productName: product.name,
       variantId: selectedVariant?.id ?? null,
       variantName: selectedVariant?.name ?? null,
       quantity,
-      unitPrice: total,
-      totalPrice: total * quantity,
+      unitPrice: unitTotal,
+      totalPrice: total,
       modifiers,
     };
 
@@ -433,6 +447,43 @@ export function PizzaBuilder({
         </DialogHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+          <ThemedCard className="p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">Quantity</h3>
+                <p className="text-xs text-muted-foreground">
+                  Choose how many to add.
+                </p>
+              </div>
+
+              <div className="flex items-center rounded-md border">
+                <ThemedButton
+                  type="button"
+                  variant="ghost"
+                  aria-label="Decrease quantity"
+                  className="h-10 w-10 bg-transparent text-foreground hover:bg-muted"
+                  onClick={() =>
+                    setQuantity((current) => Math.max(1, current - 1))
+                  }
+                >
+                  -
+                </ThemedButton>
+                <span className="min-w-10 text-center font-semibold">
+                  {quantity}
+                </span>
+                <ThemedButton
+                  type="button"
+                  variant="ghost"
+                  aria-label="Increase quantity"
+                  className="h-10 w-10 bg-transparent text-foreground hover:bg-muted"
+                  onClick={() => setQuantity((current) => current + 1)}
+                >
+                  +
+                </ThemedButton>
+              </div>
+            </div>
+          </ThemedCard>
+
           <ThemedCard className="p-3">
             <h3 className="mb-2 text-base font-semibold">Choose Your Size</h3>
 

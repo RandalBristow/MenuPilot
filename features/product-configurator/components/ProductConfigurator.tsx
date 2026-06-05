@@ -8,9 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getProductBuilderRoute } from "@/features/product-configurator/utils/builder-templates"
+import { resolveProductBuilderMode } from "@/features/product-configurator/utils/resolve-product-builder-mode"
+import { GenericConfigurableBuilder } from "./GenericConfigurableBuilder"
 import { PizzaBuilder, type ProductConfig } from "./PizzaBuilder"
-import { StandardItemBuilder } from "./StandardItemBuilder"
+import { SimpleProductBuilder } from "./SimpleProductBuilder"
 
 type ProductConfiguratorProps = {
   product: ProductConfig
@@ -18,6 +19,7 @@ type ProductConfiguratorProps = {
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
   cartItem?: CartItem | null
+  businessSlug?: string | null
 }
 
 export type { ProductConfig }
@@ -28,10 +30,11 @@ export function ProductConfigurator({
   onOpenChange,
   mode,
   cartItem = null,
+  businessSlug = null,
 }: ProductConfiguratorProps) {
-  const builderRoute = getProductBuilderRoute(product.builder_template)
+  const builderMode = resolveProductBuilderMode(product)
 
-  if (builderRoute === "pizza") {
+  if (builderMode === "pizza") {
     return (
       <PizzaBuilder
         key={`${product.id}-${mode}-${cartItem?.cartItemId ?? "new"}`}
@@ -39,11 +42,12 @@ export function ProductConfigurator({
         open={open}
         onOpenChange={onOpenChange}
         editingCartItem={mode === "edit" ? cartItem : null}
+        businessSlug={businessSlug}
       />
     )
   }
 
-  if (builderRoute === "unsupported") {
+  if (builderMode === "unsupported") {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md">
@@ -52,7 +56,7 @@ export function ProductConfigurator({
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This product type is not available in online ordering yet.
+              Combos and bundles are coming soon.
             </p>
             <div className="flex justify-end">
               <ThemedButton type="button" onClick={() => onOpenChange(false)}>
@@ -65,14 +69,32 @@ export function ProductConfigurator({
     )
   }
 
+  if (
+    builderMode === "simple-variant" ||
+    builderMode === "simple-quantity"
+  ) {
+    return (
+      <SimpleProductBuilder
+        key={`${product.id}-${mode}-${cartItem?.cartItemId ?? "new"}`}
+        product={product}
+        open={open}
+        onOpenChange={onOpenChange}
+        mode={mode}
+        cartItem={cartItem}
+        businessSlug={businessSlug}
+      />
+    )
+  }
+
   return (
-    <StandardItemBuilder
+    <GenericConfigurableBuilder
       key={`${product.id}-${mode}-${cartItem?.cartItemId ?? "new"}`}
       product={product}
       open={open}
       onOpenChange={onOpenChange}
       mode={mode}
       cartItem={cartItem}
+      businessSlug={businessSlug}
     />
   )
 }

@@ -13,12 +13,14 @@ import {
   getNextModifierGroupSortOrder,
   sortModifierGroups,
 } from "@/features/admin-modifiers/utils/modifier-group-sort-order"
+import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import type {
   ModifierCategory,
   RawModifierGroup,
 } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
 
 type ModifierCategoryGroupsClientProps = {
+  businessSlug?: string
   categories: ModifierCategory[]
   category: ModifierCategory
 }
@@ -37,6 +39,7 @@ function formatModifierGroupTitle(categoryName: string) {
 }
 
 export function ModifierCategoryGroupsClient({
+  businessSlug,
   categories,
   category,
 }: ModifierCategoryGroupsClientProps) {
@@ -114,7 +117,7 @@ export function ModifierCategoryGroupsClient({
                     className="h-8 bg-background px-3 text-xs text-foreground hover:bg-muted"
                     onClick={(event) => {
                       event.stopPropagation()
-                      router.push(`/admin/modifiers/${group.id}`)
+                      router.push(getModifierAdminHref(group.id, businessSlug))
                     }}
                   >
                     Manage Option Lists
@@ -128,10 +131,11 @@ export function ModifierCategoryGroupsClient({
         <div className="shrink-0 border-t bg-background pt-3">
           <div className="flex justify-end gap-2">
             <AdminBackButton
-              fallbackHref="/admin/modifiers/groups"
+              fallbackHref={getModifierAdminHref("groups", businessSlug)}
               label="Back to modifier groups"
             />
             <ModifierGroupFormDialog
+              businessSlug={businessSlug}
               categories={categories}
               selectedCategoryId={selectedCategoryId}
               triggerIcon={<Plus aria-hidden="true" />}
@@ -154,6 +158,7 @@ export function ModifierCategoryGroupsClient({
             group={activeGroup}
             nextSortOrder={nextSortOrder}
             onCreated={setSelectedCategoryId}
+            businessSlug={businessSlug}
           />
         ) : null}
       </div>

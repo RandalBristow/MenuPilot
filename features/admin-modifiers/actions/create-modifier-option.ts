@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { buildModifierOptionWritePayload } from "@/features/admin-modifiers/utils/modifier-option-write-payload"
-
-const BUSINESS_SLUG = "pronto-demo"
+import {
+  getModifierAdminActionHref,
+  resolveModifierAdminActionContext,
+} from "@/features/admin-modifiers/utils/modifier-admin-action-context"
 
 export type CreateModifierOptionResult = {
   status: "created" | "error"
@@ -39,20 +41,6 @@ function parsePrice(value: FormDataEntryValue | null) {
   }
 
   return price
-}
-
-async function getBusinessId() {
-  const { data: business, error } = await supabaseAdmin
-    .from("businesses")
-    .select("id")
-    .eq("slug", BUSINESS_SLUG)
-    .single()
-
-  if (error || !business) {
-    throw new Error("Could not load modifier business.")
-  }
-
-  return business.id as string
 }
 
 async function getNextOptionGroupSortOrder({
@@ -98,7 +86,7 @@ export async function createModifierOption(
   formData: FormData
 ): Promise<CreateModifierOptionResult> {
   try {
-    const businessId = await getBusinessId()
+    const context = await resolveModifierAdminActionContext(formData)
     const modifierGroupId = parseString(
       formData.get("modifierGroupId"),
       "Modifier group"
@@ -115,7 +103,7 @@ export async function createModifierOption(
         .from("modifier_groups")
         .select("id")
         .eq("id", modifierGroupId)
-        .eq("business_id", businessId)
+        .eq("business_id", context.businessId)
         .single()
 
     if (modifierGroupError || !modifierGroup) {
@@ -126,7 +114,7 @@ export async function createModifierOption(
       .from("modifier_option_groups")
       .select("id")
       .eq("id", modifierOptionGroupId)
-      .eq("business_id", businessId)
+      .eq("business_id", context.businessId)
       .eq("modifier_group_id", modifierGroupId)
       .single()
 
@@ -137,13 +125,13 @@ export async function createModifierOption(
     const sortOrder =
       manualSortOrder ??
       (await getNextOptionGroupSortOrder({
-        businessId,
+        businessId: context.businessId,
         modifierGroupId,
         modifierOptionGroupId,
       }))
 
     const { error } = await supabaseAdmin.from("modifier_options").insert({
-      business_id: businessId,
+      business_id: context.businessId,
       modifier_group_id: modifierGroupId,
       ...buildModifierOptionWritePayload({
         modifierOptionGroupId,
@@ -158,9 +146,16 @@ export async function createModifierOption(
       throw new Error(`Could not create modifier option: ${error.message}`)
     }
 
-    revalidatePath("/admin/modifiers")
-    revalidatePath("/admin/modifiers/options")
-    revalidatePath(`/admin/modifiers/${modifierGroupId}`)
+    revalidatePath(getModifierAdminActionHref(context))
+    revalidatePath(getModifierAdminActionHref(context, "options"))
+    revalidatePath(getModifierAdminActionHref(context, "subgroups"))
+    revalidatePath(getModifierAdminActionHref(context, modifierGroupId))
+    revalidatePath(
+      getModifierAdminActionHref(
+        context,
+        `${modifierGroupId}/subgroups/${modifierOptionGroupId}`
+      )
+    )
 
     return {
       status: "created",
