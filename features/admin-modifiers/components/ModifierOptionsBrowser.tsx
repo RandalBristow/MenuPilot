@@ -173,13 +173,7 @@ export function ModifierOptionsBrowser({
           </label>
         </div>
         {deleteResult ? (
-          <p
-            className={
-              deleteResult.status === "deleted"
-                ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
-                : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-            }
-          >
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {deleteResult.message}
           </p>
         ) : null}
@@ -225,7 +219,11 @@ export function ModifierOptionsBrowser({
                     optionId={option.id}
                     optionName={option.name}
                     modifierGroupId={selectedGroup.id}
-                    onResult={setDeleteResult}
+                    onResult={(result) =>
+                      setDeleteResult(
+                        result.status === "deleted" ? null : result
+                      )
+                    }
                   />
                 }
               />
@@ -244,7 +242,7 @@ export function ModifierOptionsBrowser({
             type="button"
             size="icon"
             aria-label="Add modifier"
-            className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+            className="size-10 rounded-md p-0 shadow-sm"
             onClick={() => setCreateOpen(true)}
           >
             <Plus aria-hidden="true" />

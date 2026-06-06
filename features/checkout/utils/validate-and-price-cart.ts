@@ -1,4 +1,5 @@
 import { priceConfiguredProduct } from "../../../lib/pricing/price-configured-product"
+import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings"
 import {
   resolveVariantModifierOptionPrice,
   type VariantModifierOptionPriceOverride,
@@ -29,6 +30,8 @@ export type CheckoutSubmittedCartItem = {
 export type CheckoutProductConfig = {
   id: string
   name: string
+  builderTemplate?: string | null
+  pricingSettings?: BusinessPricingSettings | null
   isEnabled: boolean
   basePrice: number
   variants?: CheckoutEffectiveVariant[]
@@ -86,6 +89,7 @@ export type CheckoutModifierOptionOverride = {
 
 export type CheckoutProductDefaultModifierOption = {
   modifier_option_id: string
+  placement?: "left" | "whole" | "right" | null
   multiplier?: number | null
   quantity?: number | null
   is_enabled?: boolean | null
@@ -697,6 +701,8 @@ function validateModifiers({
 
   const pricing = priceConfiguredProduct({
     productBasePrice: basePrice,
+    builderTemplate: product.builderTemplate,
+    pricingSettings: product.pricingSettings,
     selectedModifiers,
     modifierGroups: pricingGroups,
     productDefaultModifierOptions: product.productDefaultModifierOptions,

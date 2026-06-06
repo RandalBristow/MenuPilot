@@ -1,6 +1,4 @@
-import { Check } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
-import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   ThemedSheet,
   ThemedSheetContent,
@@ -13,11 +11,11 @@ import { createProduct } from "@/features/admin-products/actions/create-product"
 import { updateProduct } from "@/features/admin-products/actions/update-product"
 import {
   PRODUCT_ADMIN_PANEL_BODY_CLASS,
-  PRODUCT_ADMIN_PANEL_FOOTER_CLASS,
   PRODUCT_ADMIN_PANEL_HEADER_CLASS,
   PRODUCT_ADMIN_PANEL_PAGE_CLASS,
   PRODUCT_ADMIN_SHEET_PANEL_CLASS,
 } from "@/features/admin-products/components/product-admin-panel-styles"
+import { ProductPanelFooter } from "@/features/admin-products/components/ProductAdminFormParts"
 import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
 import {
   type ProductAdminBusinessContextInput,
@@ -407,24 +405,16 @@ export async function ProductForm({
 
           </div>
 
-          <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
-            <AdminBackButton
-              fallbackHref={getProductListHref(businessSlug)}
-              label="Back to products"
-            />
-            <ThemedButton
-              type="submit"
-              disabled={!writesEnabled}
-              size="icon"
-              aria-label={isEditMode ? "Save product" : "Create product"}
-              className="size-10"
-            >
-              <Check aria-hidden="true" />
-              <span className="sr-only">
-                {isEditMode ? "Save product" : "Create product"}
-              </span>
-            </ThemedButton>
-          </div>
+          <ProductPanelFooter
+            closeControl={
+              <AdminBackButton
+                fallbackHref={getProductListHref(businessSlug)}
+                label="Back to products"
+              />
+            }
+            submitLabel={isEditMode ? "Save product" : "Create product"}
+            submitDisabled={!writesEnabled}
+          />
         </form>
       </ThemedSheetContent>
       </ThemedSheet>

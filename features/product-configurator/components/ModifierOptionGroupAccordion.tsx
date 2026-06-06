@@ -56,6 +56,7 @@ type ModifierOptionGroupAccordionProps<
   group: TGroup
   selectedModifiers: Record<string, ModifierOptionGroupAccordionSelectedModifier>
   getDisplayPriceDelta: (option: TOption) => number
+  getSelectedMeta?: (options: TOption[]) => string | undefined
   onToggleOption: (option: TOption) => void
   onUpdateModifier: (
     optionId: string,
@@ -125,6 +126,7 @@ export function ModifierOptionGroupAccordion<
   group,
   selectedModifiers,
   getDisplayPriceDelta,
+  getSelectedMeta,
   onToggleOption,
   onUpdateModifier,
   placementLabels = defaultPlacementLabels,
@@ -147,6 +149,7 @@ export function ModifierOptionGroupAccordion<
 
   const accordionItems: ThemedAccordionItem[] = optionSections.map((section) => {
     const selectedCount = getSelectedCount(section.options, selectedModifiers)
+    const selectedMeta = getSelectedMeta?.(section.options)
     const title = section.optionGroup?.name ?? "Other"
     const subtitle = section.optionGroup?.description
 
@@ -155,9 +158,8 @@ export function ModifierOptionGroupAccordion<
       title,
       subtitle,
       meta:
-        selectedCount > 0
-          ? `${selectedCount} selected`
-          : undefined,
+        selectedMeta ??
+        (selectedCount > 0 ? `${selectedCount} selected` : undefined),
       content: (
         <div className="space-y-1.5">
           {section.options.map((option) => {

@@ -60,6 +60,8 @@ function VariantGroupFormPanel({
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const isEditMode = Boolean(group)
   const [isEnabled, setIsEnabled] = useState(group?.is_enabled ?? true)
   const title = isEditMode ? (group?.name ?? "Edit Variant Group") : "New Variant Group"
@@ -69,10 +71,20 @@ function VariantGroupFormPanel({
   const submitLabel = isEditMode ? "Save Variant Group" : "Create Variant Group"
 
   async function handleSubmit(formData: FormData) {
-    await saveVariantGroup(formData)
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      await saveVariantGroup(formData)
+      formRef.current?.reset()
+      onOpenChange(false)
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -197,7 +209,7 @@ function VariantGroupFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
-              disabled={!writesEnabled}
+              disabled={!writesEnabled || isSubmitting}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -309,7 +321,7 @@ export function VariantGroupsBrowser({
               type="button"
               size="icon"
               aria-label="New Variant Group"
-              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+              className="size-10 rounded-md p-0 shadow-sm"
               disabled={!writesEnabled}
               onClick={() => setIsCreating(true)}
             >

@@ -16,6 +16,7 @@ import {
   ThemedSheetHeader,
   ThemedSheetTitle,
 } from "@/components/themed/ThemedSheet"
+import { useThemedToast } from "@/components/themed/ThemedToastProvider"
 import { saveProductModifierOptionOverride } from "@/features/admin-modifiers/actions/save-product-modifier-option-override"
 import { setProductDefaultModifierOption } from "@/features/admin-products/actions/save-product-default-modifier-option"
 import type { DeleteModifierOptionResult } from "@/features/admin-modifiers/actions/delete-modifier-option"
@@ -157,15 +158,36 @@ function ModifierOptionOverridePanel({
   option: ModifierGroupDetailOption | null
 }) {
   const router = useRouter()
+  const { showToast } = useThemedToast()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!option) return null
 
+  const selectedOption = option
+
   async function handleSubmit(formData: FormData) {
-    await saveProductModifierOptionOverride(formData)
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+    const optionName = selectedOption.name
+
+    try {
+      await saveProductModifierOptionOverride(formData)
+      formRef.current?.reset()
+      onOpenChange(false)
+      showToast({
+        title: "Modifier option override saved.",
+        description: optionName,
+        kind: "success",
+      })
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -176,14 +198,14 @@ function ModifierOptionOverridePanel({
         className={PRODUCT_ADMIN_SHEET_PANEL_CLASS}
       >
         <ThemedSheetHeader className={PRODUCT_ADMIN_PANEL_HEADER_CLASS}>
-          <ThemedSheetTitle>{option.name}</ThemedSheetTitle>
+          <ThemedSheetTitle>{selectedOption.name}</ThemedSheetTitle>
           <ThemedSheetDescription>
             Override this default option for {productContext.name}.
           </ThemedSheetDescription>
         </ThemedSheetHeader>
 
         <form
-          key={option.id}
+          key={selectedOption.id}
           ref={formRef}
           action={handleSubmit}
           className="flex min-h-0 flex-1 flex-col"
@@ -194,7 +216,11 @@ function ModifierOptionOverridePanel({
               <input type="hidden" name="businessSlug" value={businessSlug} />
             ) : null}
             <input type="hidden" name="modifierGroupId" value={group.id} />
-            <input type="hidden" name="modifierOptionId" value={option.id} />
+            <input
+              type="hidden"
+              name="modifierOptionId"
+              value={selectedOption.id}
+            />
 
             <div className="grid gap-4">
               <label className="grid gap-2">
@@ -204,8 +230,10 @@ function ModifierOptionOverridePanel({
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder={String(option.price_delta)}
-                  defaultValue={option.override?.price_delta_override ?? ""}
+                  placeholder={String(selectedOption.price_delta)}
+                  defaultValue={
+                    selectedOption.override?.price_delta_override ?? ""
+                  }
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 />
               </label>
@@ -213,7 +241,7 @@ function ModifierOptionOverridePanel({
               <div className="grid grid-cols-2 gap-3">
                 <OverrideStatusControl
                   defaultValue={getNullableSelectValue(
-                    option.override?.is_enabled
+                    selectedOption.override?.is_enabled
                   )}
                 />
 
@@ -224,8 +252,8 @@ function ModifierOptionOverridePanel({
                     type="number"
                     min="0"
                     step="1"
-                    placeholder={String(option.sort_order)}
-                    defaultValue={option.override?.sort_order ?? ""}
+                    placeholder={String(selectedOption.sort_order)}
+                    defaultValue={selectedOption.override?.sort_order ?? ""}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   />
                 </label>
@@ -238,9 +266,10 @@ function ModifierOptionOverridePanel({
                   type="number"
                   min="0"
                   step="1"
-                  placeholder={String(option.prep_time_delta_minutes)}
+                  placeholder={String(selectedOption.prep_time_delta_minutes)}
                   defaultValue={
-                    option.override?.prep_time_delta_minutes_override ?? ""
+                    selectedOption.override?.prep_time_delta_minutes_override ??
+                    ""
                   }
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 />
@@ -265,6 +294,7 @@ function ModifierOptionOverridePanel({
               size="icon"
               aria-label="Save override"
               className="size-10"
+              disabled={isSubmitting}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">Save override</span>
@@ -281,6 +311,8 @@ export function ModifierSubgroupOptionsClient({
   data,
   subgroup,
 }: ModifierSubgroupOptionsClientProps) {
+  const router = useRouter()
+  const { showToast } = useThemedToast()
   const [createOpen, setCreateOpen] = useState(false)
   const [deleteResult, setDeleteResult] =
     useState<DeleteModifierOptionResult | null>(null)
@@ -308,7 +340,16 @@ export function ModifierSubgroupOptionsClient({
   })
 
   async function handleDefaultToggle(formData: FormData) {
+    const isDefault = formData.get("isDefault") === "true"
+
     await setProductDefaultModifierOption(formData)
+    showToast({
+      title: isDefault
+        ? "Default modifier option saved."
+        : "Default modifier option removed.",
+      kind: "success",
+    })
+    router.refresh()
   }
 
   return (
@@ -336,13 +377,7 @@ export function ModifierSubgroupOptionsClient({
             </p>
           ) : null}
           {deleteResult ? (
-            <p
-              className={
-                deleteResult.status === "deleted"
-                  ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
-                  : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              }
-            >
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {deleteResult.message}
             </p>
           ) : null}
@@ -469,7 +504,11 @@ export function ModifierSubgroupOptionsClient({
                             optionId={option.id}
                             optionName={option.name}
                             modifierGroupId={group.id}
-                            onResult={setDeleteResult}
+                            onResult={(result) =>
+                              setDeleteResult(
+                                result.status === "deleted" ? null : result
+                              )
+                            }
                           />
                         </>
                       ) : undefined
@@ -511,7 +550,7 @@ export function ModifierSubgroupOptionsClient({
                 type="button"
                 size="icon"
                 aria-label="New Modifier Option"
-                className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                className="size-10 rounded-md p-0 shadow-sm"
                 onClick={() => setCreateOpen(true)}
               >
                 <Plus aria-hidden="true" />

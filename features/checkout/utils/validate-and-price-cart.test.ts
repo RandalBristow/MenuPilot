@@ -1184,6 +1184,85 @@ describe("validateAndPriceCart", () => {
     expect(result.cart.items[0].unitPrice).toBe(14)
   })
 
+  it("uses server half pizza topping pricing and ignores stale client prices", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          quantity: 1,
+          modifiers: [
+            buildModifier({
+              placement: "left",
+              multiplier: 1,
+              priceDelta: 100,
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithModifiers,
+          builderTemplate: "pizza",
+          pricingSettings: {
+            pizzaHalfToppingPricingEnabled: true,
+            pizzaHalfToppingIncludedWeightEnabled: true,
+            pizzaHalfToppingRoundingMode: "floor_to_cent",
+          },
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers[0]).toMatchObject({
+      optionId: "pepperoni",
+      placement: "left",
+      multiplier: 1,
+      priceDelta: 0.75,
+    })
+    expect(result.cart.items[0].unitPrice).toBe(13.25)
+  })
+
+  it("counts left and right pizza toppings as half included selections", () => {
+    const result = validateAndPriceCart({
+      items: [
+        buildCartItem({
+          quantity: 1,
+          modifiers: [
+            buildModifier({ optionId: "pepperoni" }),
+            buildModifier({
+              optionId: "mushrooms",
+              optionName: "Client Mushrooms",
+              placement: "left",
+            }),
+          ],
+        }),
+      ],
+      products: [
+        {
+          ...productWithModifiers,
+          builderTemplate: "pizza",
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              includedQuantity: 1.5,
+              chargeForExtra: true,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.cart.items[0].modifiers).toMatchObject([
+      { optionId: "pepperoni", priceDelta: 0 },
+      { optionId: "mushrooms", placement: "left", priceDelta: 0 },
+    ])
+    expect(result.cart.items[0].unitPrice).toBe(12.5)
+  })
+
   it("applies included modifier quantity server-side and ignores stale client prices", () => {
     const result = validateAndPriceCart({
       items: [

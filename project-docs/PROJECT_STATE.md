@@ -1,6 +1,6 @@
 # MenuPilot Project State
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06_
 
 ## Purpose
 
@@ -191,6 +191,15 @@ Pricing order is:
 
 Default modifier selections are selected modifiers and consume included selection slots.
 
+Business-level pizza half-topping settings are stored in
+`business_pricing_settings`. Missing settings rows use these defaults:
+half-topping pricing enabled, half-toppings consume half an included slot, and
+rounding mode `floor_to_cent`. Pizza left/right placement uses weight `0.5`;
+whole placement uses weight `1.0`; effective weight is placement weight times
+multiplier. Half-topping rounding floors after placement weight and multiplier
+are applied. Non-pizza builders must not receive half-placement discounts unless
+the shared pricing resolver is intentionally called with pizza behavior.
+
 ### Builder templates
 **Status:** UPDATED 2026-06-04
 
@@ -222,7 +231,7 @@ See `project-docs/ROADMAP.md` for the current roadmap, product entry regression 
 | Staff orders | Tenant route started | Legacy `/staff/orders` still resolves Pronto Demo/main-street. `/businesses/[businessSlug]/locations/[locationSlug]/orders` resolves business/location context, filters reads by `business_id` and `location_id`, and verifies order ownership before status updates. |
 | Admin dashboard | Working demo | Modifier access moved under product management |
 | Platform Admin | Started | `/platform`, `/platform/businesses`, `/platform/businesses/new`, and `/platform/businesses/[businessId]` list, create, inspect, and activate businesses/locations; business detail links to tenant admin shell; auth protection remains future |
-| Tenant admin context | Started | `features/tenant` resolves business/location context and `/businesses/[businessSlug]/admin` shows the selected business context, default-location orderability, setup sections for Product Catalog, Variants, Modifiers, Media, Customer Preview, and Locations / Orders when a location exists; tenant-scoped Product Admin, reusable Modifier Library, Media Library, public menu reads, business-scoped checkout, and location-scoped staff orders exist. |
+| Tenant admin context | Started | `features/tenant` resolves business/location context and `/businesses/[businessSlug]/admin` shows the selected business context, default-location orderability, pizza pricing settings, setup sections for Product Catalog, Variants, Modifiers, Media, Customer Preview, and Locations / Orders when a location exists; tenant-scoped Product Admin, reusable Modifier Library, Media Library, public menu reads, business-scoped checkout, and location-scoped staff orders exist. |
 | Product admin | Working | Legacy `/admin/products...` remains working for demo scope. Tenant-scoped `/businesses/[businessSlug]/admin/products...` supports business-scoped product reads, core product actions, category/subcategory saves, reusable variant saves, product variant assignment/override saves, product Modifier Group assignment/included/default saves, and variant-specific modifier availability/price rule saves. |
 | Variant admin | Working | Reusable groups/options and per-product overrides |
 | Modifier admin | Working | Hierarchy standardized as Modifier Category -> Modifier Group -> Modifier Option Group -> Modifier Option. Legacy `/admin/modifiers...` remains demo-scoped; `/businesses/[businessSlug]/admin/modifiers...` uses selected business context for reusable modifier library reads/writes. |
@@ -345,7 +354,7 @@ See `project-docs/ROADMAP.md` for the current roadmap, product entry regression 
 
 - Added minimal Platform Admin onboarding schema support for business contact fields, location status, and setup-safe defaults.
 - Added internal Platform Admin list/detail pages for reviewing businesses, locations, setup state, and ordering flags.
-- Added internal Platform Admin create-business and first-location form. New records start in setup mode; first locations start disabled and not accepting orders.
+- Added internal Platform Admin create-business and first-location form. New records start in setup mode; first locations start disabled and not accepting orders. New businesses also get a default `Main Menu` for product category setup.
 - Reconciled roadmap docs around Platform Admin business context, tenant-aware routing before clean rebuild, product setup warnings, builder UI polish, future versioning/print menu/AI sequencing, and deferred work.
 - Added tenant resolver helpers and the `/businesses/[businessSlug]/admin` shell. Platform Admin business detail can open the selected business admin context; Product Admin core product mutations, category/subcategory saves, reusable variant saves, product variant assignment/override saves, product Modifier Group assignment/included/default saves, and variant-specific modifier availability/price saves now work under `/businesses/[businessSlug]/admin/products...`.
 - Added tenant-scoped reusable Modifier Library routes/actions under `/businesses/[businessSlug]/admin/modifiers...` for Modifier Categories, Modifier Groups, Modifier Option Groups, Modifier Options, safe option/list deletes, option moves, and product modifier option overrides reached from modifier detail pages. Legacy `/admin/modifiers...` remains demo-scoped.
@@ -358,3 +367,5 @@ See `project-docs/ROADMAP.md` for the current roadmap, product entry regression 
 - Added Product Modifier Assignment pricing warnings when product default modifiers exceed included selections for the assigned Modifier Group. The warning is informational only; pricing remains centralized in `priceConfiguredProduct`.
 - Added `TENANT_ONBOARDING_REGRESSION.md` as the final manual checklist for proving a Platform Admin-created business can be configured, activated, ordered from, and viewed in scoped staff orders without relying on `pronto-demo`.
 - Added tenant-scoped storefront landing route `/businesses/[businessSlug]`. It resolves the selected business, shows storefront/orderability status, links to the scoped menu, and only links to checkout when the default location is orderable.
+- Added defensive default-menu creation for product category/subcategory saves so Platform Admin-created businesses without an existing `Main Menu` can create their first product category.
+- Clarified tenant Admin Modifier Subgroups / Option Group/List selection behavior: selecting a top-level Modifier Category shows its child subgroups and keeps the footer add/back actions available. If no child subgroup exists yet, the plus action creates one under the selected category; once a Modifier Group exists, option lists are managed inside that group.

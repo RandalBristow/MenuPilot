@@ -6,8 +6,7 @@ import {
   getProductAdminActionHref,
   resolveProductAdminActionContext,
 } from "@/features/admin-products/utils/product-admin-action-context"
-
-const MENU_NAME = "Main Menu"
+import { getOrCreateProductMenuId } from "@/features/admin-products/utils/product-menu"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -37,21 +36,6 @@ function parseSortOrder(value: FormDataEntryValue | null) {
   }
 
   return sortOrder
-}
-
-async function getMenuId(businessId: string) {
-  const { data: menu, error: menuError } = await supabaseAdmin
-    .from("menus")
-    .select("id")
-    .eq("business_id", businessId)
-    .eq("name", MENU_NAME)
-    .single()
-
-  if (menuError || !menu) {
-    throw new Error("Could not load product menu.")
-  }
-
-  return menu.id as string
 }
 
 async function assertCategoryBelongsToBusiness({
@@ -87,7 +71,7 @@ function revalidateCategoryPaths(context: Awaited<ReturnType<typeof resolveProdu
 
 export async function saveProductCategory(formData: FormData) {
   const context = await resolveProductAdminActionContext(formData)
-  const menuId = await getMenuId(context.businessId)
+  const menuId = await getOrCreateProductMenuId(context.businessId)
   const categoryId = parseNullableString(formData.get("categoryId"))
   const name = parseString(formData.get("name"), "Category name")
   const description = parseNullableString(formData.get("description"))

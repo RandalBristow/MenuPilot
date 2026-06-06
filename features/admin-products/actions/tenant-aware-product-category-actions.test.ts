@@ -130,6 +130,24 @@ const actionMocks = vi.hoisted(() => {
     }
 
     single() {
+      if (this.operation?.type === "insert") {
+        const records = this.operation.records.map((record, index) => ({
+          id: record.id ?? `${this.table}-created-${state.inserts.length + index}`,
+          ...record,
+        }))
+
+        state.inserts.push({
+          table: this.table,
+          records,
+        })
+        state.rowsByTable[this.table]?.push(...records)
+
+        return Promise.resolve({
+          data: records[0],
+          error: null,
+        })
+      }
+
       const row =
         (state.rowsByTable[this.table] ?? []).find((item) =>
           matches(item, this.filters)
@@ -138,6 +156,18 @@ const actionMocks = vi.hoisted(() => {
       return Promise.resolve({
         data: row,
         error: row ? null : { message: "not found" },
+      })
+    }
+
+    maybeSingle() {
+      const row =
+        (state.rowsByTable[this.table] ?? []).find((item) =>
+          matches(item, this.filters)
+        ) ?? null
+
+      return Promise.resolve({
+        data: row,
+        error: null,
       })
     }
 
@@ -287,6 +317,40 @@ describe("tenant-aware product category actions", () => {
     expect(actionMocks.state.revalidated).toContain(
       "/businesses/randys-pizza/admin/products/subcategories"
     )
+  })
+
+  it("saveProductCategory creates the default product menu when a new business has none", async () => {
+    actionMocks.state.rowsByTable.menus =
+      actionMocks.state.rowsByTable.menus.filter(
+        (menu) => menu.business_id !== "business-a"
+      )
+
+    await saveProductCategory(
+      createCategoryFormData({ businessSlug: "randys-pizza" })
+    )
+
+    expect(actionMocks.state.inserts[0]).toMatchObject({
+      table: "menus",
+      records: [
+        {
+          business_id: "business-a",
+          location_id: null,
+          name: "Main Menu",
+          menu_type: "online",
+          is_enabled: true,
+          sort_order: 1,
+        },
+      ],
+    })
+    expect(actionMocks.state.inserts[1]).toMatchObject({
+      table: "menu_groups",
+      records: [
+        {
+          business_id: "business-a",
+          menu_id: "menus-created-0",
+        },
+      ],
+    })
   })
 })
 

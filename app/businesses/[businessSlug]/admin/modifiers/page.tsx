@@ -13,5 +13,10 @@ export default async function BusinessAdminModifiersRoutePage({
   const { businessSlug } = await params
   const business = await resolveScopedModifierAdminBusiness(businessSlug)
 
-  return <ModifiersPage businessSlug={business.slug} />
+  return (
+    <ModifiersPage
+      businessContext={{ business }}
+      businessSlug={business.slug}
+    />
+  )
 }

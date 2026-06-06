@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createModifierCategory } from "@/features/admin-modifiers/actions/create-modifier-category"
 import { updateModifierCategory } from "@/features/admin-modifiers/actions/update-modifier-category"
 import { createModifierGroup } from "@/features/admin-modifiers/actions/create-modifier-group"
+import { updateModifierGroup } from "@/features/admin-modifiers/actions/update-modifier-group"
 import { createModifierOptionGroup } from "@/features/admin-modifiers/actions/create-modifier-option-group"
 import { createModifierOption } from "@/features/admin-modifiers/actions/create-modifier-option"
 import { deleteModifierOption } from "@/features/admin-modifiers/actions/delete-modifier-option"
@@ -272,19 +273,37 @@ function categoryFormData({
 function groupFormData({
   businessSlug = "randys-pizza",
   categoryId = "category-a",
+  modifierGroupId,
+  supportsPlacement = "true",
+  supportsMultiplier = "true",
+  minMultiplier = "1",
+  maxMultiplier = "3",
+  multiplierStep = "1",
 }: {
   businessSlug?: string
   categoryId?: string
+  modifierGroupId?: string
+  supportsPlacement?: string
+  supportsMultiplier?: string
+  minMultiplier?: string
+  maxMultiplier?: string
+  multiplierStep?: string
 } = {}) {
   const formData = new FormData()
 
   if (businessSlug) formData.set("businessSlug", businessSlug)
+  if (modifierGroupId) formData.set("modifierGroupId", modifierGroupId)
   formData.set("categoryId", categoryId)
   formData.set("name", "Pizza Toppings")
   formData.set("selectionType", "multiple")
   formData.set("isRequired", "false")
   formData.set("minRequired", "0")
   formData.set("maxAllowed", "")
+  formData.set("supportsPlacement", supportsPlacement)
+  formData.set("supportsMultiplier", supportsMultiplier)
+  formData.set("minMultiplier", minMultiplier)
+  formData.set("maxMultiplier", maxMultiplier)
+  formData.set("multiplierStep", multiplierStep)
   formData.set("sortOrder", "2")
   formData.set("isEnabled", "true")
 
@@ -314,17 +333,19 @@ function optionFormData({
   businessSlug = "randys-pizza",
   modifierGroupId = "group-a",
   modifierOptionGroupId = "list-a",
+  name = "Onion",
 }: {
   businessSlug?: string
   modifierGroupId?: string
   modifierOptionGroupId?: string
+  name?: string
 } = {}) {
   const formData = new FormData()
 
   if (businessSlug) formData.set("businessSlug", businessSlug)
   formData.set("modifierGroupId", modifierGroupId)
   formData.set("modifierOptionGroupId", modifierOptionGroupId)
-  formData.set("name", "Onion")
+  formData.set("name", name)
   formData.set("priceDelta", "1.25")
   formData.set("sortOrder", "2")
 
@@ -371,6 +392,48 @@ describe("tenant-aware modifier library actions", () => {
     ).rejects.toThrow("Selected modifier category is invalid.")
   })
 
+  it("creates modifier groups with placement and multiplier settings", async () => {
+    await createModifierGroup(groupFormData())
+
+    expect(actionMocks.state.inserts[0]).toMatchObject({
+      table: "modifier_groups",
+      records: [
+        {
+          business_id: "business-a",
+          supports_placement: true,
+          supports_multiplier: true,
+          min_multiplier: 1,
+          max_multiplier: 3,
+          multiplier_step: 1,
+        },
+      ],
+    })
+  })
+
+  it("updates modifier group placement and multiplier settings", async () => {
+    await updateModifierGroup(
+      groupFormData({
+        modifierGroupId: "group-a",
+        supportsPlacement: "false",
+        supportsMultiplier: "false",
+        minMultiplier: "1",
+        maxMultiplier: "1",
+        multiplierStep: "1",
+      })
+    )
+
+    expect(actionMocks.state.updates[0]).toMatchObject({
+      table: "modifier_groups",
+      payload: {
+        supports_placement: false,
+        supports_multiplier: false,
+        min_multiplier: 1,
+        max_multiplier: 1,
+        multiplier_step: 1,
+      },
+    })
+  })
+
   it("validates option group parent ownership before create", async () => {
     await expect(
       createModifierOptionGroup(optionGroupFormData({ modifierGroupId: "group-b" }))
@@ -386,6 +449,17 @@ describe("tenant-aware modifier library actions", () => {
       status: "error",
       message: "Selected Modifier Option Group/List is invalid.",
     })
+  })
+
+  it("refuses duplicate modifier option names within the same option list", async () => {
+    const result = await createModifierOption(optionFormData({ name: "Tomato" }))
+
+    expect(result).toMatchObject({
+      status: "error",
+      message:
+        "A modifier option with this name already exists in this option list.",
+    })
+    expect(actionMocks.state.inserts).toEqual([])
   })
 
   it("refuses safe hard delete for cross-tenant options", async () => {

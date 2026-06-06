@@ -9,6 +9,7 @@ import { setModifierOptionEnabled } from "@/features/admin-modifiers/actions/set
 import { updateModifierOption } from "@/features/admin-modifiers/actions/update-modifier-option"
 import type { UpdateModifierOptionResult } from "@/features/admin-modifiers/actions/update-modifier-option"
 import { ThemedButton } from "@/components/themed/ThemedButton"
+import { useThemedToast } from "@/components/themed/ThemedToastProvider"
 import {
   ThemedSheet,
   ThemedSheetContent,
@@ -57,8 +58,11 @@ export function ModifierOptionFormDialog({
   mode = "create",
 }: ModifierOptionFormDialogProps) {
   const router = useRouter()
+  const { showToast } = useThemedToast()
   const formRef = useRef<HTMLFormElement>(null)
   const sortOrderRef = useRef<HTMLInputElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const isCreateMode = mode === "create"
   const fallbackOptionGroupId = optionGroups[0]?.id ?? ""
   const initialOptionGroupValue =
@@ -93,27 +97,46 @@ export function ModifierOptionFormDialog({
   }
 
   async function handleSubmit(formData: FormData) {
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
     setFormResult(null)
 
-    if (isCreateMode) {
-      const result = await createModifierOption(formData)
+    try {
+      let successMessage = ""
 
-      if (result.status !== "created") {
-        setFormResult(result)
-        return
-      }
-    } else {
-      const result = await updateModifierOption(formData)
+      if (isCreateMode) {
+        const result = await createModifierOption(formData)
 
-      if (result.status !== "updated") {
-        setFormResult(result)
-        return
+        if (result.status !== "created") {
+          setFormResult(result)
+          return
+        }
+
+        successMessage = result.message
+      } else {
+        const result = await updateModifierOption(formData)
+
+        if (result.status !== "updated") {
+          setFormResult(result)
+          return
+        }
+
+        successMessage = result.message
       }
+
+      formRef.current?.reset()
+      onOpenChange(false)
+      showToast({
+        title: successMessage,
+        kind: "success",
+      })
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
     }
-
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
   }
 
   async function handleEnabledChange() {
@@ -127,6 +150,13 @@ export function ModifierOptionFormDialog({
 
     await setModifierOptionEnabled(formData)
     onOpenChange(false)
+    showToast({
+      title: !option.is_enabled
+        ? "Modifier option enabled."
+        : "Modifier option disabled.",
+      description: option.name,
+      kind: "success",
+    })
     router.refresh()
   }
 
@@ -171,14 +201,7 @@ export function ModifierOptionFormDialog({
             ) : null}
 
             {formResult ? (
-              <p
-                className={
-                  formResult.status === "updated" ||
-                  formResult.status === "created"
-                    ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-                    : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                }
-              >
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {formResult.message}
               </p>
             ) : null}
@@ -306,7 +329,7 @@ export function ModifierOptionFormDialog({
               size="icon"
               aria-label={submitLabel}
               className="size-10"
-              disabled={optionGroups.length === 0}
+              disabled={optionGroups.length === 0 || isSubmitting}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">{submitLabel}</span>

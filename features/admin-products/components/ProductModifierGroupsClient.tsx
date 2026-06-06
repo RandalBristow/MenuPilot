@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useActionState, useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { AlertTriangle, Check, LinkIcon, Settings, Unlink, X } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
@@ -16,7 +16,8 @@ import {
   ThemedSheetHeader,
   ThemedSheetTitle,
 } from "@/components/themed/ThemedSheet"
-import { saveProductIncludedModifierGroupAction } from "@/features/admin-products/actions/save-product-included-modifier-group"
+import { useThemedToast } from "@/components/themed/ThemedToastProvider"
+import { saveProductIncludedModifierGroup } from "@/features/admin-products/actions/save-product-included-modifier-group"
 import {
   attachProductModifierGroup,
   detachProductModifierGroup,
@@ -32,6 +33,7 @@ import {
   getProductListHref,
   getProductModifierAvailabilityHref,
 } from "@/features/admin-products/utils/product-admin-routes"
+import { getModifierGroupHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import {
   getDefaultModifierIncludedSelectionWarnings,
   type DefaultModifierIncludedSelectionWarning,
@@ -84,26 +86,50 @@ function ModifierGroupCard({
   writesEnabled,
 }: ModifierGroupCardProps) {
   const groupHref = businessSlug
-    ? getProductModifierAvailabilityHref({
-        modifierGroupId: group.id,
+    ? getModifierGroupHref({
+        groupId: group.id,
         productId: activeProductId,
         businessSlug,
       })
-    : `/admin/modifiers/${group.id}?productId=${encodeURIComponent(activeProductId)}`
+    : getModifierGroupHref({
+        groupId: group.id,
+        productId: activeProductId,
+      })
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsState, settingsAction, isSavingSettings] = useActionState(
-    saveProductIncludedModifierGroupAction,
-    null
-  )
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const { showToast } = useThemedToast()
   const formRef = useRef<HTMLFormElement>(null)
   const includedSummary = getIncludedSummary(includedRule)
 
-  useEffect(() => {
-    if (!settingsState?.ok) return
+  const handleSettingsAction = useCallback(
+    async (formData: FormData) => {
+      if (isSavingSettings) return
 
-    formRef.current?.reset()
-    onSettingsSaved()
-  }, [onSettingsSaved, settingsState])
+      setIsSavingSettings(true)
+      setSettingsError(null)
+
+      try {
+        const result = await saveProductIncludedModifierGroup(formData)
+
+        if (!result.ok) {
+          setSettingsError(result.message)
+          return
+        }
+
+        formRef.current?.reset()
+        setSettingsOpen(false)
+        showToast({
+          title: result.message,
+          kind: "success",
+        })
+        onSettingsSaved()
+      } finally {
+        setIsSavingSettings(false)
+      }
+    },
+    [isSavingSettings, onSettingsSaved, showToast]
+  )
 
   return (
     <>
@@ -264,18 +290,13 @@ function ModifierGroupCard({
 
           <form
             ref={formRef}
-            action={writesEnabled ? settingsAction : undefined}
+            action={writesEnabled ? handleSettingsAction : undefined}
             className="flex min-h-0 flex-1 flex-col"
           >
             <div className={PRODUCT_ADMIN_PANEL_BODY_CLASS}>
-              {settingsState && !settingsState.ok ? (
+              {settingsError ? (
                 <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {settingsState.message}
-                </p>
-              ) : null}
-              {settingsState?.ok ? (
-                <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                  {settingsState.message}
+                  {settingsError}
                 </p>
               ) : null}
               {businessSlug ? (
@@ -330,19 +351,6 @@ function ModifierGroupCard({
             </div>
 
             <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
-              {includedRule ? (
-                <ThemedButton
-                  type="submit"
-                  name="clearIncludedRule"
-                  value="true"
-                  variant="destructive"
-                  aria-label="Clear included settings"
-                  disabled={isSavingSettings || !writesEnabled}
-                  className="mr-auto h-10 bg-destructive/10 px-3 text-destructive hover:bg-destructive/20"
-                >
-                  Clear
-                </ThemedButton>
-              ) : null}
               <ThemedButton
                 type="button"
                 variant="outline"
@@ -378,6 +386,7 @@ export function ProductModifierGroupsClient({
   writesEnabled = true,
 }: ProductModifierGroupsClientProps) {
   const router = useRouter()
+  const { showToast } = useThemedToast()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [selectedAvailableCategoryId, setSelectedAvailableCategoryId] =
     useState("all")
@@ -440,6 +449,10 @@ export function ProductModifierGroupsClient({
 
     try {
       await attachProductModifierGroup(formData)
+      showToast({
+        title: "Modifier group attached.",
+        kind: "success",
+      })
       router.refresh()
     } catch (error) {
       setSubmitError(
@@ -455,6 +468,10 @@ export function ProductModifierGroupsClient({
 
     try {
       await detachProductModifierGroup(formData)
+      showToast({
+        title: "Modifier group removed.",
+        kind: "success",
+      })
       router.refresh()
     } catch (error) {
       setSubmitError(

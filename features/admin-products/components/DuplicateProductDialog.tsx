@@ -36,24 +36,36 @@ export function DuplicateProductDialog({
 }: DuplicateProductDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
   const [open, setOpen] = useState(false)
   const [result, setResult] = useState<DuplicateProductResult | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(formData: FormData) {
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
     setResult(null)
-    const duplicateResult = await duplicateProduct(formData)
 
-    if (duplicateResult.status === "duplicated") {
-      formRef.current?.reset()
-      setOpen(false)
-      router.push(
-        getProductDetailHref(duplicateResult.productId, redirectBusinessSlug)
-      )
-      router.refresh()
-      return
+    try {
+      const duplicateResult = await duplicateProduct(formData)
+
+      if (duplicateResult.status === "duplicated") {
+        formRef.current?.reset()
+        setOpen(false)
+        router.push(
+          getProductDetailHref(duplicateResult.productId, redirectBusinessSlug)
+        )
+        router.refresh()
+        return
+      }
+
+      setResult(duplicateResult)
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
     }
-
-    setResult(duplicateResult)
   }
 
   return (
@@ -178,6 +190,7 @@ export function DuplicateProductDialog({
               size="icon"
               aria-label="Duplicate product"
               className="size-10"
+              disabled={isSubmitting}
             >
               <Copy aria-hidden="true" />
               <span className="sr-only">Duplicate product</span>

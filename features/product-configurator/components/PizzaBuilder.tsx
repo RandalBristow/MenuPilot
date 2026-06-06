@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings";
 
 type Variant = {
   id: string;
@@ -109,6 +110,7 @@ export type ProductConfig = {
   product_default_modifier_options?: ProductDefaultModifierOption[];
   product_variant_modifier_option_availability_rules?: VariantModifierOptionAvailabilityRule[];
   product_variant_modifier_option_price_overrides?: VariantModifierOptionPriceOverride[];
+  pricing_settings?: BusinessPricingSettings | null;
 };
 
 type SelectedModifier = {
@@ -157,6 +159,13 @@ function hasEnabledModifierGroup(
   item: ProductModifierGroup,
 ): item is ProductModifierGroup & { modifier_groups: ModifierGroup } {
   return item.is_enabled && item.modifier_groups?.is_enabled === true;
+}
+
+function formatSelectionUnits(units: number) {
+  const normalizedUnits = Number(units.toFixed(2));
+  const label = normalizedUnits === 1 ? "selection" : "selections";
+
+  return `${normalizedUnits} ${label}`;
 }
 
 export function PizzaBuilder({
@@ -246,6 +255,8 @@ export function PizzaBuilder({
     () =>
       priceConfiguredProduct({
         productBasePrice: product.base_price ?? 0,
+        builderTemplate: product.builder_template,
+        pricingSettings: product.pricing_settings,
         selectedVariant,
         modifierGroups,
         selectedModifiers,
@@ -255,7 +266,9 @@ export function PizzaBuilder({
     [
       modifierGroups,
       product.base_price,
+      product.builder_template,
       product.product_default_modifier_options,
+      product.pricing_settings,
       quantity,
       selectedModifiers,
       selectedVariant,
@@ -557,6 +570,18 @@ export function PizzaBuilder({
                       Number(option.price_delta)
                     : Number(option.price_delta)
                 }
+                getSelectedMeta={(options) => {
+                  const selectedUnits = options.reduce((sum, option) => {
+                    const pricedModifier =
+                      pricing.pricedSelectedModifiers[option.id];
+
+                    return sum + (pricedModifier?.totalUnits ?? 0);
+                  }, 0);
+
+                  return selectedUnits > 0
+                    ? formatSelectionUnits(selectedUnits)
+                    : undefined;
+                }}
                 onToggleOption={(option) => toggleModifier(group, option)}
                 onUpdateModifier={updateModifier}
                 placementLabels={[

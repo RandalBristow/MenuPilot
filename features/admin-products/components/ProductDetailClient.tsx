@@ -26,7 +26,6 @@ import {
 } from "@/features/admin-products/components/product-admin-panel-styles"
 import { ProductImageSelector } from "@/features/admin-products/components/ProductImageSelector"
 import {
-  getProductDetailHref,
   getProductListHref,
 } from "@/features/admin-products/utils/product-admin-routes"
 import {
@@ -136,7 +135,7 @@ function ProductDetailEditor({
             <div className={cn(PRODUCT_ADMIN_PANEL_BODY_CLASS, "pb-4")}>
               <ProductUpdateHiddenFields
                 product={product}
-                redirectTo={getProductDetailHref(product.id, businessSlug)}
+                redirectTo={getProductListHref(businessSlug)}
                 businessSlug={businessSlug}
                 includeInfo={false}
                 includeMenuPlacement={false}

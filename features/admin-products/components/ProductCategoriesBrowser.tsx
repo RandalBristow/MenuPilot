@@ -66,6 +66,8 @@ function CategoryFormPanel({
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEnabled, setIsEnabled] = useState(
     panelState?.category?.is_enabled ?? true
   )
@@ -81,10 +83,20 @@ function CategoryFormPanel({
   const submitLabel = isCreateMode ? "Create category" : "Save category"
 
   async function handleSubmit(formData: FormData) {
-    await saveProductCategory(formData)
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      await saveProductCategory(formData)
+      formRef.current?.reset()
+      onOpenChange(false)
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -212,7 +224,7 @@ function CategoryFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
-              disabled={!writesEnabled}
+              disabled={!writesEnabled || isSubmitting}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -317,7 +329,7 @@ export function ProductCategoriesBrowser({
               type="button"
               size="icon"
               aria-label="New Category"
-              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+              className="size-10 rounded-md p-0 shadow-sm"
               disabled={!writesEnabled}
               onClick={() => setPanelState({ mode: "create", category: null })}
             >

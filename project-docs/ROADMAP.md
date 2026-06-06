@@ -1,6 +1,6 @@
 # MenuPilot Roadmap
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06_
 
 This document records the current agreed order of work and future architecture decisions so they are not re-decided during later implementation.
 
@@ -97,12 +97,13 @@ Schema foundation completed:
 - [x] New locations default to `setup` with ordering disabled.
 - [x] Internal Platform Admin hub, business list, and business detail pages exist for inspecting setup state.
 - [x] Internal Platform Admin create-business and first-location form exists.
+- [x] Platform Admin create-business flow creates the default `Main Menu` scaffold required for product category setup.
 - [x] Platform Admin business detail can update business activation status and location status/order flags.
 - [x] Tenant resolver helpers exist for business/location context.
 - [x] Tenant-aware business admin shell exists at `/businesses/[businessSlug]/admin` with setup sections for Product Catalog, Variants, Modifiers, Media, Customer Preview, and disabled future items.
 - [x] Tenant-scoped Product Admin route shells exist at `/businesses/[businessSlug]/admin/products...`.
 - [x] Tenant-scoped core product mutations exist for create, update, delete, enable/disable, and duplicate.
-- [x] Tenant-scoped category/subcategory mutations exist for create, update, and enable/disable saves.
+- [x] Tenant-scoped category/subcategory mutations exist for create, update, and enable/disable saves; they defensively create the default product menu for fresh tenants missing the scaffold.
 - [x] Tenant-scoped reusable variant group/option and product variant assignment/override mutations exist.
 - [x] Tenant-scoped product Modifier Group assignment, included/default modifier, and variant-specific modifier availability/price mutations exist.
 - [x] Tenant-scoped reusable Admin Modifier Library routes/actions exist for Modifier Categories, Modifier Groups, Modifier Option Groups/Lists, Modifier Options, safe deletes, option moves, and modifier option overrides reached from modifier detail pages.
@@ -110,6 +111,7 @@ Schema foundation completed:
 - [x] Tenant-scoped public menu route exists at `/businesses/[businessSlug]/menu`; legacy `/menu` remains pointed at `pronto-demo`.
 - [x] Business-scoped checkout route exists at `/businesses/[businessSlug]/checkout`; legacy `/checkout` remains pointed at Pronto Demo/main-street.
 - [x] Location-scoped staff order route exists at `/businesses/[businessSlug]/locations/[locationSlug]/orders`; legacy `/staff/orders` remains pointed at Pronto Demo/main-street.
+- [x] Business-level pizza half-topping pricing settings exist and are editable from Platform Admin business detail and the tenant admin shell.
 
 MVP should support:
 
@@ -144,6 +146,7 @@ Platform Admin business context/switcher direction:
 - Public menu route `/businesses/[businessSlug]/menu` supports business-scoped menu reads and product configurator loading. Legacy `/menu` remains demo-scoped for compatibility.
 - Checkout route `/businesses/[businessSlug]/checkout` resolves the business and deterministic default location, blocks setup/inactive/non-orderable contexts, rejects cross-tenant carts, and preserves legacy `/checkout` for demo compatibility.
 - Platform Admin business detail controls activation: businesses support `setup`, `active`, `paused`, and `archived`; locations support the same status values plus enabled, accepting orders, pickup, and delivery flags. Checkout requires active/orderable business and location state.
+- Fresh businesses need a business-level `Main Menu` row before product categories can be created. Platform Admin creates it during onboarding, and the category/subcategory save path repairs existing fresh tenants that are missing it.
 - Tenant admin landing page separates business-level reusable setup from product-specific setup: Variant Groups and Modifier Library are reusable business setup; Product Variant Assignments and Product Modifier Assignments are product-specific setup.
 - Admin headers should show visible context such as `Managing: {Business Name}`, current location context where relevant, a link back to Platform Admin, and a switch-business action.
 - Business-level admin covers products, modifiers, variants, media, specials, and other business-owned setup.
@@ -284,6 +287,7 @@ AI usage should be optional, paid or usage-controlled later.
 - Product setup remains the foundation for everything else.
 - Configurable product pricing must go through the shared `priceConfiguredProduct` resolver.
 - Builders must not implement independent pricing math.
+- Pizza half-topping pricing and included-slot behavior are business-level settings; missing rows default to half pricing on, half included-slot counting on, and `floor_to_cent` rounding.
 - AI should not be part of the current sprint.
 - Draft/publish versioning is future work, not a current product-entry blocker.
 

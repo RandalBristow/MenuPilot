@@ -7,6 +7,7 @@ import {
   type PlatformBusinessCreateResult,
   type PlatformBusinessInsertPayload,
   type PlatformLocationInsertPayload,
+  type PlatformMenuInsertPayload,
 } from "@/features/platform-admin/utils/create-platform-business"
 
 export type CreatePlatformBusinessActionState = PlatformBusinessCreateResult
@@ -47,6 +48,14 @@ async function insertLocation(location: PlatformLocationInsertPayload) {
   }
 }
 
+async function insertMenu(menu: PlatformMenuInsertPayload) {
+  const { error } = await supabaseAdmin.from("menus").insert(menu)
+
+  if (error) {
+    throw new Error(`Could not create default menu: ${error.message}`)
+  }
+}
+
 async function deleteBusiness(businessId: string) {
   const { error } = await supabaseAdmin
     .from("businesses")
@@ -67,6 +76,7 @@ export async function createPlatformBusinessWithLocation(
       findBusinessBySlug,
       insertBusiness,
       insertLocation,
+      insertMenu,
       deleteBusiness,
     },
     formData

@@ -59,6 +59,8 @@ export function ModifierGroupFormDialog({
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const sortOrderRef = useRef<HTMLInputElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [internalOpen, setInternalOpen] = useState(false)
   const currentOpen = open ?? internalOpen
   const setCurrentOpen = onOpenChange ?? setInternalOpen
@@ -85,21 +87,31 @@ export function ModifierGroupFormDialog({
   }
 
   async function handleSubmit(formData: FormData) {
-    if (isCreateMode) {
-      await createModifierGroup(formData)
-      const submittedCategoryId = String(formData.get("categoryId") ?? "")
+    if (isSubmittingRef.current) return
 
-      formRef.current?.reset()
-      setCurrentOpen(false)
-      onCreated?.(submittedCategoryId)
-      router.refresh()
-    } else {
-      await updateModifierGroup(formData)
-      const submittedCategoryId = String(formData.get("categoryId") ?? "")
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
 
-      setCurrentOpen(false)
-      onCreated?.(submittedCategoryId)
-      router.refresh()
+    try {
+      if (isCreateMode) {
+        await createModifierGroup(formData)
+        const submittedCategoryId = String(formData.get("categoryId") ?? "")
+
+        formRef.current?.reset()
+        setCurrentOpen(false)
+        onCreated?.(submittedCategoryId)
+        router.refresh()
+      } else {
+        await updateModifierGroup(formData)
+        const submittedCategoryId = String(formData.get("categoryId") ?? "")
+
+        setCurrentOpen(false)
+        onCreated?.(submittedCategoryId)
+        router.refresh()
+      }
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
     }
   }
 
@@ -128,8 +140,8 @@ export function ModifierGroupFormDialog({
             className={
               triggerIcon
                 ? isCreateMode
-                  ? "size-10 rounded-md p-0 shadow-sm sm:size-8"
-                  : "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted sm:size-8"
+                  ? "size-10 rounded-md p-0 shadow-sm"
+                  : "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted"
                 : isCreateMode
                   ? "w-full sm:w-auto"
                   : "bg-background text-foreground hover:bg-muted"
@@ -282,6 +294,87 @@ export function ModifierGroupFormDialog({
                 </ThemedButton>
               </label>
 
+              <div className="col-span-2 grid gap-3 rounded-md border bg-card p-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">
+                    Pizza/customization controls
+                  </p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Enable placement for left/whole/right controls and
+                    multiplier for extra/quantity choices.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block space-y-1.5 text-sm">
+                    <span className="font-medium">Placement</span>
+                    <select
+                      name="supportsPlacement"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      defaultValue={group?.supports_placement ? "true" : "false"}
+                      required
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  </label>
+
+                  <label className="block space-y-1.5 text-sm">
+                    <span className="font-medium">Multiplier</span>
+                    <select
+                      name="supportsMultiplier"
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      defaultValue={group?.supports_multiplier ? "true" : "false"}
+                      required
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <label className="block space-y-1.5 text-sm">
+                    <span className="font-medium">Min</span>
+                    <input
+                      name="minMultiplier"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      defaultValue={String(group?.min_multiplier ?? 1)}
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      required
+                    />
+                  </label>
+
+                  <label className="block space-y-1.5 text-sm">
+                    <span className="font-medium">Max</span>
+                    <input
+                      name="maxMultiplier"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      defaultValue={String(group?.max_multiplier ?? 1)}
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      required
+                    />
+                  </label>
+
+                  <label className="block space-y-1.5 text-sm">
+                    <span className="font-medium">Step</span>
+                    <input
+                      name="multiplierStep"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      defaultValue={String(group?.multiplier_step ?? 1)}
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      required
+                    />
+                  </label>
+                </div>
+              </div>
+
               {!isCreateMode && group ? (
                 <input
                   type="hidden"
@@ -309,6 +402,7 @@ export function ModifierGroupFormDialog({
               size="icon"
               aria-label={submitLabel}
               className="size-10"
+              disabled={isSubmitting}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">{submitLabel}</span>

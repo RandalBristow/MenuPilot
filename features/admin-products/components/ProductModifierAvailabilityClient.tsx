@@ -8,6 +8,7 @@ import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatus
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
+import { useThemedToast } from "@/components/themed/ThemedToastProvider"
 import {
   setProductVariantModifierOptionAvailability,
   setProductVariantModifierOptionPriceOverride,
@@ -38,6 +39,7 @@ export function ProductModifierAvailabilityClient({
   writesEnabled = true,
 }: ProductModifierAvailabilityClientProps) {
   const router = useRouter()
+  const { showToast } = useThemedToast()
   const [selectedVariantOptionId, setSelectedVariantOptionId] = useState(
     data.variantGroup?.options[0]?.id ?? ""
   )
@@ -99,7 +101,14 @@ export function ProductModifierAvailabilityClient({
     setSubmitError(null)
 
     try {
+      const isAvailable = formData.get("isAvailable") === "true"
       await setProductVariantModifierOptionAvailability(formData)
+      showToast({
+        title: isAvailable
+          ? "Variant option made available."
+          : "Variant option made unavailable.",
+        kind: "success",
+      })
       router.refresh()
     } catch (error) {
       setSubmitError(
@@ -114,8 +123,15 @@ export function ProductModifierAvailabilityClient({
     setSubmitError(null)
 
     try {
+      const isClear = String(formData.get("priceDelta") ?? "").trim() === ""
       await setProductVariantModifierOptionPriceOverride(formData)
       setEditingPriceOptionId(null)
+      showToast({
+        title: isClear
+          ? "Variant price override cleared."
+          : "Variant price override saved.",
+        kind: "success",
+      })
       router.refresh()
     } catch (error) {
       setSubmitError(

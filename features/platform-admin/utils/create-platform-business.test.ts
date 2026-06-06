@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import {
+  buildPlatformDefaultMenuInsert,
   buildPlatformBusinessCreatePayload,
   createPlatformBusinessWithLocationRecord,
   normalizePlatformSlug,
@@ -43,6 +44,7 @@ function createRepository(
     findBusinessBySlug: vi.fn().mockResolvedValue(null),
     insertBusiness: vi.fn().mockResolvedValue({ id: "business-1" }),
     insertLocation: vi.fn().mockResolvedValue(undefined),
+    insertMenu: vi.fn().mockResolvedValue(undefined),
     deleteBusiness: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }
@@ -128,6 +130,16 @@ describe("platform business creation", () => {
     )
   })
 
+  it("inserts a default Main Menu for product setup", async () => {
+    const repository = createRepository()
+
+    await createPlatformBusinessWithLocationRecord(repository, createFormData())
+
+    expect(repository.insertMenu).toHaveBeenCalledWith(
+      buildPlatformDefaultMenuInsert("business-1")
+    )
+  })
+
   it("does not silently succeed when location insert fails", async () => {
     const repository = createRepository({
       insertLocation: vi.fn().mockRejectedValue(new Error("Location failed.")),
@@ -141,6 +153,23 @@ describe("platform business creation", () => {
     expect(result).toEqual({
       ok: false,
       error: "Location failed.",
+    })
+    expect(repository.deleteBusiness).toHaveBeenCalledWith("business-1")
+  })
+
+  it("does not silently succeed when default menu insert fails", async () => {
+    const repository = createRepository({
+      insertMenu: vi.fn().mockRejectedValue(new Error("Menu failed.")),
+    })
+
+    const result = await createPlatformBusinessWithLocationRecord(
+      repository,
+      createFormData()
+    )
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Menu failed.",
     })
     expect(repository.deleteBusiness).toHaveBeenCalledWith("business-1")
   })

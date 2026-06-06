@@ -1,6 +1,6 @@
 # Tenant Onboarding Regression
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06_
 
 This checklist proves a brand-new business can be created, configured, activated, ordered from, and viewed in staff orders without relying on the seeded `pronto-demo` / `main-street` tenant.
 
@@ -34,12 +34,14 @@ Record test business values:
 - [ ] Confirm location starts disabled.
 - [ ] Confirm location starts not accepting orders.
 - [ ] Confirm pickup and delivery are disabled by default.
+- [ ] Confirm the business has a default `Main Menu` scaffold for product category setup.
 
 Expected result:
 
 - New tenant exists in the shared database.
 - Business-owned records use the new `business_id`.
 - First location uses the new `location_id`.
+- Default product menu/catalog scaffold uses the new `business_id`.
 - No public ordering is live immediately after creation.
 
 ## B. Tenant Admin Context
@@ -54,6 +56,8 @@ Expected result:
 - [ ] Confirm Variant links stay under `/businesses/[businessSlug]/admin/products...`.
 - [ ] Confirm Modifier links stay under `/businesses/[businessSlug]/admin/modifiers...`.
 - [ ] Confirm Media link stays under `/businesses/[businessSlug]/admin/media`.
+- [ ] Confirm Pizza Pricing Settings show half-topping pricing and half included-slot counting enabled by default.
+- [ ] Save Pizza Pricing Settings and confirm a themed toast appears.
 - [ ] Confirm Locations / Orders link points to `/businesses/[businessSlug]/locations/[locationSlug]/orders` when the location exists.
 
 Expected result:
@@ -96,6 +100,7 @@ Expected result:
 Using `/businesses/[businessSlug]/admin/products...`:
 
 - [ ] Create a top-level product category.
+- [ ] If the business was created before the default-menu fix, confirm the first category save repairs the missing `Main Menu` without a runtime error.
 - [ ] Create a product subcategory.
 - [ ] Create a product in the selected business.
 - [ ] Edit the product.
@@ -109,6 +114,7 @@ Using `/businesses/[businessSlug]/admin/products...`:
 Expected result:
 
 - Product records are scoped to selected `business_id`.
+- Product categories are attached to the selected business's `Main Menu`, not the seeded demo menu.
 - Product route links remain in the scoped route family.
 
 ## E. Variant Setup
@@ -135,6 +141,7 @@ Using `/businesses/[businessSlug]/admin/modifiers...`:
 - [ ] Create a Modifier Category.
 - [ ] Create a Modifier Group.
 - [ ] Set Modifier Group selection rules.
+- [ ] Confirm selecting a top-level Modifier Category shows child subgroups or a clear empty state with footer Back/Add actions.
 - [ ] Create a Modifier Option Group/List.
 - [ ] Create Modifier Options.
 - [ ] Verify Modifier Option sort order is scoped within the current Modifier Option Group/List.
@@ -204,6 +211,7 @@ Using `/businesses/[businessSlug]/menu`:
 - [ ] Visit scoped public menu again.
 - [ ] Confirm active business displays orderable menu.
 - [ ] Confirm product configurator opens for configured products.
+- [ ] For pizza, confirm left/right toppings use half price and count as half an included selection when the business setting is enabled.
 - [ ] Confirm product images load from selected business media.
 
 Expected result:

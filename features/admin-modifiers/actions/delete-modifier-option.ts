@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
   safeDeleteModifierOption,
+  type ModifierOptionCascadeDeleteCheck,
   type ModifierOptionReferenceCheck,
 } from "@/features/admin-modifiers/utils/safe-delete-modifier-option"
 import {
@@ -71,6 +72,30 @@ async function hasModifierOptionReference({
   return (data ?? []).length > 0
 }
 
+async function deleteModifierOptionReferences({
+  businessId,
+  optionId,
+  checks,
+}: {
+  businessId: string
+  optionId: string
+  checks: readonly ModifierOptionCascadeDeleteCheck[]
+}) {
+  for (const check of checks) {
+    const { error } = await supabaseAdmin
+      .from(check.table)
+      .delete()
+      .eq("business_id", businessId)
+      .eq(check.column, optionId)
+
+    if (error) {
+      throw new Error(
+        `Could not delete modifier option usage from ${check.table}: ${error.message}`
+      )
+    }
+  }
+}
+
 export async function deleteModifierOption(
   formData: FormData
 ): Promise<DeleteModifierOptionResult> {
@@ -92,6 +117,12 @@ export async function deleteModifierOption(
           businessId: context.businessId,
           optionId: option.id,
           check,
+        }),
+      deleteReferences: (checks) =>
+        deleteModifierOptionReferences({
+          businessId: context.businessId,
+          optionId: option.id,
+          checks,
         }),
       deleteOption: async () => {
         const { error } = await supabaseAdmin

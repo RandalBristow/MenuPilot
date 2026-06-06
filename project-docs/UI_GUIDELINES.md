@@ -176,8 +176,13 @@ Do not change colors randomly. Color changes should be intentional, requested, a
 
 - Use dialogs/sheets for create and edit flows on list pages.
 - Use sheets for mobile-friendly admin forms with multiple fields.
+- Use themed confirmation dialogs for warnings, destructive confirmations, and other decisions that require user acknowledgement; do not use native browser `confirm` dialogs.
+- App-wide rule: successful admin operations should show a themed toast confirmation, such as saved, created, updated, deleted, copied, attached, detached, enabled, disabled, or uploaded.
+- App-wide rule: warnings, destructive confirmations, and other user decisions should use themed dialogs instead of native browser dialogs.
 - Inline forms are acceptable only for very small, isolated controls.
-- After successful create/edit actions, close the dialog/sheet and refresh or update the list.
+- After successful admin create/edit actions, close the dialog/sheet and refresh, redirect, or update the list.
+- If validation or save fails, keep the dialog/sheet open and show the error near the top of the form.
+- Disable the save/submit action while an admin form save is in flight, and guard against rapid double submits in code.
 - Do not leave create/edit forms permanently embedded in list pages.
 - Full-height dialogs and sheets should use a fixed `dvh` height or equivalent shell, a non-shrinking header/footer, and a `min-h-0 flex-1 overflow-y-auto` body.
 - Full-height dialogs and sheets should avoid creating an outer document/body scrollbar; only the intended inner content area should scroll.

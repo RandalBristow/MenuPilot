@@ -65,13 +65,7 @@ export function ModifierSubgroupListClient({
             }
           />
           {deleteResult ? (
-            <p
-              className={
-                deleteResult.status === "deleted"
-                  ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
-                  : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              }
-            >
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {deleteResult.message}
             </p>
           ) : null}
@@ -149,7 +143,11 @@ export function ModifierSubgroupListClient({
                           modifierGroupId={group.id}
                           modifierOptionGroupId={subgroup.id}
                           optionGroupName={subgroup.name}
-                          onResult={setDeleteResult}
+                          onResult={(result) =>
+                            setDeleteResult(
+                              result.status === "deleted" ? null : result
+                            )
+                          }
                         />
                       )}
                     </>
@@ -180,7 +178,7 @@ export function ModifierSubgroupListClient({
                 type="button"
                 size="icon"
                 aria-label="New Option Group"
-                className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                className="size-10 rounded-md p-0 shadow-sm"
                 onClick={() => setCreateOpen(true)}
               >
                 <Plus aria-hidden="true" />

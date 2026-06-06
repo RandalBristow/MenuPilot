@@ -1,6 +1,6 @@
 # Product Entry Regression Matrix
 
-_Last updated: 2026-06-04_
+_Last updated: 2026-06-06_
 
 This matrix records the current product-entry audit after Builder Mode Foundation. Code coverage confirms builder routing, pricing, cart shape, checkout validation/repricing, and order/staff snapshot helpers. Full admin-to-staff browser verification is still required before starting Specials Engine.
 
@@ -21,6 +21,11 @@ All normal product types use this path:
 Pricing remains centralized through `priceConfiguredProduct` in active builders and checkout validation. Legacy `/checkout` and `/staff/orders` remain Pronto Demo/main-street; scoped `/businesses/[businessSlug]/checkout` validates business/location orderability and rejects cross-tenant carts, and scoped staff orders filter by selected business/location. Platform Admin activation controls manage the business/location status and ordering flags that checkout uses.
 
 Product Modifier Assignments warn when default selected modifier options exceed included selections for the assigned Modifier Group. The warning is informational only; defaults still consume included selections and pricing remains centralized in `priceConfiguredProduct`.
+
+Pizza half-topping behavior is business-level configuration. Default behavior is
+left/right placement price weight `0.5`, whole placement weight `1.0`, and
+left/right included-slot weight `0.5`, with floor-to-cent rounding after
+placement weight and multiplier are applied.
 
 ## Matrix
 
@@ -49,6 +54,7 @@ Product Modifier Assignments warn when default selected modifier options exceed 
 ## Manual Verification Checklist
 
 - [ ] Pizza: build, cart, checkout, staff order.
+- [ ] Pizza half toppings: left/right 1x charges half price, left/right 2x charges one full topping price, and half toppings consume 0.5 included slots when enabled.
 - [ ] Chicken Salad: build, cart, checkout, staff order.
 - [ ] Drink with variants: add, cart, checkout, staff order.
 - [ ] Simple item: add, cart, checkout, staff order.

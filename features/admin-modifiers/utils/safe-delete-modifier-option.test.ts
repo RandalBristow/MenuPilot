@@ -16,6 +16,7 @@ describe("safeDeleteModifierOption", () => {
 
     const result = await safeDeleteModifierOption({
       hasReference: createReferenceChecker([]),
+      deleteReferences: async () => undefined,
       deleteOption: async () => {
         deleted = true
       },
@@ -30,12 +31,36 @@ describe("safeDeleteModifierOption", () => {
     "product_modifier_option_overrides",
     "product_variant_modifier_option_availability_rules",
     "product_variant_modifier_option_price_overrides",
-    "order_item_modifiers",
-  ])("blocks delete when used by %s", async (referencedKey) => {
+  ])("cleans up config references before deleting when used by %s", async (referencedKey) => {
     let deleted = false
+    let cleanedReferenceKeys: string[] = []
 
     const result = await safeDeleteModifierOption({
       hasReference: createReferenceChecker([referencedKey]),
+      deleteReferences: async (checks) => {
+        cleanedReferenceKeys = checks.map((check) => check.key)
+      },
+      deleteOption: async () => {
+        deleted = true
+      },
+    })
+
+    expect(result.status).toBe("deleted")
+    expect(deleted).toBe(true)
+    expect(cleanedReferenceKeys).toContain(referencedKey)
+  })
+
+  it.each([
+    "order_item_modifiers",
+  ])("blocks delete when used by %s", async (referencedKey) => {
+    let deleted = false
+    let cleaned = false
+
+    const result = await safeDeleteModifierOption({
+      hasReference: createReferenceChecker([referencedKey]),
+      deleteReferences: async () => {
+        cleaned = true
+      },
       deleteOption: async () => {
         deleted = true
       },
@@ -43,11 +68,13 @@ describe("safeDeleteModifierOption", () => {
 
     expect(result.status).toBe("blocked")
     expect(deleted).toBe(false)
+    expect(cleaned).toBe(false)
   })
 
   it("returns a friendly message when blocked", async () => {
     const result = await safeDeleteModifierOption({
       hasReference: createReferenceChecker(["order_item_modifiers"]),
+      deleteReferences: async () => undefined,
       deleteOption: async () => undefined,
     })
 
@@ -56,13 +83,14 @@ describe("safeDeleteModifierOption", () => {
     )
   })
 
-  it("does not remove the option when blocked", async () => {
+  it("does not remove the option when blocked by order history", async () => {
     let deleteCount = 0
 
     await safeDeleteModifierOption({
       hasReference: createReferenceChecker([
-        "product_default_modifier_options",
+        "order_item_modifiers",
       ]),
+      deleteReferences: async () => undefined,
       deleteOption: async () => {
         deleteCount += 1
       },

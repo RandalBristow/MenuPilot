@@ -51,13 +51,17 @@ const group = {
 function renderAccordion(
   selectedModifiers: Parameters<
     typeof ModifierOptionGroupAccordion
-  >[0]["selectedModifiers"] = {}
+  >[0]["selectedModifiers"] = {},
+  getSelectedMeta?: Parameters<
+    typeof ModifierOptionGroupAccordion
+  >[0]["getSelectedMeta"]
 ) {
   return render(
     <ModifierOptionGroupAccordion
       group={group}
       selectedModifiers={selectedModifiers}
       getDisplayPriceDelta={(option) => Number(option.price_delta)}
+      getSelectedMeta={getSelectedMeta}
       onToggleOption={vi.fn()}
       onUpdateModifier={vi.fn()}
       placementLabels={[
@@ -105,6 +109,25 @@ describe("ModifierOptionGroupAccordion", () => {
     })
 
     expect(screen.getByText("1 selected")).toBeInTheDocument()
+  })
+
+  it("supports weighted selected meta in the option group header", () => {
+    renderAccordion(
+      {
+        chicken: {
+          optionId: "chicken",
+          placement: "left",
+          multiplier: 1,
+        },
+      },
+      (options) =>
+        options.some((option) => option.id === "chicken")
+          ? "0.5 selections"
+          : undefined
+    )
+
+    expect(screen.getByText("0.5 selections")).toBeInTheDocument()
+    expect(screen.queryByText("1 selected")).not.toBeInTheDocument()
   })
 
   it("preserves selected state after a selected group is collapsed and reopened", () => {

@@ -20,6 +20,8 @@ import {
   BusinessStatusControl,
   LocationActivationControl,
 } from "@/features/platform-admin/components/PlatformActivationControls"
+import { BusinessPricingSettingsForm } from "@/features/pricing-settings/components/BusinessPricingSettingsForm"
+import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings"
 import { cn } from "@/lib/utils"
 
 function formatFallback(value: string | null | undefined) {
@@ -247,8 +249,10 @@ export function PlatformBusinessesPage({
 
 export function PlatformBusinessDetailPage({
   business,
+  pricingSettings,
 }: {
   business: PlatformBusinessDetail
+  pricingSettings: BusinessPricingSettings
 }) {
   const hasLocations = business.locations.length > 0
   const hasOrderingEnabled = business.locations.some(
@@ -396,6 +400,26 @@ export function PlatformBusinessDetailPage({
               </div>
             )}
           </section>
+
+          <ThemedCard className="p-4">
+            <div className="space-y-3">
+              <div>
+                <h2 className="text-base font-semibold">
+                  Pizza Pricing Settings
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Business-level rules for pizza half-topping pricing and
+                  included topping slot counting.
+                </p>
+              </div>
+
+              <BusinessPricingSettingsForm
+                businessId={business.id}
+                businessSlug={business.slug}
+                settings={pricingSettings}
+              />
+            </div>
+          </ThemedCard>
         </section>
 
         <aside className="space-y-3">

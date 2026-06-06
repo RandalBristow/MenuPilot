@@ -38,6 +38,16 @@ export type PlatformLocationInsertPayload = {
   delivery_enabled: false
 }
 
+export type PlatformMenuInsertPayload = {
+  business_id: string
+  location_id: null
+  name: "Main Menu"
+  description: "Primary online ordering menu."
+  menu_type: "online"
+  is_enabled: true
+  sort_order: 1
+}
+
 export type PlatformBusinessCreatePayload = {
   business: PlatformBusinessInsertPayload
   location: Omit<PlatformLocationInsertPayload, "business_id">
@@ -49,6 +59,7 @@ export type PlatformBusinessCreateRepository = {
     business: PlatformBusinessInsertPayload
   ) => Promise<{ id: string }>
   insertLocation: (location: PlatformLocationInsertPayload) => Promise<void>
+  insertMenu: (menu: PlatformMenuInsertPayload) => Promise<void>
   deleteBusiness: (businessId: string) => Promise<void>
 }
 
@@ -143,6 +154,20 @@ export function buildPlatformBusinessCreatePayload(
   }
 }
 
+export function buildPlatformDefaultMenuInsert(
+  businessId: string
+): PlatformMenuInsertPayload {
+  return {
+    business_id: businessId,
+    location_id: null,
+    name: "Main Menu",
+    description: "Primary online ordering menu.",
+    menu_type: "online",
+    is_enabled: true,
+    sort_order: 1,
+  }
+}
+
 export async function createPlatformBusinessWithLocationRecord(
   repository: PlatformBusinessCreateRepository,
   formData: FormData
@@ -179,6 +204,7 @@ export async function createPlatformBusinessWithLocationRecord(
       business_id: businessId,
       ...payload.location,
     })
+    await repository.insertMenu(buildPlatformDefaultMenuInsert(businessId))
 
     return {
       ok: true,

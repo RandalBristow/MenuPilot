@@ -180,6 +180,8 @@ export function StandardItemBuilder({
     () =>
       priceConfiguredProduct({
         productBasePrice: product.base_price ?? 0,
+        builderTemplate: product.builder_template,
+        pricingSettings: product.pricing_settings,
         selectedVariant,
         modifierGroups,
         selectedModifiers,
@@ -189,7 +191,9 @@ export function StandardItemBuilder({
     [
       modifierGroups,
       product.base_price,
+      product.builder_template,
       product.product_default_modifier_options,
+      product.pricing_settings,
       quantity,
       selectedModifiers,
       selectedVariant,

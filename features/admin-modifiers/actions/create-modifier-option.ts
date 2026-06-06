@@ -68,6 +68,33 @@ async function getNextOptionGroupSortOrder({
   return (data?.[0]?.sort_order ?? 0) + 1
 }
 
+async function modifierOptionNameExists({
+  businessId,
+  modifierGroupId,
+  modifierOptionGroupId,
+  name,
+}: {
+  businessId: string
+  modifierGroupId: string
+  modifierOptionGroupId: string
+  name: string
+}) {
+  const { data, error } = await supabaseAdmin
+    .from("modifier_options")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("modifier_group_id", modifierGroupId)
+    .eq("modifier_option_group_id", modifierOptionGroupId)
+    .eq("name", name)
+    .limit(1)
+
+  if (error) {
+    throw new Error(`Could not check modifier option name: ${error.message}`)
+  }
+
+  return (data ?? []).length > 0
+}
+
 function parseOptionalSortOrder(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim().length === 0) {
     return null
@@ -120,6 +147,19 @@ export async function createModifierOption(
 
     if (optionGroupError || !optionGroup) {
       throw new Error("Selected Modifier Option Group/List is invalid.")
+    }
+
+    const nameAlreadyExists = await modifierOptionNameExists({
+      businessId: context.businessId,
+      modifierGroupId,
+      modifierOptionGroupId,
+      name,
+    })
+
+    if (nameAlreadyExists) {
+      throw new Error(
+        "A modifier option with this name already exists in this option list."
+      )
     }
 
     const sortOrder =

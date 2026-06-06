@@ -1,6 +1,10 @@
 import { supabase } from "@/lib/supabase/client"
 import { applyEffectiveModifierGroups } from "@/features/product-configurator/utils/apply-effective-modifier-groups"
 import { applyEffectiveVariants } from "@/features/product-configurator/utils/apply-effective-product-variants"
+import {
+  normalizeBusinessPricingSettings,
+  type RawBusinessPricingSettings,
+} from "@/lib/pricing/business-pricing-settings"
 
 type ProductConfigQueryOptions = {
   businessSlug?: string | null
@@ -153,5 +157,33 @@ export async function getProductConfig(
     throw new Error(`Failed to load product config: ${error.message}`)
   }
 
-  return applyEffectiveModifierGroups(applyEffectiveVariants(data))
+  const resolvedBusinessId = (data.business_id as string | null) ?? businessId
+  const pricingSettings = resolvedBusinessId
+    ? await getPricingSettings(resolvedBusinessId)
+    : normalizeBusinessPricingSettings(null)
+
+  return {
+    ...applyEffectiveModifierGroups(applyEffectiveVariants(data)),
+    pricing_settings: pricingSettings,
+  }
+}
+
+async function getPricingSettings(businessId: string) {
+  const { data, error } = await supabase
+    .from("business_pricing_settings")
+    .select(
+      `
+      pizza_half_topping_pricing_enabled,
+      pizza_half_topping_included_weight_enabled,
+      pizza_half_topping_rounding_mode
+    `
+    )
+    .eq("business_id", businessId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to load pricing settings: ${error.message}`)
+  }
+
+  return normalizeBusinessPricingSettings(data as RawBusinessPricingSettings | null)
 }

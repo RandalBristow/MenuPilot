@@ -82,6 +82,140 @@ function buildPizzaProduct(): ProductConfig {
   }
 }
 
+function buildDeluxePizzaProduct(): ProductConfig {
+  const meatGroup = {
+    id: "meats",
+    name: "Meats",
+    description: null,
+    is_enabled: true,
+    sort_order: 1,
+  }
+  const veggieGroup = {
+    id: "veggies",
+    name: "Veggies",
+    description: null,
+    is_enabled: true,
+    sort_order: 2,
+  }
+
+  return {
+    ...buildPizzaProduct(),
+    id: "deluxe-pizza",
+    name: "Deluxe Pizza",
+    product_modifier_groups: [
+      {
+        id: "assignment-toppings",
+        is_enabled: true,
+        sort_order: 1,
+        modifier_groups: {
+          id: "pizza-toppings",
+          name: "Pizza Toppings",
+          selection_type: "multiple",
+          is_required: false,
+          is_enabled: true,
+          min_required: 0,
+          max_allowed: null,
+          supports_placement: true,
+          supports_multiplier: true,
+          min_multiplier: 1,
+          max_multiplier: 2,
+          multiplier_step: 1,
+          modifier_options: [
+            {
+              id: "pepperoni",
+              name: "Pepperoni",
+              price_delta: 2,
+              is_enabled: true,
+              sort_order: 1,
+              modifier_option_group_id: meatGroup.id,
+              modifier_option_groups: meatGroup,
+            },
+            {
+              id: "sausage",
+              name: "Sausage",
+              price_delta: 2,
+              is_enabled: true,
+              sort_order: 2,
+              modifier_option_group_id: meatGroup.id,
+              modifier_option_groups: meatGroup,
+            },
+            {
+              id: "mushrooms",
+              name: "Mushrooms",
+              price_delta: 1,
+              is_enabled: true,
+              sort_order: 3,
+              modifier_option_group_id: veggieGroup.id,
+              modifier_option_groups: veggieGroup,
+            },
+            {
+              id: "onions",
+              name: "Onions",
+              price_delta: 1,
+              is_enabled: true,
+              sort_order: 4,
+              modifier_option_group_id: veggieGroup.id,
+              modifier_option_groups: veggieGroup,
+            },
+            {
+              id: "green-peppers",
+              name: "Green Peppers",
+              price_delta: 1,
+              is_enabled: true,
+              sort_order: 5,
+              modifier_option_group_id: veggieGroup.id,
+              modifier_option_groups: veggieGroup,
+            },
+            {
+              id: "bacon",
+              name: "Bacon",
+              price_delta: 2,
+              is_enabled: true,
+              sort_order: 6,
+              modifier_option_group_id: meatGroup.id,
+              modifier_option_groups: meatGroup,
+            },
+            {
+              id: "banana-peppers",
+              name: "Banana Peppers",
+              price_delta: 1,
+              is_enabled: true,
+              sort_order: 7,
+              modifier_option_group_id: veggieGroup.id,
+              modifier_option_groups: veggieGroup,
+            },
+          ],
+        },
+      },
+    ],
+    product_included_modifier_groups: [
+      {
+        id: "included-toppings",
+        modifier_group_id: "pizza-toppings",
+        included_quantity: 5,
+        is_swappable: false,
+        charge_for_extra: true,
+      },
+    ],
+    product_default_modifier_options: [
+      "pepperoni",
+      "sausage",
+      "mushrooms",
+      "onions",
+      "green-peppers",
+    ].map((optionId, index) => ({
+      id: `default-${optionId}`,
+      modifier_group_id: "pizza-toppings",
+      modifier_option_id: optionId,
+      placement: "whole" as const,
+      multiplier: 1,
+      quantity: 1,
+      is_enabled: true,
+      sort_order: index + 1,
+    })),
+  }
+}
+
 function renderPizzaBuilder(product = buildPizzaProduct()) {
   return render(
     <CartProvider>
@@ -133,5 +267,32 @@ describe("PizzaBuilder", () => {
 
     expect(screen.getByRole("button", { name: /add to cart/i }))
       .toHaveTextContent("$20.00")
+  })
+
+  it("charges the sixth topping after one default topping is swapped out", async () => {
+    renderPizzaBuilder(buildDeluxePizzaProduct())
+
+    expect(await screen.findByRole("button", { name: /add to cart/i }))
+      .toHaveTextContent("$10.00")
+
+    fireEvent.click(screen.getByRole("button", {
+      name: /pepperoni/i,
+      pressed: true,
+    }))
+    fireEvent.click(screen.getByRole("button", {
+      name: /bacon/i,
+      pressed: false,
+    }))
+
+    expect(screen.getByRole("button", { name: /add to cart/i }))
+      .toHaveTextContent("$10.00")
+
+    fireEvent.click(screen.getByRole("button", {
+      name: /banana peppers/i,
+      pressed: false,
+    }))
+
+    expect(screen.getByRole("button", { name: /add to cart/i }))
+      .toHaveTextContent("$11.00")
   })
 })

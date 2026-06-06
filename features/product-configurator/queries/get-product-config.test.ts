@@ -15,6 +15,14 @@ const supabaseMock = vi.hoisted(() => {
         slug: "business-a",
       },
     ],
+    business_pricing_settings: [
+      {
+        business_id: "business-a",
+        pizza_half_topping_pricing_enabled: true,
+        pizza_half_topping_included_weight_enabled: true,
+        pizza_half_topping_rounding_mode: "floor_to_cent",
+      },
+    ],
     products: [
       {
         id: "product-a",
@@ -83,6 +91,15 @@ const supabaseMock = vi.hoisted(() => {
         error: row ? null : { message: "not found" },
       })
     }
+
+    maybeSingle() {
+      const row = filterRows(this.table, this.filters)[0] ?? null
+
+      return Promise.resolve({
+        data: row,
+        error: null,
+      })
+    }
   }
 
   return {
@@ -104,6 +121,11 @@ describe("getProductConfig tenant scoping", () => {
       id: "product-a",
       business_id: "business-a",
       name: "Business A Pizza",
+      pricing_settings: {
+        pizzaHalfToppingPricingEnabled: true,
+        pizzaHalfToppingIncludedWeightEnabled: true,
+        pizzaHalfToppingRoundingMode: "floor_to_cent",
+      },
     })
   })
 

@@ -68,6 +68,11 @@ export async function getModifierAdminData(
         min_required,
         max_allowed,
         is_required,
+        supports_placement,
+        supports_multiplier,
+        min_multiplier,
+        max_multiplier,
+        multiplier_step,
         is_enabled,
         sort_order,
         modifier_option_groups (

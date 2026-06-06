@@ -171,6 +171,8 @@ function OptionFormPanel({
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEnabled, setIsEnabled] = useState(
     panelState?.option?.is_enabled ?? true
   )
@@ -197,14 +199,24 @@ function OptionFormPanel({
       : "Save Option"
 
   async function handleSubmit(formData: FormData) {
-    if (isProductOverrideMode) {
-      await saveProductVariantOptionOverride(formData)
-    } else {
-      await saveVariantGroupOption(formData)
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      if (isProductOverrideMode) {
+        await saveProductVariantOptionOverride(formData)
+      } else {
+        await saveVariantGroupOption(formData)
+      }
+      formRef.current?.reset()
+      onOpenChange(false)
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
     }
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
   }
 
   return (
@@ -378,7 +390,7 @@ function OptionFormPanel({
                 ) : null}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 md:grid-cols-3">
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Base price</span>
                   <input
@@ -404,9 +416,7 @@ function OptionFormPanel({
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   />
                 </label>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Default</span>
                   <select
@@ -418,8 +428,10 @@ function OptionFormPanel({
                     <option value="false">No</option>
                   </select>
                 </label>
+              </div>
 
-                {isCreateMode ? (
+              {isCreateMode ? (
+                <div className="grid gap-3 md:grid-cols-3">
                   <label className="grid gap-2">
                     <span className="text-sm font-medium">Status</span>
                     <select
@@ -431,8 +443,8 @@ function OptionFormPanel({
                       <option value="false">Disabled</option>
                     </select>
                   </label>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
                 </>
               )}
             </div>
@@ -452,7 +464,7 @@ function OptionFormPanel({
             </ThemedButton>
             <ThemedButton
               type="submit"
-              disabled={!writesEnabled}
+              disabled={!writesEnabled || isSubmitting}
               size="icon"
               aria-label={submitLabel}
               className="size-10"
@@ -577,7 +589,7 @@ export function VariantGroupDetailClient({
                 type="button"
                 size="icon"
                 aria-label="New Variant Group Option"
-                className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                className="size-10 rounded-md p-0 shadow-sm"
                 disabled={!writesEnabled}
                 onClick={() =>
                   setOptionPanelState({ mode: "create", option: null })

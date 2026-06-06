@@ -57,12 +57,14 @@ export function SimpleProductBuilder({
     () =>
       priceConfiguredProduct({
         productBasePrice: product.base_price ?? 0,
+        builderTemplate: product.builder_template,
+        pricingSettings: product.pricing_settings,
         selectedVariant,
         selectedModifiers: {},
         modifierGroups: [],
         quantity,
       }),
-    [product.base_price, quantity, selectedVariant]
+    [product.base_price, product.builder_template, product.pricing_settings, quantity, selectedVariant]
   )
   const canSubmit = !isVariantUnavailable
 

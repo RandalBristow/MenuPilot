@@ -1,6 +1,6 @@
 # MenuPilot AI Handoff
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06_
 
 ## Overview
 
@@ -25,6 +25,7 @@ Working now:
 - `/businesses/[businessSlug]` tenant-scoped storefront landing route. It resolves the selected business, shows storefront/orderability status, links to the scoped menu, and only links to checkout when the default location is orderable.
 - `/businesses/[businessSlug]/menu` tenant-scoped public menu route. Active businesses show normally. Setup businesses show preview messaging and disable customer ordering actions so the UI does not imply public ordering is live.
 - Product configurator with reusable variant groups, modifier groups, included credits, multiplier-aware pricing, and cart integration.
+- Business-level pizza half-topping settings are stored in `business_pricing_settings` and managed from Platform Admin business detail and the tenant admin shell. Defaults are half pricing on, half included-slot counting on, and `floor_to_cent` rounding.
 - Cart provider, summary bar, sheet UI, and localStorage persistence.
 - `/checkout` legacy pickup checkout for Pronto Demo/main-street and `/businesses/[businessSlug]/checkout` tenant-scoped checkout using the business default location. Checkout validates business/location orderability, rejects cross-tenant carts, validates/reprices cart contents server-side, and writes unpaid orders to Supabase.
 - `/staff/orders` legacy staff queue for Pronto Demo/main-street and `/businesses/[businessSlug]/locations/[locationSlug]/orders` tenant/location-scoped staff queue. Staff reads filter by business/location IDs, and status updates resolve slugs server-side before verifying order ownership.
@@ -41,13 +42,14 @@ Working now:
 - Modifier Option sort order is scoped per Modifier Option Group/List. "Next Available" should use max sort order plus one only within the selected `modifier_option_group_id`.
 - Modifier Options should belong to a Modifier Option Group/List. Seed cleanup backfilled lists for direct seed options; admin option create/edit should require a list instead of creating ungrouped options.
 - Modifier Option Group/List sort order is scoped within its parent Modifier Group and controls how option lists appear in builders.
+- Admin Modifier Subgroups / Option Group/List management should not strand users after selecting a top-level bucket. If the selected Modifier Category has no child Modifier Groups yet, the page shows a clear empty state plus the footer action to add a subgroup under that selected bucket. Once a Modifier Group exists, option lists are managed inside that group.
 - Modifier Group sort order is scoped within its Modifier Category and controls the order of builder sections such as Crust Type, Crust Style, Pizza Sauce, and Pizza Toppings.
 - Variant-specific modifier option availability filtering.
 - Variant-specific modifier option price overrides on the product Modifier Group variant rules page.
 - ProductConfigurator resolves runtime builder modes to PizzaBuilder, GenericConfigurableBuilder, SimpleProductBuilder, or unsupported future combo handling.
 - Minimal Platform Admin onboarding schema support exists: businesses have primary contact fields, locations have a setup/active-style `status` field, new businesses/locations default to `setup`, and new locations default to ordering disabled.
 - Internal Platform Admin list/detail pages exist at `/platform`, `/platform/businesses`, and `/platform/businesses/[businessId]` for reviewing business contact fields, setup status, locations, and ordering flags.
-- Internal Platform Admin create flow exists at `/platform/businesses/new`. It creates a setup-mode business and first setup-mode location; the first location starts disabled and not accepting orders.
+- Internal Platform Admin create flow exists at `/platform/businesses/new`. It creates a setup-mode business, first setup-mode location, and default `Main Menu`; the first location starts disabled and not accepting orders.
 - Platform Admin business detail includes activation controls. The app owner can set business status (`setup`, `active`, `paused`, `archived`) and each location's status plus `is_enabled`, `accepting_orders`, `pickup_enabled`, and `delivery_enabled`. The location action forces `accepting_orders` off unless the location is active, enabled, and has pickup or delivery enabled.
 - Tenant resolver helpers exist in `features/tenant` for resolving business and location context by slug/id.
 - Tenant-aware business admin shell exists at `/businesses/[businessSlug]/admin`. Platform Admin business detail links to it with "Open Business Admin". The landing page is organized as Product Catalog, Variants, Modifiers, Media, Customer Preview, Locations / Orders when a location exists, and Future / Not Ready. It shows default-location orderability and explains reusable Variant Groups and reusable Modifier Library setup before product-specific assignments.
@@ -120,6 +122,7 @@ Modifiers should behave like variants:
 - Configurable product pricing belongs in `lib/pricing/price-configured-product.ts`.
 - Builders must not implement independent configurable-product pricing math.
 - Checkout must validate server-loaded config, then use the shared pricing helper instead of trusting client-submitted cart prices.
+- Pizza left/right topping placement uses weight `0.5`; whole placement uses `1.0`; effective weight is placement weight times multiplier. When business settings enable it, the same weighted value is used for pricing and included-slot consumption. Non-pizza builders must not receive pizza half-placement discounts.
 - Product builders should render Modifier Option Group sections through the shared builder option group accordion/list component and themed accordion instead of duplicating selected option row UI.
 - The expected data model is one shared multi-tenant database. Business-owned records use `business_id`; location-specific records use `location_id` where appropriate. Businesses should not each receive a separate database by default.
 - Platform Admin / App Owner tooling should eventually manage businesses and locations. New businesses and locations should start in `setup`; new locations should keep ordering disabled until explicitly activated.

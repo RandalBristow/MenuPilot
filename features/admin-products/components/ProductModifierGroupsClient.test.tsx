@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import { ThemedToastProvider } from "@/components/themed/ThemedToastProvider"
 import { ProductModifierGroupsClient } from "./ProductModifierGroupsClient"
 import type { ProductModifierGroupManagementData } from "@/features/admin-products/queries/get-product-management-data"
 
@@ -11,6 +12,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 vi.mock("@/features/admin-products/actions/save-product-included-modifier-group", () => ({
+  saveProductIncludedModifierGroup: vi.fn(),
   saveProductIncludedModifierGroupAction: vi.fn(),
 }))
 
@@ -78,17 +80,37 @@ function buildData(
   }
 }
 
+function renderClient(data = buildData()) {
+  return render(
+    <ThemedToastProvider>
+      <ProductModifierGroupsClient data={data} businessSlug="randys-pizza" />
+    </ThemedToastProvider>
+  )
+}
+
 describe("ProductModifierGroupsClient", () => {
   it("renders a pricing warning on assigned modifier groups with too many defaults", () => {
-    render(
-      <ProductModifierGroupsClient
-        data={buildData()}
-        businessSlug="randys-pizza"
-      />
-    )
+    renderClient()
 
     expect(screen.getByText(/pricing warning/i)).toBeInTheDocument()
     expect(screen.getByText(/5 defaults selected/i)).toBeInTheDocument()
     expect(screen.getByText(/0 included selections/i)).toBeInTheDocument()
+  })
+
+  it("links assigned modifier group cards to product-scoped default option setup", () => {
+    renderClient()
+
+    expect(
+      screen.getByLabelText("Open modifier group Pizza Toppings")
+    ).toHaveAttribute(
+      "href",
+      "/businesses/randys-pizza/admin/modifiers/group-toppings?productId=product-meat"
+    )
+    expect(
+      screen.getByRole("link", { name: "Manage modifier availability" })
+    ).toHaveAttribute(
+      "href",
+      "/businesses/randys-pizza/admin/products/modifier-groups/group-toppings/availability?productId=product-meat"
+    )
   })
 })

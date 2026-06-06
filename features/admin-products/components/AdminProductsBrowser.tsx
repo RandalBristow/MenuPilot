@@ -280,7 +280,7 @@ export function AdminProductsBrowser({
               asChild
               size="icon"
               aria-label="New product"
-              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+              className="size-10 rounded-md p-0 shadow-sm"
             >
               <Link href={getProductAdminHref("new", businessSlug)}>
                 <Plus aria-hidden="true" />
@@ -292,7 +292,7 @@ export function AdminProductsBrowser({
               size="icon"
               disabled
               aria-label="New product unavailable until scoped product writes are converted"
-              className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+              className="size-10 rounded-md p-0 shadow-sm"
             >
               <Plus aria-hidden="true" />
             </ThemedButton>

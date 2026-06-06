@@ -1,12 +1,13 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
 import { createModifierOptionGroup } from "@/features/admin-modifiers/actions/create-modifier-option-group"
 import { setModifierOptionGroupEnabled } from "@/features/admin-modifiers/actions/set-modifier-option-group-enabled"
 import { updateModifierOptionGroup } from "@/features/admin-modifiers/actions/update-modifier-option-group"
 import { ThemedButton } from "@/components/themed/ThemedButton"
+import { useThemedToast } from "@/components/themed/ThemedToastProvider"
 import {
   ThemedSheet,
   ThemedSheetContent,
@@ -46,8 +47,11 @@ export function ModifierOptionGroupFormDialog({
   optionGroup,
 }: ModifierOptionGroupFormDialogProps) {
   const router = useRouter()
+  const { showToast } = useThemedToast()
   const formRef = useRef<HTMLFormElement>(null)
   const sortOrderRef = useRef<HTMLInputElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const isCreateMode = mode === "create"
   const title = isCreateMode
     ? "Create option group"
@@ -64,15 +68,31 @@ export function ModifierOptionGroupFormDialog({
   }
 
   async function handleSubmit(formData: FormData) {
-    if (isCreateMode) {
-      await createModifierOptionGroup(formData)
-    } else {
-      await updateModifierOptionGroup(formData)
-    }
+    if (isSubmittingRef.current) return
 
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      if (isCreateMode) {
+        await createModifierOptionGroup(formData)
+      } else {
+        await updateModifierOptionGroup(formData)
+      }
+
+      formRef.current?.reset()
+      onOpenChange(false)
+      showToast({
+        title: isCreateMode
+          ? "Modifier option list created."
+          : "Modifier option list saved.",
+        kind: "success",
+      })
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   async function handleEnabledChange() {
@@ -86,6 +106,13 @@ export function ModifierOptionGroupFormDialog({
 
     await setModifierOptionGroupEnabled(formData)
     onOpenChange(false)
+    showToast({
+      title: !optionGroup.is_enabled
+        ? "Modifier option list enabled."
+        : "Modifier option list disabled.",
+      description: optionGroup.name,
+      kind: "success",
+    })
     router.refresh()
   }
 
@@ -233,6 +260,7 @@ export function ModifierOptionGroupFormDialog({
               size="icon"
               aria-label={submitLabel}
               className="size-10"
+              disabled={isSubmitting}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">{submitLabel}</span>

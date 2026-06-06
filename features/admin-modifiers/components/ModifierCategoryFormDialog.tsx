@@ -51,6 +51,8 @@ export function ModifierCategoryFormDialog({
 }: ModifierCategoryFormDialogProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [internalOpen, setInternalOpen] = useState(false)
   const currentOpen = open ?? internalOpen
   const setCurrentOpen = onOpenChange ?? setInternalOpen
@@ -64,16 +66,26 @@ export function ModifierCategoryFormDialog({
   const submitLabel = isCreateMode ? "Create modifier group" : "Save modifier group"
 
   async function handleSubmit(formData: FormData) {
-    if (isCreateMode) {
-      await createModifierCategory(formData)
-    } else {
-      await updateModifierCategory(formData)
-    }
+    if (isSubmittingRef.current) return
 
-    formRef.current?.reset()
-    setCurrentOpen(false)
-    onSaved?.(category?.id)
-    router.refresh()
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      if (isCreateMode) {
+        await createModifierCategory(formData)
+      } else {
+        await updateModifierCategory(formData)
+      }
+
+      formRef.current?.reset()
+      setCurrentOpen(false)
+      onSaved?.(category?.id)
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   async function handleEnabledChange() {
@@ -101,8 +113,8 @@ export function ModifierCategoryFormDialog({
             className={
               triggerIcon
                 ? isCreateMode
-                  ? "size-10 rounded-md p-0 shadow-sm sm:size-8"
-                  : "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted sm:size-8"
+                  ? "size-10 rounded-md p-0 shadow-sm"
+                  : "size-10 rounded-md border-border bg-background p-0 text-foreground shadow-sm hover:bg-muted"
                 : isCreateMode
                   ? "w-full sm:w-auto"
                   : "bg-background text-foreground hover:bg-muted"
@@ -201,6 +213,7 @@ export function ModifierCategoryFormDialog({
               size="icon"
               aria-label={submitLabel}
               className="size-10"
+              disabled={isSubmitting}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">{submitLabel}</span>

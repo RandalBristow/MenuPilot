@@ -42,6 +42,11 @@ export type RawModifierGroup = {
   min_required: number
   max_allowed: number | null
   is_required: boolean
+  supports_placement?: boolean
+  supports_multiplier?: boolean
+  min_multiplier?: number
+  max_multiplier?: number
+  multiplier_step?: number
   is_enabled: boolean
   sort_order: number
   modifier_option_groups: RawModifierOptionGroup[] | null

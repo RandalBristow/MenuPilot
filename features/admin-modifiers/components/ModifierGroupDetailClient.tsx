@@ -102,14 +102,26 @@ function OverridePanel({
 }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!option) return null
 
   async function handleSubmit(formData: FormData) {
-    await saveProductModifierOptionOverride(formData)
-    formRef.current?.reset()
-    onOpenChange(false)
-    router.refresh()
+    if (isSubmittingRef.current) return
+
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    try {
+      await saveProductModifierOptionOverride(formData)
+      formRef.current?.reset()
+      onOpenChange(false)
+      router.refresh()
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -224,6 +236,7 @@ function OverridePanel({
               size="icon"
               aria-label="Save override"
               className="size-10"
+              disabled={isSubmitting}
             >
               <Check aria-hidden="true" />
               <span className="sr-only">Save override</span>
@@ -371,7 +384,7 @@ export function ModifierGroupDetailClient({
                 type="button"
                 size="icon"
                 aria-label="New Modifier Option"
-                className="size-10 rounded-md p-0 shadow-sm sm:size-8"
+                className="size-10 rounded-md p-0 shadow-sm"
                 onClick={() => setCreateOpen(true)}
               >
                 <Plus aria-hidden="true" />

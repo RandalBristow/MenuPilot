@@ -1,3 +1,9 @@
+import {
+  normalizeBusinessPricingSettings,
+  type BusinessPricingSettings,
+  type RawBusinessPricingSettings,
+} from "@/lib/pricing/business-pricing-settings"
+
 export type ConfiguredProductVariant = {
   id: string
   basePrice?: number | string | null
@@ -29,6 +35,7 @@ export type ConfiguredProductSelectedModifier = {
 export type ConfiguredProductDefaultModifierOption = {
   modifierOptionId?: string
   modifier_option_id?: string
+  placement?: "left" | "whole" | "right" | null
   multiplier?: number | string | null
   quantity?: number | string | null
   isEnabled?: boolean | null
@@ -62,6 +69,7 @@ export type PricedConfiguredProductModifier = ConfiguredProductSelectedModifier 
   optionId: string
   unitPrice: number
   priceDelta: number
+  pricingUnits: number
   totalUnits: number
   defaultUnits: number
   includedUnits: number
@@ -81,6 +89,8 @@ export type PricedConfiguredProductModifierGroup = {
 
 export type PriceConfiguredProductInput = {
   productBasePrice: number | string | null | undefined
+  builderTemplate?: string | null
+  pricingSettings?: RawBusinessPricingSettings | BusinessPricingSettings | null
   selectedVariant?: ConfiguredProductVariant | null
   selectedModifiers: Record<string, ConfiguredProductSelectedModifier>
   modifierGroups: ConfiguredProductModifierGroup[]
@@ -128,8 +138,49 @@ function getChargeForExtra(group: ConfiguredProductModifierGroup) {
   return group.chargeForExtra ?? group.charge_for_extra ?? true
 }
 
+function getPlacementWeight(
+  placement: ConfiguredProductSelectedModifier["placement"] | null | undefined
+) {
+  return placement === "left" || placement === "right" ? 0.5 : 1
+}
+
+function floorToCent(value: number) {
+  return Math.floor((value + Number.EPSILON) * 100) / 100
+}
+
+function applyPricingRounding(
+  value: number,
+  settings: BusinessPricingSettings
+) {
+  if (settings.pizzaHalfToppingRoundingMode === "floor_to_cent") {
+    return floorToCent(value)
+  }
+
+  return value
+}
+
+function getPizzaPlacementPolicy({
+  builderTemplate,
+  pricingSettings,
+}: {
+  builderTemplate?: string | null
+  pricingSettings?: RawBusinessPricingSettings | BusinessPricingSettings | null
+}) {
+  const settings = normalizeBusinessPricingSettings(pricingSettings)
+  const isPizza = builderTemplate === "pizza"
+
+  return {
+    settings,
+    pricingUsesPlacementWeight:
+      isPizza && settings.pizzaHalfToppingPricingEnabled,
+    includedUsesPlacementWeight:
+      isPizza && settings.pizzaHalfToppingIncludedWeightEnabled,
+  }
+}
+
 function getDefaultModifierOptionUnits(
-  defaultOptions: ConfiguredProductDefaultModifierOption[] | null | undefined
+  defaultOptions: ConfiguredProductDefaultModifierOption[] | null | undefined,
+  includedUsesPlacementWeight: boolean
 ) {
   return (defaultOptions ?? []).reduce<Record<string, number>>(
     (unitsByOptionId, option) => {
@@ -142,10 +193,15 @@ function getDefaultModifierOptionUnits(
 
       const quantity = Math.max(1, toNumber(option.quantity, 1))
       const multiplier = Math.max(1, toNumber(option.multiplier, 1))
+      const placementWeight = includedUsesPlacementWeight
+        ? getPlacementWeight(option.placement)
+        : 1
 
       return {
         ...unitsByOptionId,
-        [optionId]: (unitsByOptionId[optionId] ?? 0) + quantity * multiplier,
+        [optionId]:
+          (unitsByOptionId[optionId] ?? 0) +
+          quantity * multiplier * placementWeight,
       }
     },
     {}
@@ -244,6 +300,8 @@ function resolveModifierOptionPrice({
 
 export function priceConfiguredProduct({
   productBasePrice,
+  builderTemplate,
+  pricingSettings,
   selectedVariant,
   selectedModifiers,
   modifierGroups,
@@ -256,8 +314,13 @@ export function priceConfiguredProduct({
   const basePrice = toNumber(
     selectedVariant?.basePrice ?? selectedVariant?.base_price ?? productBasePrice
   )
+  const placementPolicy = getPizzaPlacementPolicy({
+    builderTemplate,
+    pricingSettings,
+  })
   const defaultModifierOptionUnits = getDefaultModifierOptionUnits(
-    productDefaultModifierOptions
+    productDefaultModifierOptions,
+    placementPolicy.includedUsesPlacementWeight
   )
   const pricedSelectedModifiers = new Map<
     string,
@@ -285,10 +348,19 @@ export function priceConfiguredProduct({
         })
         if (unitPrice === null) return null
 
+        const multiplier = Math.max(0, toNumber(selected.multiplier, 1))
+        const placementWeight = getPlacementWeight(selected.placement)
+
         return {
           selected,
           option,
-          totalUnits: Math.max(0, toNumber(selected.multiplier, 1)),
+          multiplier,
+          pricingUnits:
+            multiplier *
+            (placementPolicy.pricingUsesPlacementWeight ? placementWeight : 1),
+          totalUnits:
+            multiplier *
+            (placementPolicy.includedUsesPlacementWeight ? placementWeight : 1),
           unitPrice,
           defaultUnits: Math.max(
             0,
@@ -299,6 +371,8 @@ export function priceConfiguredProduct({
       .filter(Boolean) as Array<{
       selected: ConfiguredProductSelectedModifier
       option: ConfiguredProductModifierOption
+      multiplier: number
+      pricingUnits: number
       totalUnits: number
       unitPrice: number
       defaultUnits: number
@@ -319,17 +393,21 @@ export function priceConfiguredProduct({
         ? Math.min(totalUnits, Math.max(remainingIncludedUnits, 0))
         : totalUnits
       const chargedUnits = chargeForExtra ? totalUnits - includedUnits : 0
-      const linePrice = chargedUnits * item.unitPrice
-      const priceDelta =
-        totalUnits > 0 ? linePrice / totalUnits : item.unitPrice
+      const chargedFraction = totalUnits > 0 ? chargedUnits / totalUnits : 0
+      const chargedPricingUnits = item.pricingUnits * chargedFraction
+      const linePrice = applyPricingRounding(
+        chargedPricingUnits * item.unitPrice,
+        placementPolicy.settings
+      )
 
       pricedSelectedModifiers.set(item.selected.optionId, {
         ...item.selected,
         optionId: item.selected.optionId,
         groupId: group.id,
-        multiplier: totalUnits,
+        multiplier: item.multiplier,
         unitPrice: item.unitPrice,
-        priceDelta,
+        priceDelta: linePrice,
+        pricingUnits: item.pricingUnits,
         totalUnits,
         defaultUnits,
         includedUnits,
@@ -371,4 +449,3 @@ export function priceConfiguredProduct({
     modifierGroups: Object.fromEntries(pricedGroups),
   }
 }
-

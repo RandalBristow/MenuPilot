@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { useFormStatus } from "react-dom"
 import { Check } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
@@ -62,6 +63,8 @@ export function ProductPanelFooter({
   submitLabel?: string
   submitDisabled?: boolean
 }) {
+  const { pending } = useFormStatus()
+
   return (
     <div className={PRODUCT_ADMIN_PANEL_FOOTER_CLASS}>
       {closeControl}
@@ -69,7 +72,7 @@ export function ProductPanelFooter({
         <ThemedButton
           type="submit"
           size="icon"
-          disabled={submitDisabled}
+          disabled={submitDisabled || pending}
           aria-label={submitLabel}
           className="size-10"
         >

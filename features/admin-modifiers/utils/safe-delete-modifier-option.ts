@@ -3,6 +3,7 @@ export type ModifierOptionReferenceCheck = {
   table: string
   column: string
   label: string
+  blocksDelete: boolean
 }
 
 export type ModifierOptionDeleteResult =
@@ -26,54 +27,63 @@ export const MODIFIER_OPTION_REFERENCE_CHECKS = [
     table: "product_default_modifier_options",
     column: "modifier_option_id",
     label: "product default modifier selections",
+    blocksDelete: false,
   },
   {
     key: "product_modifier_option_overrides",
     table: "product_modifier_option_overrides",
     column: "modifier_option_id",
     label: "product-specific option overrides",
+    blocksDelete: false,
   },
   {
     key: "product_variant_modifier_option_availability_rules",
     table: "product_variant_modifier_option_availability_rules",
     column: "modifier_option_id",
     label: "variant-specific availability rules",
+    blocksDelete: false,
   },
   {
     key: "product_variant_modifier_option_price_overrides",
     table: "product_variant_modifier_option_price_overrides",
     column: "modifier_option_id",
     label: "variant-specific price overrides",
+    blocksDelete: false,
   },
   {
     key: "order_item_modifiers",
     table: "order_item_modifiers",
     column: "modifier_option_id",
     label: "order history",
+    blocksDelete: true,
   },
   {
     key: "product_modifier_option_price_rules",
     table: "product_modifier_option_price_rules",
     column: "modifier_option_id",
     label: "legacy product option price rules",
+    blocksDelete: false,
   },
   {
     key: "product_modifier_option_availability_rules",
     table: "product_modifier_option_availability_rules",
     column: "modifier_option_id",
     label: "legacy product option availability rules",
+    blocksDelete: false,
   },
   {
     key: "modifier_option_dependency_rules_option",
     table: "modifier_option_dependency_rules",
     column: "modifier_option_id",
     label: "modifier option dependency rules",
+    blocksDelete: false,
   },
   {
     key: "modifier_option_dependency_rules_dependency",
     table: "modifier_option_dependency_rules",
     column: "depends_on_modifier_option_id",
     label: "modifier option dependency rules",
+    blocksDelete: false,
   },
 ] as const satisfies readonly ModifierOptionReferenceCheck[]
 
@@ -92,9 +102,15 @@ export async function getBlockingModifierOptionReferences(
   )
 
   return results
-    .filter((result) => result.hasReference)
+    .filter((result) => result.hasReference && result.check.blocksDelete)
     .map((result) => result.check)
 }
+
+export const MODIFIER_OPTION_CASCADE_DELETE_CHECKS =
+  MODIFIER_OPTION_REFERENCE_CHECKS.filter((check) => !check.blocksDelete)
+
+export type ModifierOptionCascadeDeleteCheck =
+  (typeof MODIFIER_OPTION_CASCADE_DELETE_CHECKS)[number]
 
 export function getModifierOptionBlockedDeleteMessage(
   blockingReferences: ModifierOptionReferenceCheck[]
@@ -112,9 +128,13 @@ export function getModifierOptionBlockedDeleteMessage(
 
 export async function safeDeleteModifierOption({
   hasReference,
+  deleteReferences,
   deleteOption,
 }: {
   hasReference: ModifierOptionReferenceChecker
+  deleteReferences: (
+    checks: readonly ModifierOptionCascadeDeleteCheck[]
+  ) => Promise<void>
   deleteOption: () => Promise<void>
 }): Promise<ModifierOptionDeleteResult> {
   const blockingReferences = await getBlockingModifierOptionReferences(
@@ -129,6 +149,7 @@ export async function safeDeleteModifierOption({
     }
   }
 
+  await deleteReferences(MODIFIER_OPTION_CASCADE_DELETE_CHECKS)
   await deleteOption()
 
   return {

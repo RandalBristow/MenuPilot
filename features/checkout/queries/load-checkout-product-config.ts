@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { getBusinessPricingSettings } from "@/features/pricing-settings/queries/get-business-pricing-settings"
 import { resolveVariantsForProduct } from "@/features/product-configurator/utils/apply-effective-product-variants"
 import type {
   CheckoutModifierGroupConfig,
@@ -104,6 +105,7 @@ type RawIncludedModifierGroup = {
 
 type RawProductDefaultModifierOption = {
   modifier_option_id: string
+  placement: "left" | "whole" | "right" | null
   multiplier: number | null
   quantity: number | null
   is_enabled: boolean | null
@@ -112,6 +114,7 @@ type RawProductDefaultModifierOption = {
 type RawCheckoutProduct = {
   id: string
   name: string
+  builder_template: string | null
   is_enabled: boolean
   base_price: number | string | null
   product_variant_groups: RawProductVariantGroup[] | null
@@ -223,7 +226,10 @@ function mapModifierGroups(
     }, [])
 }
 
-function mapProduct(product: RawCheckoutProduct): CheckoutProductConfig {
+function mapProduct(
+  product: RawCheckoutProduct,
+  pricingSettings: CheckoutProductConfig["pricingSettings"]
+): CheckoutProductConfig {
   const effectiveVariants = resolveVariantsForProduct(product).map(
     (variant) => ({
       id: variant.id,
@@ -236,6 +242,8 @@ function mapProduct(product: RawCheckoutProduct): CheckoutProductConfig {
   return {
     id: product.id,
     name: product.name,
+    builderTemplate: product.builder_template,
+    pricingSettings,
     isEnabled: product.is_enabled,
     basePrice: toNumber(product.base_price),
     variants: effectiveVariants,
@@ -244,6 +252,7 @@ function mapProduct(product: RawCheckoutProduct): CheckoutProductConfig {
       product.product_default_modifier_options ?? []
     ).map((defaultOption) => ({
       modifier_option_id: defaultOption.modifier_option_id,
+      placement: defaultOption.placement,
       multiplier: defaultOption.multiplier,
       quantity: defaultOption.quantity,
       is_enabled: defaultOption.is_enabled,
@@ -287,12 +296,15 @@ export async function loadCheckoutProductConfig({
 
   if (uniqueProductIds.length === 0) return []
 
+  const pricingSettings = await getBusinessPricingSettings(businessId)
+
   const { data, error } = await supabaseAdmin
     .from("products")
     .select(
       `
       id,
       name,
+      builder_template,
       is_enabled,
       base_price,
       product_variant_groups (
@@ -375,6 +387,7 @@ export async function loadCheckoutProductConfig({
       ),
       product_default_modifier_options (
         modifier_option_id,
+        placement,
         multiplier,
         quantity,
         is_enabled
@@ -388,5 +401,7 @@ export async function loadCheckoutProductConfig({
     throw new Error(`Could not load checkout product config: ${error.message}`)
   }
 
-  return ((data ?? []) as RawCheckoutProduct[]).map(mapProduct)
+  return ((data ?? []) as RawCheckoutProduct[]).map((product) =>
+    mapProduct(product, pricingSettings)
+  )
 }

@@ -29,6 +29,10 @@ function parseRequired(value: FormDataEntryValue | null) {
   return value === "true"
 }
 
+function parseBoolean(value: FormDataEntryValue | null) {
+  return value === "true"
+}
+
 function parseEnabled(value: FormDataEntryValue | null) {
   return value !== "false"
 }
@@ -54,6 +58,16 @@ function parseOptionalInteger(
   return parseInteger(value, fieldName)
 }
 
+function parseNumber(value: FormDataEntryValue | null, fieldName: string) {
+  const parsedValue = Number(value)
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    throw new Error(`${fieldName} must be greater than zero.`)
+  }
+
+  return parsedValue
+}
+
 export async function updateModifierGroup(formData: FormData) {
   const context = await resolveModifierAdminActionContext(formData)
   const modifierGroupId = parseString(
@@ -66,11 +80,29 @@ export async function updateModifierGroup(formData: FormData) {
   const isRequired = parseRequired(formData.get("isRequired"))
   const minRequired = parseInteger(formData.get("minRequired"), "Minimum")
   const maxAllowed = parseOptionalInteger(formData.get("maxAllowed"), "Maximum")
+  const supportsPlacement = parseBoolean(formData.get("supportsPlacement"))
+  const supportsMultiplier = parseBoolean(formData.get("supportsMultiplier"))
+  const minMultiplier = parseNumber(
+    formData.get("minMultiplier") ?? "1",
+    "Minimum multiplier"
+  )
+  const maxMultiplier = parseNumber(
+    formData.get("maxMultiplier") ?? "1",
+    "Maximum multiplier"
+  )
+  const multiplierStep = parseNumber(
+    formData.get("multiplierStep") ?? "1",
+    "Multiplier step"
+  )
   const sortOrder = parseInteger(formData.get("sortOrder"), "Sort order")
   const isEnabled = parseEnabled(formData.get("isEnabled"))
 
   if (maxAllowed !== null && maxAllowed < minRequired) {
     throw new Error("Maximum must be greater than or equal to minimum.")
+  }
+
+  if (maxMultiplier < minMultiplier) {
+    throw new Error("Maximum multiplier must be greater than or equal to minimum multiplier.")
   }
 
   const { data: category, error: categoryError } = await supabaseAdmin
@@ -104,6 +136,11 @@ export async function updateModifierGroup(formData: FormData) {
       min_required: minRequired,
       max_allowed: maxAllowed,
       is_required: isRequired,
+      supports_placement: supportsPlacement,
+      supports_multiplier: supportsMultiplier,
+      min_multiplier: minMultiplier,
+      max_multiplier: maxMultiplier,
+      multiplier_step: multiplierStep,
       is_enabled: isEnabled,
       sort_order: sortOrder,
     })

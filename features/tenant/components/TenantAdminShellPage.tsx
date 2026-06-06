@@ -5,11 +5,9 @@ import {
   Building2,
   Eye,
   Image,
-  Layers3,
   ListTree,
   MapPin,
   Package,
-  PackagePlus,
   SlidersHorizontal,
   Store,
   TicketPercent,
@@ -20,22 +18,23 @@ import { ThemedCard } from "@/components/themed/ThemedCard"
 import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { ThemedPageShell } from "@/components/themed/ThemedPageShell"
 import {
-  getProductAdminHref,
   getProductListHref,
-  getProductModifierGroupsHref,
-  getProductVariantAssignmentsHref,
+  getProductAdminHref,
 } from "@/features/admin-products/utils/product-admin-routes"
 import { getMediaAdminHref } from "@/features/admin-media/utils/media-admin-routes"
 import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
+import { BusinessPricingSettingsForm } from "@/features/pricing-settings/components/BusinessPricingSettingsForm"
 import type {
   TenantBusinessContext,
   TenantLocationContext,
 } from "@/features/tenant/types/tenant-context"
+import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings"
 import { cn } from "@/lib/utils"
 
 type TenantAdminShellPageProps = {
   business: TenantBusinessContext
   defaultLocation?: TenantLocationContext | null
+  pricingSettings: BusinessPricingSettings
 }
 
 type SetupLink = {
@@ -82,28 +81,17 @@ function buildSetupSections({
       description: "Create products and organize the catalog customers browse.",
       links: [
         {
-          label: "Product List",
-          description: "Browse and edit products for this business.",
-          href: getProductListHref(businessSlug),
-          icon: Package,
-        },
-        {
-          label: "New Product",
-          description: "Create a product in this tenant context.",
-          href: getProductAdminHref("new", businessSlug),
-          icon: PackagePlus,
-        },
-        {
-          label: "Product Categories",
-          description: "Manage top-level catalog categories.",
+          label: "Categories & Subcategories",
+          description:
+            "Create top-level catalog categories, then manage each category's subcategories.",
           href: getProductAdminHref("categories", businessSlug),
           icon: ListTree,
         },
         {
-          label: "Product Subcategories",
-          description: "Manage category-specific product groups.",
-          href: getProductAdminHref("subcategories", businessSlug),
-          icon: Layers3,
+          label: "Product List",
+          description: "Browse and edit products for this business.",
+          href: getProductListHref(businessSlug),
+          icon: Package,
         },
       ],
     },
@@ -118,12 +106,6 @@ function buildSetupSections({
           href: getProductAdminHref("variant-groups", businessSlug),
           icon: SlidersHorizontal,
         },
-        {
-          label: "Product Variant Assignments",
-          description: "Attach reusable variant groups to products.",
-          href: getProductVariantAssignmentsHref(null, businessSlug),
-          icon: Package,
-        },
       ],
     },
     {
@@ -136,13 +118,6 @@ function buildSetupSections({
           description: "Manage reusable modifier categories, groups, lists, and options.",
           href: getModifierAdminHref("", businessSlug),
           icon: SlidersHorizontal,
-        },
-        {
-          label: "Product Modifier Assignments",
-          description:
-            "Attach modifier groups to products and manage defaults, included selections, availability, and price overrides.",
-          href: getProductModifierGroupsHref(null, businessSlug),
-          icon: Package,
         },
       ],
     },
@@ -304,9 +279,15 @@ function SetupLinkRow({ link }: { link: SetupLink }) {
   )
 }
 
-function SetupSectionCard({ section }: { section: SetupSection }) {
+function SetupSectionCard({
+  section,
+  className,
+}: {
+  section: SetupSection
+  className?: string
+}) {
   return (
-    <ThemedCard className="p-4">
+    <ThemedCard className={cn("h-full p-4", className)}>
       <div className="space-y-3">
         <div>
           <h2 className="text-base font-semibold">{section.title}</h2>
@@ -325,9 +306,17 @@ function SetupSectionCard({ section }: { section: SetupSection }) {
   )
 }
 
+function getSetupSection(
+  sections: SetupSection[],
+  title: SetupSection["title"]
+) {
+  return sections.find((section) => section.title === title) ?? null
+}
+
 export function TenantAdminShellPage({
   business,
   defaultLocation = null,
+  pricingSettings,
 }: TenantAdminShellPageProps) {
   const setupSections = buildSetupSections({
     businessSlug: business.slug,
@@ -337,6 +326,35 @@ export function TenantAdminShellPage({
   const previewLabel = business.isSetup
     ? "Public Menu Preview (setup)"
     : "Public Menu Preview"
+  const leftSetupSections = [
+    {
+      section: getSetupSection(setupSections, "Product Catalog"),
+      className: "order-1 lg:order-1",
+    },
+    {
+      section: getSetupSection(setupSections, "Variants"),
+      className: "order-2 lg:order-3",
+    },
+    {
+      section: getSetupSection(setupSections, "Modifiers"),
+      className: "order-3 lg:order-5",
+    },
+    {
+      section: getSetupSection(setupSections, "Media"),
+      className: "order-4 lg:order-2",
+    },
+    {
+      section: getSetupSection(setupSections, "Customer Preview"),
+      className: "order-5 lg:order-4",
+    },
+    {
+      section: getSetupSection(setupSections, "Locations / Orders"),
+      className: "order-6 lg:order-6",
+    },
+  ].filter(
+    (item): item is { section: SetupSection; className: string } =>
+      Boolean(item.section)
+  )
 
   return (
     <ThemedPageShell maxWidth="xl">
@@ -466,29 +484,51 @@ export function TenantAdminShellPage({
         </ThemedCard>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {setupSections.map((section) => (
-          <SetupSectionCard key={section.title} section={section} />
-        ))}
-      </div>
-
-      {!defaultLocation ? (
-        <ThemedCard className="p-4 opacity-75">
-          <div className="flex min-w-0 gap-3">
-            <MapPin
-              aria-hidden="true"
-              className="mt-0.5 size-5 shrink-0 text-muted-foreground"
-            />
-            <div className="min-w-0 space-y-1">
-              <h2 className="text-base font-semibold">Locations / Orders</h2>
-              <p className="text-sm text-muted-foreground">
-                Add a location before opening a location-scoped staff order
-                queue.
-              </p>
-            </div>
+      <ThemedCard className="p-4">
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">Pizza Pricing Settings</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Business-level rules for pizza half-topping pricing and included
+              topping slot counting.
+            </p>
           </div>
-        </ThemedCard>
-      ) : null}
+
+          <BusinessPricingSettingsForm
+            businessId={business.id}
+            businessSlug={business.slug}
+            settings={pricingSettings}
+          />
+        </div>
+      </ThemedCard>
+
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        {leftSetupSections.map(({ section, className }) => (
+          <SetupSectionCard
+            key={section.title}
+            section={section}
+            className={className}
+          />
+        ))}
+
+        {!defaultLocation ? (
+          <ThemedCard className="order-6 h-full p-4 opacity-75 lg:order-6">
+            <div className="flex min-w-0 gap-3">
+              <MapPin
+                aria-hidden="true"
+                className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+              />
+              <div className="min-w-0 space-y-1">
+                <h2 className="text-base font-semibold">Locations / Orders</h2>
+                <p className="text-sm text-muted-foreground">
+                  Add a location before opening a location-scoped staff order
+                  queue.
+                </p>
+              </div>
+            </div>
+          </ThemedCard>
+        ) : null}
+      </div>
 
       <ThemedPageHeader
         title="Future / Not Ready"

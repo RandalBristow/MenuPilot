@@ -1,6 +1,6 @@
 # Database
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06_
 
 All schema changes must be made through files in `database/migrations/`.
 
@@ -25,6 +25,7 @@ All schema changes must be made through files in `database/migrations/`.
 | `015_product_variant_modifier_option_price_overrides.sql` | Adds variant-specific modifier option price overrides for reusable variants. |
 | `016_backfill_required_modifier_option_groups.sql` | Backfills Modifier Option Groups/Lists for seeded options that were created directly under Modifier Groups and removes placeholder pizza sauce seed options. |
 | `017_platform_onboarding_defaults.sql` | Adds minimal Platform Admin onboarding schema support: business primary contact fields, location status, and setup-safe defaults for new businesses/locations. |
+| `018_business_pricing_settings.sql` | Adds one business-level pricing settings row for pizza half-topping pricing and included-slot behavior. |
 
 ## Core Tenant Tables
 
@@ -53,9 +54,18 @@ Platform Admin onboarding schema support:
 - `businesses.status` defaults to `setup` for newly-created businesses.
 - `locations.status` defaults to `setup` for newly-created locations.
 - New locations default to ordering disabled: `is_enabled = false`, `accepting_orders = false`, `pickup_enabled = false`, and `delivery_enabled = false`.
+- Platform Admin business creation creates the default `Main Menu` row in `menus` needed before product categories can be created.
 - Existing businesses keep their current status, and existing locations are marked `active` when the location status column is introduced so demo data is not accidentally treated as setup data.
 - Expected status values for MVP are `setup`, `active`, `paused`, and `archived`; these are documented conventions, not strict database constraints yet.
 - Full auth/role enforcement remains deferred.
+
+Business pricing settings:
+
+- `business_pricing_settings` stores business-level pizza half-topping settings.
+- `pizza_half_topping_pricing_enabled` defaults to `true`; left/right pizza toppings charge half the effective modifier price.
+- `pizza_half_topping_included_weight_enabled` defaults to `true`; left/right pizza toppings consume 0.5 included selections.
+- `pizza_half_topping_rounding_mode` defaults to `floor_to_cent`; pricing floors after placement weight and multiplier are applied.
+- Existing businesses without a row use the same defaults through the shared pricing settings normalizer.
 
 ## Menu And Product Tables
 
@@ -67,6 +77,8 @@ Platform Admin onboarding schema support:
 - `media_assets`
 
 `products` are the sellable items. `menu_groups` are customer/admin-facing product categories and subcategories. `product_groups` assigns products into menu groups.
+
+Each business needs a default product menu row in `menus` for product category setup. The current convention is one business-level `Main Menu` with `location_id = null`, `menu_type = online`, `is_enabled = true`, and `sort_order = 1`. Platform Admin creates this scaffold for new businesses, and product category/subcategory saves defensively create it for existing fresh tenants that are missing it.
 
 Product images are selected from Media Library records. Products reference images through `products.image_media_id`, which points to `media_assets`.
 
