@@ -13,12 +13,22 @@ import {
   ThemedSheetTrigger,
 } from "@/components/themed/ThemedSheet"
 import { useCart } from "@/features/cart/context/CartProvider"
-import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import type {
+  CartModifier,
+  ConfiguredCartItem,
+  DealCartChildItem,
+  DealCartItem,
+} from "@/features/cart/types/cart"
 import {
   ProductConfigurator,
   type ProductConfig,
 } from "@/features/product-configurator/components/ProductConfigurator"
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
+import { DealBuilder } from "@/features/specials/components/DealBuilder"
+import {
+  isConfiguredCartItem,
+  isDealCartItem,
+} from "@/features/cart/utils/cart-items"
 
 type CartSheetProps = {
   trigger: ReactElement
@@ -57,11 +67,230 @@ function formatPlacement(placement: CartModifier["placement"]) {
   return placement.charAt(0).toUpperCase() + placement.slice(1)
 }
 
+function ModifierDetails({
+  modifiers,
+  itemKey,
+}: {
+  modifiers: CartModifier[]
+  itemKey: string
+}) {
+  if (modifiers.length === 0) return null
+
+  return (
+    <div className="space-y-3 border-t pt-3">
+      {groupModifiers(modifiers).map((group) => (
+        <div key={`${itemKey}-${group.groupId}`} className="border-l pl-3">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            {group.groupName}
+          </p>
+          <div className="mt-1 space-y-1">
+            {group.modifiers.map((modifier) => {
+              const placement = formatPlacement(modifier.placement)
+
+              return (
+                <div
+                  key={`${itemKey}-${modifier.optionId}`}
+                  className="flex justify-between gap-3 text-sm"
+                >
+                  <span className="text-muted-foreground">
+                    {modifier.optionName}
+                    {placement ? ` (${placement})` : ""}
+                    {modifier.multiplier > 1 ? ` x${modifier.multiplier}` : ""}
+                  </span>
+                  {modifier.priceDelta > 0 ? (
+                    <span className="shrink-0 text-muted-foreground">
+                      +${modifier.priceDelta.toFixed(2)}
+                    </span>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DealChildLine({ child }: { child: DealCartChildItem }) {
+  return (
+    <div className="space-y-2 rounded-lg border bg-background/60 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{child.productName}</p>
+          <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span>Qty {child.quantity}</span>
+            {child.variantName ? <span>{child.variantName}</span> : null}
+          </div>
+        </div>
+
+        {child.childExtraTotal > 0 ? (
+          <p className="shrink-0 text-sm font-semibold">
+            +${child.childExtraTotal.toFixed(2)}
+          </p>
+        ) : null}
+      </div>
+
+      <ModifierDetails modifiers={child.modifiers} itemKey={child.childLineId} />
+    </div>
+  )
+}
+
+function DealCartItemCard({
+  item,
+  onEdit,
+  onRemove,
+}: {
+  item: DealCartItem
+  onEdit: (item: DealCartItem) => void
+  onRemove: (cartItemId: string) => void
+}) {
+  const sortedComponents = [...item.components].sort(
+    (left, right) => left.sortOrder - right.sortOrder
+  )
+
+  return (
+    <ThemedCard className="space-y-4 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold leading-tight">{item.specialName}</h3>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Deal
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Base ${item.dealBasePrice.toFixed(2)}
+            {item.childExtraTotal > 0
+              ? ` + ${item.childExtraTotal.toFixed(2)} extras`
+              : ""}
+          </p>
+        </div>
+
+        <p className="shrink-0 text-right font-semibold leading-tight">
+          ${item.totalPrice.toFixed(2)}
+        </p>
+      </div>
+
+      <div className="space-y-3 border-t pt-3">
+        {sortedComponents.map((component) => (
+          <div key={component.componentId} className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                {component.componentLabel}
+              </p>
+              <p className="shrink-0 text-xs text-muted-foreground">
+                {component.selectedQuantity}/{component.requiredQuantity}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {component.children.map((child) => (
+                <DealChildLine key={child.childLineId} child={child} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end border-t pt-3">
+        <ThemedButton
+          type="button"
+          variant="link"
+          onClick={() => onEdit(item)}
+          className="mr-4 h-auto bg-transparent p-0 text-sm font-medium text-foreground hover:bg-transparent"
+        >
+          Customize
+        </ThemedButton>
+
+        <ThemedButton
+          type="button"
+          variant="link"
+          onClick={() => onRemove(item.cartItemId)}
+          className="h-auto bg-transparent p-0 text-sm font-medium text-destructive hover:bg-transparent"
+        >
+          Remove
+        </ThemedButton>
+      </div>
+    </ThemedCard>
+  )
+}
+
+function ConfiguredCartItemCard({
+  item,
+  loadingEditItemId,
+  onEdit,
+  onRemove,
+}: {
+  item: ConfiguredCartItem
+  loadingEditItemId: string | null
+  onEdit: (item: ConfiguredCartItem) => void
+  onRemove: (cartItemId: string) => void
+}) {
+  return (
+    <ThemedCard className="space-y-4 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold leading-tight">{item.productName}</h3>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Qty {item.quantity}
+            </span>
+          </div>
+
+          {item.variantName ? (
+            <p className="text-sm text-muted-foreground">{item.variantName}</p>
+          ) : null}
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="font-semibold leading-tight">
+            ${item.totalPrice.toFixed(2)}
+          </p>
+          {item.quantity > 1 ? (
+            <p className="text-xs text-muted-foreground">
+              ${item.unitPrice.toFixed(2)} each
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <ModifierDetails modifiers={item.modifiers} itemKey={item.cartItemId} />
+
+      <div className="flex justify-end border-t pt-3">
+        <ThemedButton
+          type="button"
+          variant="link"
+          onClick={() => onEdit(item)}
+          disabled={loadingEditItemId === item.cartItemId}
+          className="mr-4 h-auto bg-transparent p-0 text-sm font-medium text-foreground hover:bg-transparent"
+        >
+          {loadingEditItemId === item.cartItemId ? "Loading..." : "Edit"}
+        </ThemedButton>
+
+        <ThemedButton
+          type="button"
+          variant="link"
+          onClick={() => onRemove(item.cartItemId)}
+          className="h-auto bg-transparent p-0 text-sm font-medium text-destructive hover:bg-transparent"
+        >
+          Remove
+        </ThemedButton>
+      </div>
+    </ThemedCard>
+  )
+}
+
 export function CartSheet({ trigger, checkoutHref = "/checkout" }: CartSheetProps) {
   const { items, subtotal, removeItem, clearCart } = useCart()
   const [isCartOpen, setIsCartOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<CartItem | null>(null)
+  const [editingItem, setEditingItem] = useState<ConfiguredCartItem | null>(
+    null
+  )
   const [editingProduct, setEditingProduct] = useState<ProductConfig | null>(
+    null
+  )
+  const [editingDealItem, setEditingDealItem] = useState<DealCartItem | null>(
     null
   )
   const [loadingEditItemId, setLoadingEditItemId] = useState<string | null>(
@@ -69,7 +298,7 @@ export function CartSheet({ trigger, checkoutHref = "/checkout" }: CartSheetProp
   )
   const [editError, setEditError] = useState<string | null>(null)
 
-  async function handleEditItem(item: CartItem) {
+  async function handleEditItem(item: ConfiguredCartItem) {
     if (loadingEditItemId) return
 
     setEditError(null)
@@ -96,6 +325,17 @@ export function CartSheet({ trigger, checkoutHref = "/checkout" }: CartSheetProp
 
     setEditingItem(null)
     setEditingProduct(null)
+  }
+
+  function handleEditDealItem(item: DealCartItem) {
+    setEditingDealItem(item)
+    setIsCartOpen(false)
+  }
+
+  function handleDealEditOpenChange(open: boolean) {
+    if (open) return
+
+    setEditingDealItem(null)
   }
 
   return (
@@ -129,101 +369,32 @@ export function CartSheet({ trigger, checkoutHref = "/checkout" }: CartSheetProp
             </div>
           ) : (
             <div className="space-y-3">
-              {items.map((item) => (
-                <ThemedCard key={item.cartItemId} className="space-y-4 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-semibold leading-tight">
-                          {item.productName}
-                        </h3>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                          Qty {item.quantity}
-                        </span>
-                      </div>
+              {items.map((item) => {
+                if (isDealCartItem(item)) {
+                  return (
+                    <DealCartItemCard
+                      key={item.cartItemId}
+                      item={item}
+                      onEdit={handleEditDealItem}
+                      onRemove={removeItem}
+                    />
+                  )
+                }
 
-                      {item.variantName ? (
-                        <p className="text-sm text-muted-foreground">
-                          {item.variantName}
-                        </p>
-                      ) : null}
-                    </div>
+                if (isConfiguredCartItem(item)) {
+                  return (
+                    <ConfiguredCartItemCard
+                      key={item.cartItemId}
+                      item={item}
+                      loadingEditItemId={loadingEditItemId}
+                      onEdit={handleEditItem}
+                      onRemove={removeItem}
+                    />
+                  )
+                }
 
-                    <div className="shrink-0 text-right">
-                      <p className="font-semibold leading-tight">
-                        ${item.totalPrice.toFixed(2)}
-                      </p>
-                      {item.quantity > 1 ? (
-                        <p className="text-xs text-muted-foreground">
-                          ${item.unitPrice.toFixed(2)} each
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {item.modifiers.length > 0 ? (
-                    <div className="space-y-3 border-t pt-3">
-                      {groupModifiers(item.modifiers).map((group) => (
-                        <div key={group.groupId} className="border-l pl-3">
-                          <p className="text-xs font-semibold uppercase text-muted-foreground">
-                            {group.groupName}
-                          </p>
-                          <div className="mt-1 space-y-1">
-                            {group.modifiers.map((modifier) => {
-                              const placement = formatPlacement(
-                                modifier.placement
-                              )
-
-                              return (
-                                <div
-                                  key={`${item.cartItemId}-${modifier.optionId}`}
-                                  className="flex justify-between gap-3 text-sm"
-                                >
-                                  <span className="text-muted-foreground">
-                                    {modifier.optionName}
-                                    {placement ? ` (${placement})` : ""}
-                                    {modifier.multiplier > 1
-                                      ? ` x${modifier.multiplier}`
-                                      : ""}
-                                  </span>
-                                  {modifier.priceDelta > 0 ? (
-                                    <span className="shrink-0 text-muted-foreground">
-                                      +${modifier.priceDelta.toFixed(2)}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="flex justify-end border-t pt-3">
-                    <ThemedButton
-                      type="button"
-                      variant="link"
-                      onClick={() => handleEditItem(item)}
-                      disabled={loadingEditItemId === item.cartItemId}
-                      className="mr-4 h-auto bg-transparent p-0 text-sm font-medium text-foreground hover:bg-transparent"
-                    >
-                      {loadingEditItemId === item.cartItemId
-                        ? "Loading..."
-                        : "Edit"}
-                    </ThemedButton>
-
-                    <ThemedButton
-                      type="button"
-                      variant="link"
-                      onClick={() => removeItem(item.cartItemId)}
-                      className="h-auto bg-transparent p-0 text-sm font-medium text-destructive hover:bg-transparent"
-                    >
-                      Remove
-                    </ThemedButton>
-                  </div>
-                </ThemedCard>
-              ))}
+                return null
+              })}
             </div>
           )}
         </div>
@@ -265,6 +436,17 @@ export function CartSheet({ trigger, checkoutHref = "/checkout" }: CartSheetProp
           mode="edit"
           cartItem={editingItem}
           businessSlug={editingItem.businessSlug}
+        />
+      ) : null}
+
+      {editingDealItem ? (
+        <DealBuilder
+          open={Boolean(editingDealItem)}
+          onOpenChange={handleDealEditOpenChange}
+          businessSlug={editingDealItem.businessSlug}
+          businessId={editingDealItem.businessId}
+          specialId={editingDealItem.specialId}
+          editingDealItem={editingDealItem}
         />
       ) : null}
     </>

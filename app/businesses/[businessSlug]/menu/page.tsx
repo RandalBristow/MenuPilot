@@ -19,7 +19,9 @@ export default async function BusinessMenuRoutePage({
     notFound()
   }
 
-  const { business, menus } = await getMenuByBusinessSlug(businessContext.slug)
+  const { business, menus, activeSpecials } = await getMenuByBusinessSlug(
+    businessContext.slug
+  )
   const menu = menus?.[0]
 
   if (!menu) {
@@ -48,6 +50,7 @@ export default async function BusinessMenuRoutePage({
       businessSlug={business.slug}
       businessStatus={business.status}
       menu={menu}
+      activeSpecials={activeSpecials}
     />
   )
 }

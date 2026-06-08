@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { buildConfiguredCartItem } from "./build-cart-item"
+import {
+  buildConfiguredCartItem,
+  buildConfiguredProductResult,
+} from "./build-cart-item"
 
 describe("buildConfiguredCartItem", () => {
   it("stores reusable variant id, name, and resolved price", () => {
@@ -32,6 +35,38 @@ describe("buildConfiguredCartItem", () => {
       variantName: '16"',
       unitPrice: 19.49,
       totalPrice: 38.98,
+      configuredLineTotal: 38.98,
     })
+  })
+
+  it("builds configured product result snapshots without requiring a cart item id", () => {
+    const result = buildConfiguredProductResult({
+      productId: "product-pizza",
+      productName: "Build Your Own Pizza",
+      selectedVariant: null,
+      quantity: 1,
+      unitPrice: 12.95,
+      configuredLineTotal: 12.95,
+      chargedModifierTotal: 2,
+      modifierExtraTotal: 2,
+      childExtraTotal: 2,
+      modifiers: [],
+    })
+
+    expect(result).toMatchObject({
+      productId: "product-pizza",
+      productName: "Build Your Own Pizza",
+      variantId: null,
+      variantName: null,
+      quantity: 1,
+      unitPrice: 12.95,
+      totalPrice: 12.95,
+      configuredLineTotal: 12.95,
+      chargedModifierTotal: 2,
+      modifierExtraTotal: 2,
+      childExtraTotal: 2,
+      modifiers: [],
+    })
+    expect("cartItemId" in result).toBe(false)
   })
 })

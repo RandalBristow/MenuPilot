@@ -5,7 +5,12 @@ import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product"
 import { useCart } from "@/features/cart/context/CartProvider"
-import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import type {
+  CartModifier,
+  ConfiguredCartItem,
+  ConfiguredProductResult,
+} from "@/features/cart/types/cart"
+import { buildConfiguredProductResult } from "@/features/product-configurator/utils/build-cart-item"
 import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety"
 import { filterEnabledModifierOptions } from "@/features/product-configurator/utils/filter-enabled-modifier-options"
 import { filterEnabledProductVariants } from "@/features/product-configurator/utils/filter-enabled-product-variants"
@@ -17,6 +22,14 @@ import { applyVariantModifierOptionPrices } from "@/features/product-configurato
 import { getInitialSelectedModifiersFromDefaults } from "@/features/product-configurator/utils/product-default-modifiers"
 import { getModifierGroupValidationMessage as getValidationMessage } from "@/features/product-configurator/utils/modifier-group-validation"
 import { ModifierOptionGroupAccordion } from "@/features/product-configurator/components/ModifierOptionGroupAccordion"
+import {
+  submitConfiguredProductResult,
+  type ProductConfiguratorSubmitBehavior,
+} from "@/features/product-configurator/utils/submit-configured-product-result"
+import {
+  resolveIncludedQuantity,
+  type ModifierIncludedRuleOverride,
+} from "@/features/product-configurator/utils/modifier-included-rule-overrides"
 import {
   Dialog,
   DialogContent,
@@ -41,11 +54,15 @@ export type StandardItemBuilderProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
-  cartItem?: CartItem | null
+  cartItem?: ConfiguredCartItem | null
   businessSlug?: string | null
+  submitBehavior?: ProductConfiguratorSubmitBehavior
+  allowedVariantOptionIds?: string[] | null
+  modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
-function getInitialSelectedModifiers(cartItem?: CartItem | null) {
+function getInitialSelectedModifiers(cartItem?: ConfiguredCartItem | null) {
   if (!cartItem) return {}
 
   return cartItem.modifiers.reduce<Record<string, SelectedModifier>>(
@@ -61,7 +78,7 @@ function getInitialSelectedModifiers(cartItem?: CartItem | null) {
   )
 }
 
-function getInitialQuantity(cartItem?: CartItem | null) {
+function getInitialQuantity(cartItem?: ConfiguredCartItem | null) {
   return cartItem?.quantity ?? 1
 }
 
@@ -102,11 +119,19 @@ export function StandardItemBuilder({
   mode,
   cartItem = null,
   businessSlug = null,
+  submitBehavior = "cart",
+  allowedVariantOptionIds = null,
+  modifierIncludedRuleOverrides = null,
+  onConfiguredItem,
 }: StandardItemBuilderProps) {
   const sortedVariants = useMemo(
     () =>
-      filterEnabledProductVariants(product.variants),
-    [product.variants]
+      filterEnabledProductVariants(product.variants).filter((variant) =>
+        allowedVariantOptionIds?.length
+          ? allowedVariantOptionIds.includes(variant.id)
+          : true
+      ),
+    [allowedVariantOptionIds, product.variants]
   )
 
   const isVariantUnavailable = product.has_variants && sortedVariants.length === 0
@@ -139,9 +164,13 @@ export function StandardItemBuilder({
 
           return {
             ...group,
-            included_quantity: includedRule
-              ? Number(includedRule.included_quantity)
-              : 0,
+            included_quantity: resolveIncludedQuantity({
+              modifierGroupId: group.id,
+              productIncludedQuantity: includedRule
+                ? Number(includedRule.included_quantity)
+                : 0,
+              overrides: modifierIncludedRuleOverrides,
+            }),
             is_swappable: includedRule?.is_swappable ?? false,
             charge_for_extra: includedRule?.charge_for_extra ?? true,
             modifier_options: filterEnabledModifierOptions(
@@ -149,7 +178,11 @@ export function StandardItemBuilder({
             ),
           }
         }),
-    [product.product_modifier_groups, product.product_included_modifier_groups]
+    [
+      modifierIncludedRuleOverrides,
+      product.product_modifier_groups,
+      product.product_included_modifier_groups,
+    ]
   )
 
   const modifierGroups = useMemo(
@@ -252,6 +285,9 @@ export function StandardItemBuilder({
 
   const unitTotal = pricing.unitPrice
   const total = pricing.lineTotal
+  const modifierExtraTotal = Object.values(
+    pricing.pricedSelectedModifiers
+  ).reduce((sum, modifier) => sum + modifier.priceDelta, 0)
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -356,29 +392,42 @@ export function StandardItemBuilder({
   function handleSubmit() {
     if (!canSubmit) return
 
-    const nextCartItem: CartItem = {
-      cartItemId: cartItem?.cartItemId ?? crypto.randomUUID(),
+    const result = buildConfiguredProductResult({
       businessId: product.business_id ?? cartItem?.businessId,
       businessSlug: businessSlug ?? cartItem?.businessSlug,
       locationId: cartItem?.locationId,
       locationSlug: cartItem?.locationSlug,
       productId: product.id,
       productName: product.name,
-      variantId: selectedVariant?.id ?? null,
-      variantName: selectedVariant?.name ?? null,
+      selectedVariant: selectedVariant
+        ? {
+            id: selectedVariant.id,
+            name: selectedVariant.name,
+            base_price: Number(selectedVariant.base_price),
+          }
+        : null,
       quantity,
       unitPrice: unitTotal,
-      totalPrice: total,
+      configuredLineTotal: total,
+      chargedModifierTotal: modifierExtraTotal,
+      modifierExtraTotal,
+      childExtraTotal: modifierExtraTotal,
       modifiers: getCartModifiers(),
-    }
+    })
 
-    if (mode === "edit" && cartItem) {
-      updateItem(cartItem.cartItemId, nextCartItem)
-    } else {
-      addItem(nextCartItem)
-    }
+    const submitResult = submitConfiguredProductResult({
+      submitBehavior,
+      mode,
+      result,
+      existingCartItem: cartItem,
+      onConfiguredItem,
+      addItem,
+      updateItem,
+    })
 
-    onOpenChange(false)
+    if (submitResult.ok) {
+      onOpenChange(false)
+    }
   }
 
   return (
@@ -539,7 +588,13 @@ export function StandardItemBuilder({
             onClick={handleSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>{mode === "edit" ? "Save changes" : "Add to cart"}</span>
+            <span>
+              {submitBehavior === "return"
+                ? "Add to Special"
+                : mode === "edit"
+                  ? "Save changes"
+                  : "Add to cart"}
+            </span>
             <span>${total.toFixed(2)}</span>
           </ThemedButton>
         </div>

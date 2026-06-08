@@ -1,5 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import type { StaffOrder } from "@/features/staff-orders/types/staff-order"
+import type {
+  StaffOrder,
+  StaffOrderItem,
+} from "@/features/staff-orders/types/staff-order"
 import { resolveBusinessContext } from "@/features/tenant/queries/resolve-business-context"
 import { resolveLocationContext } from "@/features/tenant/queries/resolve-location-context"
 import type {
@@ -33,6 +36,8 @@ type RawOrderModifier = {
 
 type RawOrderItem = {
   id: string
+  parent_order_item_id: string | null
+  relationship_type: string | null
   product_name_snapshot: string
   variant_name_snapshot: string | null
   quantity: number
@@ -40,6 +45,20 @@ type RawOrderItem = {
   line_subtotal: number | string
   sort_order: number
   order_item_modifiers: RawOrderModifier[] | null
+}
+
+type RawOrderDiscount = {
+  id: string
+  order_id: string
+  order_item_id: string | null
+  special_id: string | null
+  name_snapshot: string
+  special_type_snapshot: string
+  discount_type_snapshot: string
+  discount_value_snapshot: number | string
+  amount: number | string
+  coupon_code_snapshot: string | null
+  created_at: string
 }
 
 type RawOrder = {
@@ -50,9 +69,12 @@ type RawOrder = {
   fulfillment_type: string
   order_status: string
   payment_status: string
+  subtotal: number | string
+  discount_total: number | string
   total: number | string
   created_at: string
   order_items: RawOrderItem[] | null
+  order_discounts: RawOrderDiscount[] | null
 }
 
 function toNumber(value: number | string) {
@@ -63,6 +85,51 @@ function mapOrder(order: RawOrder): StaffOrder {
   const items = [...(order.order_items ?? [])].sort(
     (first, second) => first.sort_order - second.sort_order
   )
+  const discounts = (order.order_discounts ?? []).map((discount) => ({
+    id: discount.id,
+    orderId: discount.order_id,
+    orderItemId: discount.order_item_id,
+    specialId: discount.special_id,
+    nameSnapshot: discount.name_snapshot,
+    specialTypeSnapshot: discount.special_type_snapshot,
+    discountTypeSnapshot: discount.discount_type_snapshot,
+    discountValueSnapshot: toNumber(discount.discount_value_snapshot),
+    amount: toNumber(discount.amount),
+    couponCodeSnapshot: discount.coupon_code_snapshot,
+    createdAt: discount.created_at,
+  }))
+
+  const mappedItems: StaffOrderItem[] = items.map((item) => ({
+    id: item.id,
+    parentOrderItemId: item.parent_order_item_id,
+    relationshipType: item.relationship_type,
+    productName: item.product_name_snapshot,
+    variantName: item.variant_name_snapshot,
+    quantity: item.quantity,
+    unitPrice: toNumber(item.unit_price),
+    lineSubtotal: toNumber(item.line_subtotal),
+    discounts: discounts.filter((discount) => discount.orderItemId === item.id),
+    modifiers: (item.order_item_modifiers ?? []).map((modifier) => ({
+      id: modifier.id,
+      groupName: modifier.group_name_snapshot,
+      optionName: modifier.option_name_snapshot,
+      placement: modifier.placement,
+      multiplier: toNumber(modifier.multiplier),
+      priceDelta: toNumber(modifier.price_delta),
+      quantity: toNumber(modifier.quantity),
+    })),
+    children: [],
+  }))
+  const mappedItemsById = new Map(
+    mappedItems.map((item) => [item.id, item])
+  )
+
+  for (const item of mappedItems) {
+    if (!item.parentOrderItemId) continue
+
+    const parent = mappedItemsById.get(item.parentOrderItemId)
+    if (parent) parent.children.push(item)
+  }
 
   return {
     id: order.id,
@@ -72,25 +139,15 @@ function mapOrder(order: RawOrder): StaffOrder {
     fulfillmentType: order.fulfillment_type,
     orderStatus: order.order_status,
     paymentStatus: order.payment_status,
+    subtotal: toNumber(order.subtotal),
+    discountTotal: toNumber(order.discount_total),
     total: toNumber(order.total),
     createdAt: order.created_at,
-    items: items.map((item) => ({
-      id: item.id,
-      productName: item.product_name_snapshot,
-      variantName: item.variant_name_snapshot,
-      quantity: item.quantity,
-      unitPrice: toNumber(item.unit_price),
-      lineSubtotal: toNumber(item.line_subtotal),
-      modifiers: (item.order_item_modifiers ?? []).map((modifier) => ({
-        id: modifier.id,
-        groupName: modifier.group_name_snapshot,
-        optionName: modifier.option_name_snapshot,
-        placement: modifier.placement,
-        multiplier: toNumber(modifier.multiplier),
-        priceDelta: toNumber(modifier.price_delta),
-        quantity: toNumber(modifier.quantity),
-      })),
-    })),
+    items: mappedItems.filter((item) => item.parentOrderItemId == null),
+    discounts,
+    orderLevelDiscounts: discounts.filter(
+      (discount) => discount.orderItemId === null
+    ),
   }
 }
 
@@ -143,10 +200,27 @@ export async function getRecentStaffOrdersForScope({
       fulfillment_type,
       order_status,
       payment_status,
+      subtotal,
+      discount_total,
       total,
       created_at,
+      order_discounts (
+        id,
+        order_id,
+        order_item_id,
+        special_id,
+        name_snapshot,
+        special_type_snapshot,
+        discount_type_snapshot,
+        discount_value_snapshot,
+        amount,
+        coupon_code_snapshot,
+        created_at
+      ),
       order_items (
         id,
+        parent_order_item_id,
+        relationship_type,
         product_name_snapshot,
         variant_name_snapshot,
         quantity,

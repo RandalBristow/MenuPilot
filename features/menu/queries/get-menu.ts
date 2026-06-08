@@ -3,6 +3,7 @@ import {
   applyEffectiveVariants,
   type ProductWithVariantSources,
 } from "@/features/product-configurator/utils/apply-effective-product-variants"
+import { loadActivePublicSpecials } from "@/features/specials/queries/load-active-public-specials"
 
 type ProductGroupWithProduct = {
   products: ProductWithVariantSources | ProductWithVariantSources[] | null
@@ -225,8 +226,26 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
     throw new Error(`Failed to load menu: ${menuError.message}`)
   }
 
+  const { data: locations, error: locationError } = await supabase
+    .from("locations")
+    .select("timezone")
+    .eq("business_id", business.id)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+
+  if (locationError) {
+    throw new Error(`Failed to load menu location: ${locationError.message}`)
+  }
+
+  const activeSpecials = await loadActivePublicSpecials({
+    businessId: business.id,
+    currentTime: new Date(),
+    timeZone: locations?.[0]?.timezone ?? "America/New_York",
+  })
+
   return {
     business: business as MenuBusiness,
+    activeSpecials,
     menus: (menus ?? [])
       .map((menu) => applyMenuBusinessScope(menu, business.id))
       .map(applyEffectiveVariantsToMenu),

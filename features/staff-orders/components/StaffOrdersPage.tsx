@@ -9,6 +9,8 @@ import {
   getAllowedNextStaffOrderStatuses,
   staffOrderActionLabels,
   type StaffOrder,
+  type StaffOrderDiscount,
+  type StaffOrderItem,
   type StaffOrderModifier,
 } from "@/features/staff-orders/types/staff-order"
 import { cn } from "@/lib/utils"
@@ -46,6 +48,18 @@ function formatDateTime(value: string) {
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ")
+}
+
+function formatDiscountValue(discount: StaffOrderDiscount) {
+  if (discount.discountTypeSnapshot === "percentage") {
+    return `${discount.discountValueSnapshot}% off`
+  }
+
+  if (discount.discountTypeSnapshot === "fixed_price") {
+    return `${formatMoney(discount.discountValueSnapshot)} fixed price`
+  }
+
+  return `${formatMoney(discount.discountValueSnapshot)} off`
 }
 
 function isCompletedStatus(status: string) {
@@ -156,6 +170,101 @@ function StatusButtons({
   )
 }
 
+function DiscountRows({ discounts }: { discounts: StaffOrderDiscount[] }) {
+  if (discounts.length === 0) return null
+
+  return (
+    <div className="space-y-1 rounded-lg border border-success/20 bg-success/5 p-3 text-sm">
+      <p className="font-semibold text-success">Applied discounts</p>
+      {discounts.map((discount) => (
+        <div
+          key={discount.id}
+          className="flex items-start justify-between gap-3 text-muted-foreground"
+        >
+          <span>
+            <span className="font-medium text-foreground">
+              {discount.nameSnapshot}
+            </span>{" "}
+            {formatDiscountValue(discount)}
+          </span>
+          <span className="shrink-0 font-medium text-success">
+            -{formatMoney(discount.amount)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ModifierRows({ modifiers }: { modifiers: StaffOrderModifier[] }) {
+  if (modifiers.length === 0) return null
+
+  return (
+    <div className="mt-3 space-y-2 border-l pl-3 text-sm">
+      {modifiers.map((modifier) => (
+        <div key={modifier.id}>
+          <span className="font-medium text-foreground">
+            {modifier.groupName}:
+          </span>{" "}
+          <span className="text-muted-foreground">
+            {modifier.optionName}
+            {formatModifierDetail(modifier)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StaffOrderChildItem({ item }: { item: StaffOrderItem }) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium">{item.productName}</p>
+          {item.variantName ? (
+            <p className="text-sm text-muted-foreground">{item.variantName}</p>
+          ) : null}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-medium">Qty {item.quantity}</p>
+          {item.lineSubtotal > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Extras {formatMoney(item.lineSubtotal)}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <ModifierRows modifiers={item.modifiers} />
+    </div>
+  )
+}
+
+function OrderTotals({ order }: { order: StaffOrder }) {
+  const hasDiscount = order.discountTotal > 0
+
+  if (!hasDiscount) return null
+
+  return (
+    <div className="flex justify-end text-sm">
+      <div className="min-w-48 space-y-1">
+        <div className="flex items-center justify-between gap-6 text-muted-foreground">
+          <span>Subtotal</span>
+          <span>{formatMoney(order.subtotal)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-6 text-success">
+          <span>Discounts</span>
+          <span>-{formatMoney(order.discountTotal)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-6 border-t pt-1 font-semibold">
+          <span>Total</span>
+          <span>{formatMoney(order.total)}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function OrderItems({ order }: { order: StaffOrder }) {
   return (
     <div className="space-y-3">
@@ -179,16 +288,28 @@ function OrderItems({ order }: { order: StaffOrder }) {
             </div>
           </div>
 
-          {item.modifiers.length > 0 ? (
-            <div className="mt-3 space-y-2 border-l pl-3 text-sm">
-              {item.modifiers.map((modifier) => (
-                <div key={modifier.id}>
-                  <span className="font-medium text-foreground">
-                    {modifier.groupName}:
-                  </span>{" "}
-                  <span className="text-muted-foreground">
-                    {modifier.optionName}
-                    {formatModifierDetail(modifier)}
+          <ModifierRows modifiers={item.modifiers} />
+
+          {item.children.length > 0 ? (
+            <div className="mt-3 space-y-2 border-l pl-3">
+              {item.children.map((child) => (
+                <StaffOrderChildItem key={child.id} item={child} />
+              ))}
+            </div>
+          ) : null}
+
+          {item.discounts.length > 0 ? (
+            <div className="mt-3 space-y-1 border-l border-success/30 pl-3 text-sm">
+              {item.discounts.map((discount) => (
+                <div
+                  key={discount.id}
+                  className="flex items-start justify-between gap-3 text-success"
+                >
+                  <span>
+                    {discount.nameSnapshot} {formatDiscountValue(discount)}
+                  </span>
+                  <span className="shrink-0 font-medium">
+                    -{formatMoney(discount.amount)}
                   </span>
                 </div>
               ))}
@@ -240,6 +361,8 @@ function OrderCard({
       </div>
 
       <OrderItems order={order} />
+      <DiscountRows discounts={order.orderLevelDiscounts} />
+      <OrderTotals order={order} />
       <StatusButtons order={order} actionScope={actionScope} />
     </ThemedCard>
   )

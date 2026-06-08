@@ -9,6 +9,8 @@ import {
 import { getProductConfig } from "@/features/product-configurator/queries/get-product-config"
 import { CartHeaderButton } from "@/features/cart/components/CartHeaderButton"
 import { getMenuCheckoutHref } from "@/features/menu/utils/menu-checkout-routes"
+import type { PublicSpecial } from "@/features/specials/types/public-special"
+import { DealBuilder } from "@/features/specials/components/DealBuilder"
 
 type MenuPageProps = React.ComponentProps<typeof MenuPage>
 
@@ -17,6 +19,7 @@ type MenuClientProps = {
   businessSlug?: string | null
   businessStatus?: string | null
   menu: MenuPageProps["menu"]
+  activeSpecials?: PublicSpecial[]
 }
 
 function canCustomizeProduct(product: ProductConfig) {
@@ -30,10 +33,13 @@ export function MenuClient({
   businessSlug,
   businessStatus,
   menu,
+  activeSpecials = [],
 }: MenuClientProps) {
   const [open, setOpen] = useState(false)
   const [productConfig, setProductConfig] = useState<ProductConfig | null>(null)
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null)
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+  const [isDealOpen, setIsDealOpen] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const isSetupPreview = businessStatus === "setup"
   const checkoutHref = getMenuCheckoutHref(businessSlug)
@@ -65,6 +71,11 @@ export function MenuClient({
     }
   }
 
+  function handleBuildDeal(specialId: string) {
+    setSelectedDealId(specialId)
+    setIsDealOpen(true)
+  }
+
   return (
     <>
       {loadError ? (
@@ -76,8 +87,11 @@ export function MenuClient({
       <MenuPage
         businessName={businessName}
         menu={menu}
+        activeSpecials={activeSpecials}
         onCustomize={handleCustomize}
+        onBuildDeal={handleBuildDeal}
         loadingProductId={loadingProductId}
+        loadingDealId={selectedDealId && isDealOpen ? selectedDealId : null}
         headerAction={
           isSetupPreview ? null : <CartHeaderButton checkoutHref={checkoutHref} />
         }
@@ -98,6 +112,13 @@ export function MenuClient({
           businessSlug={businessSlug}
         />
       ) : null}
+
+      <DealBuilder
+        open={isDealOpen}
+        onOpenChange={setIsDealOpen}
+        businessSlug={businessSlug}
+        specialId={selectedDealId}
+      />
     </>
   )
 }

@@ -1,6 +1,6 @@
 # MenuPilot Roadmap
 
-_Last updated: 2026-06-06_
+_Last updated: 2026-06-08_
 
 This document records the current agreed order of work and future architecture decisions so they are not re-decided during later implementation.
 
@@ -178,11 +178,37 @@ After product entry and platform onboarding are ready:
 
 Start after product entry foundation and builder modes are stable.
 
+Schema foundation completed:
+
+- [x] Business-scoped Specials MVP tables exist for `line_discount`, `fixed_price_line`, and `cart_discount`.
+- [x] Product and menu group eligibility tables exist at schema level.
+- [x] `order_discounts` exists for applied discount snapshots.
+- [x] Pure shared resolver exists for active/scheduled eligibility, best-single-special selection, line discounts, fixed-price line specials, and cart discounts.
+- [x] Checkout integration applies Specials after configured-product pricing and writes `order_discounts` snapshots.
+- [x] Staff/order display shows subtotal, discount total, final total, and applied discount snapshots when discounts exist.
+- [x] Tenant-scoped Specials Admin UI exists for create/edit, enable/disable, eligibility, date ranges, recurring windows, and expired-special reuse.
+- [x] Public menu specials display exists for active Current Specials and eligible product badges.
+- [x] Orderable deal schema/type foundation exists for future `orderable_deal` Specials, deal components, and exact selectable component products.
+- [x] Pure orderable deal validation/pricing helper exists for already-priced proposed deal selections.
+- [x] Cart type/context/display support exists for nested orderable deal parent items with component child product snapshots.
+- [x] ProductConfigurator/builders can return configured child product snapshots without mutating cart.
+- [x] DealBuilder/orderable deal runtime exists for public menus and can add one nested parent deal item to cart.
+- [x] Checkout/order snapshot support exists for orderable deals.
+- [x] Staff nested orderable deal display exists.
+- [x] Specials Admin component editing for orderable deals exists with deal base price, component quantity rules, and exact allowed product choices browsed by selected-business product category/subcategory.
+- [x] Optional reusable variant option restrictions exist for orderable deal component products. No restriction rows means all enabled variants are allowed; saved restrictions limit DealBuilder and checkout to those variant options.
+- [x] Optional Modifier Group included-count overrides exist for orderable deal component products. No override row means the product's normal included rule is used; saved overrides apply only inside that deal component.
+- [ ] Rich cart specials preview is pending.
+- [ ] Coupon UI is pending.
+- [ ] BundleBuilder/ComboBuilder remains deferred.
+- [~] Mix-and-match fixed unit price deals have schema/type foundation and tenant-scoped admin editing; runtime/checkout/public behavior is pending.
+
 Specials should eventually support:
 
 - Discount specials.
 - Product/category eligibility.
 - Bundle/meal-deal specials.
+- Orderable deal components with allowed product choices.
 - Pizza specials.
 - Cart/checkout validation.
 - Menu/deal cards.
@@ -199,6 +225,44 @@ Before Specials Engine starts:
   - Platform Admin schema, list/detail, and create flow are complete.
   - Tenant resolver helpers, business admin shell, Product Admin read/write shells, Admin Modifier Library read/write shells, and Admin Media read/write shell are complete.
   - Tenant-aware staff routing/context is available through the location-scoped staff order route.
+
+MVP sequencing:
+
+1. [x] Cart type/support for nested deal items.
+2. [x] Product configurator return mode for DealBuilder child products.
+3. [x] DealBuilder MVP using existing product builders.
+4. [x] Checkout validation/order snapshot support for orderable deals.
+5. [x] Staff display for nested deal items.
+6. [x] Specials Admin component UI.
+7. Public menu orderable deal cards/polish.
+8. Rich cart passive-special preview.
+9. Optional coupon code support.
+
+Do not build BundleBuilder/ComboBuilder or coupon UI as the first orderable deal behavior. Exact allowed product selection per component is the first orderable deal MVP. Optional component product variant restrictions are supported for cases such as "2 Liter only" or "Large pizza only"; optional component/product Modifier Group included-count overrides are supported for cases such as "Large 2-Topping Pizza." Category/subcategory eligibility rules, allowed/excluded modifier option rules, BOGO, coupons, free-item rewards, usage limits, exclusions, and optional component pricing tables remain deferred.
+
+Planned Specials / Deals backlog:
+
+- [x] `line_discount`.
+- [x] `fixed_price_line`.
+- [x] `cart_discount`.
+- [x] `orderable_deal` with fixed/base price and required components.
+- [x] Recurring availability windows.
+- [x] Variant restrictions for orderable components.
+- [x] Modifier included-count overrides for orderable components.
+- [~] `mix_and_match_fixed_unit_price` schema/type foundation and tenant-scoped admin editing.
+- [ ] Category/subcategory component eligibility.
+- [ ] BOGO.
+- [ ] `free_item_with_purchase`.
+- [ ] `discounted_add_on`.
+- [ ] `coupon_code`.
+- [ ] Usage limits: one per order, limited total redemptions, location-specific, fulfillment-specific carryout/delivery.
+- [ ] Tax/discount ordering.
+- [ ] Customer/account-specific promos.
+
+Recommended next Specials build:
+
+- Build Mix-and-Match public runtime/cart/checkout behavior for `mix_and_match_fixed_unit_price` after admin records are manually verified.
+- Do not build BOGO, coupon UI, usage limits, free-item rewards, side components, or category/subcategory component eligibility until explicitly requested.
 
 ## Product Setup Warnings
 

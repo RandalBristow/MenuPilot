@@ -1,8 +1,11 @@
 import "@testing-library/jest-dom/vitest"
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { CartProvider } from "@/features/cart/context/CartProvider"
-import type { CartItem } from "@/features/cart/types/cart"
+import type {
+  ConfiguredCartItem,
+  ConfiguredProductResult,
+} from "@/features/cart/types/cart"
 import type { ProductConfig } from "./ProductConfigurator"
 import { GenericConfigurableBuilder } from "./GenericConfigurableBuilder"
 
@@ -95,10 +98,14 @@ function renderGenericConfigurableBuilder({
   product = buildProduct(),
   mode = "create",
   cartItem = null,
+  submitBehavior,
+  onConfiguredItem,
 }: {
   product?: ProductConfig
   mode?: "create" | "edit"
-  cartItem?: CartItem | null
+  cartItem?: ConfiguredCartItem | null
+  submitBehavior?: Parameters<typeof GenericConfigurableBuilder>[0]["submitBehavior"]
+  onConfiguredItem?: (result: ConfiguredProductResult) => void
 } = {}) {
   return render(
     <CartProvider>
@@ -108,12 +115,18 @@ function renderGenericConfigurableBuilder({
         onOpenChange={() => undefined}
         mode={mode}
         cartItem={cartItem}
+        submitBehavior={submitBehavior}
+        onConfiguredItem={onConfiguredItem}
       />
     </CartProvider>
   )
 }
 
 describe("GenericConfigurableBuilder", () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   it("renders assigned variants and modifier groups for a salad product", () => {
     renderGenericConfigurableBuilder()
 
@@ -495,5 +508,46 @@ describe("GenericConfigurableBuilder", () => {
       })
     ).toBeInTheDocument()
     expect(screen.queryByText("Whole pizza")).not.toBeInTheDocument()
+  })
+
+  it("returns configured results without mutating cart", () => {
+    const onConfiguredItem = vi.fn()
+
+    renderGenericConfigurableBuilder({
+      submitBehavior: "return",
+      onConfiguredItem,
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /large/i }))
+    fireEvent.click(screen.getByRole("button", { name: /ranch/i }))
+    fireEvent.click(screen.getByRole("button", { name: /add to special/i }))
+
+    expect(onConfiguredItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "garden-salad",
+        productName: "Garden Salad",
+        variantId: "large",
+        variantName: "Large",
+        quantity: 1,
+        unitPrice: 10.99,
+        totalPrice: 10.99,
+        configuredLineTotal: 10.99,
+        chargedModifierTotal: 0,
+        modifierExtraTotal: 0,
+        childExtraTotal: 0,
+        modifiers: [
+          {
+            optionId: "ranch",
+            optionName: "Ranch",
+            groupId: "dressing-group",
+            groupName: "Dressing",
+            placement: "whole",
+            multiplier: 1,
+            priceDelta: 0,
+          },
+        ],
+      })
+    )
+    expect(window.localStorage.getItem("menupilot-cart")).toBeNull()
   })
 })

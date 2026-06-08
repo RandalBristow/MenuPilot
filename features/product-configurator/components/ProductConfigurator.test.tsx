@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { CartProvider } from "@/features/cart/context/CartProvider"
 import type { ProductConfig } from "./ProductConfigurator"
 import { ProductConfigurator } from "./ProductConfigurator"
 
@@ -24,6 +25,13 @@ function buildProduct(overrides: Partial<ProductConfig> = {}): ProductConfig {
 }
 
 describe("ProductConfigurator", () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    vi.stubGlobal("crypto", {
+      randomUUID: () => "cart-product-configurator",
+    })
+  })
+
   it("shows a safe unsupported message for combo products", () => {
     render(
       <ProductConfigurator
@@ -40,5 +48,38 @@ describe("ProductConfigurator", () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /add to cart/i }))
       .not.toBeInTheDocument()
+  })
+
+  it("defaults to cart submit behavior", () => {
+    render(
+      <CartProvider>
+        <ProductConfigurator
+          product={buildProduct({
+            id: "chips",
+            name: "Chips",
+            description: null,
+            builder_template: "standard",
+            has_variants: false,
+            base_price: 1.5,
+          })}
+          open
+          onOpenChange={() => undefined}
+          mode="create"
+        />
+      </CartProvider>
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /add to cart/i }))
+
+    expect(
+      JSON.parse(window.localStorage.getItem("menupilot-cart") ?? "[]")
+    ).toEqual([
+      expect.objectContaining({
+        cartItemId: "cart-product-configurator",
+        productId: "chips",
+        productName: "Chips",
+        totalPrice: 1.5,
+      }),
+    ])
   })
 })

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import type { ValidatedPricedCartItem } from "./validate-and-price-cart"
 import { validateAndPriceCart } from "./validate-and-price-cart"
 import {
+  buildDealChildOrderItemInsertPayload,
+  buildDealParentOrderItemInsertPayload,
+  buildOrderDiscountInsertPayload,
   buildOrderInsertPayload,
   buildOrderItemInsertPayload,
   buildOrderModifierInsertPayload,
@@ -55,6 +58,24 @@ describe("checkout order payload helpers", () => {
 
     expect(payload.subtotal).toBe(38.98)
     expect(payload.total).toBe(38.98)
+  })
+
+  it("builds order totals with applied specials discount", () => {
+    const payload = buildOrderInsertPayload({
+      businessId: "business-1",
+      locationId: "location-1",
+      orderNumber: "MP-123",
+      customerName: "Randy",
+      customerPhone: "555-0100",
+      fulfillmentType: "pickup",
+      items: [cartItem],
+      discountTotal: 5,
+      total: 33.98,
+    })
+
+    expect(payload.subtotal).toBe(38.98)
+    expect(payload.discount_total).toBe(5)
+    expect(payload.total).toBe(33.98)
   })
 
   it("uses validated priced values instead of client-submitted cart prices", () => {
@@ -180,6 +201,8 @@ describe("checkout order payload helpers", () => {
       quantity: 2,
       unit_price: 19.49,
       line_subtotal: 38.98,
+      relationship_type: null,
+      parent_order_item_id: null,
     })
     expect(payload).not.toHaveProperty("product_variant_id")
   })
@@ -215,6 +238,8 @@ describe("checkout order payload helpers", () => {
       quantity: 1,
       unit_price: 4.99,
       line_subtotal: 4.99,
+      relationship_type: null,
+      parent_order_item_id: null,
     })
     expect(payload).not.toHaveProperty("product_variant_id")
   })
@@ -238,5 +263,139 @@ describe("checkout order payload helpers", () => {
       price_delta: 1.5,
       quantity: 1,
     })
+  })
+
+  it("builds parent and child deal order item payloads", () => {
+    const parentPayload = buildDealParentOrderItemInsertPayload({
+      businessId: "business-1",
+      orderId: "order-1",
+      item: {
+        itemType: "deal",
+        cartItemId: "deal-cart-1",
+        specialId: "deal-1",
+        specialName: "Family Deal",
+        quantity: 1,
+        unitPrice: 26.99,
+        lineSubtotal: 26.99,
+        dealBasePrice: 24.99,
+        childExtraTotal: 2,
+        components: [],
+      },
+    })
+    const childPayload = buildDealChildOrderItemInsertPayload({
+      businessId: "business-1",
+      orderId: "order-1",
+      parentOrderItemId: "parent-item-1",
+      child: {
+        childLineId: "child-1",
+        componentId: "component-1",
+        componentLabel: "Choose a pizza",
+        productId: "product-pizza",
+        productName: "Cheese Pizza",
+        variantId: "variant-large",
+        variantName: "Large",
+        quantity: 1,
+        unitPrice: 14,
+        configuredLineTotal: 14,
+        childExtraTotal: 2,
+        modifiers: [],
+      },
+    })
+
+    expect(parentPayload).toMatchObject({
+      product_id: null,
+      product_name_snapshot: "Family Deal",
+      relationship_type: "deal",
+      line_subtotal: 26.99,
+    })
+    expect(childPayload).toMatchObject({
+      parent_order_item_id: "parent-item-1",
+      relationship_type: "deal_component",
+      product_id: "product-pizza",
+      product_name_snapshot: "Cheese Pizza",
+      line_subtotal: 2,
+    })
+  })
+
+  it("builds order discount insert payloads with mapped order item ids", () => {
+    const payload = buildOrderDiscountInsertPayload({
+      orderId: "order-1",
+      orderItemIdsByLineId: new Map([["cart-1", "order-item-1"]]),
+      discounts: [
+        {
+          lineId: "cart-1",
+          orderItemId: null,
+          businessId: "business-1",
+          specialId: "special-1",
+          nameSnapshot: "Pizza Special",
+          specialTypeSnapshot: "line_discount",
+          discountTypeSnapshot: "percentage",
+          discountValueSnapshot: 10,
+          amount: 3.9,
+          couponCodeSnapshot: null,
+        },
+      ],
+    })
+
+    expect(payload).toEqual([
+      {
+        business_id: "business-1",
+        order_id: "order-1",
+        order_item_id: "order-item-1",
+        special_id: "special-1",
+        name_snapshot: "Pizza Special",
+        special_type_snapshot: "line_discount",
+        discount_type_snapshot: "percentage",
+        discount_value_snapshot: 10,
+        amount: 3.9,
+        coupon_code_snapshot: null,
+      },
+    ])
+  })
+
+  it("builds cart-level order discount payloads with null order item id", () => {
+    const payload = buildOrderDiscountInsertPayload({
+      orderId: "order-1",
+      orderItemIdsByLineId: new Map(),
+      discounts: [
+        {
+          lineId: null,
+          orderItemId: null,
+          businessId: "business-1",
+          specialId: "special-2",
+          nameSnapshot: "Cart Special",
+          specialTypeSnapshot: "cart_discount",
+          discountTypeSnapshot: "fixed_amount",
+          discountValueSnapshot: 5,
+          amount: 5,
+          couponCodeSnapshot: null,
+        },
+      ],
+    })
+
+    expect(payload[0].order_item_id).toBeNull()
+  })
+
+  it("throws when a line discount cannot be mapped to an inserted order item", () => {
+    expect(() =>
+      buildOrderDiscountInsertPayload({
+        orderId: "order-1",
+        orderItemIdsByLineId: new Map(),
+        discounts: [
+          {
+            lineId: "missing-line",
+            orderItemId: null,
+            businessId: "business-1",
+            specialId: "special-1",
+            nameSnapshot: "Pizza Special",
+            specialTypeSnapshot: "line_discount",
+            discountTypeSnapshot: "percentage",
+            discountValueSnapshot: 10,
+            amount: 3.9,
+            couponCodeSnapshot: null,
+          },
+        ],
+      })
+    ).toThrow(/map line discount/i)
   })
 })

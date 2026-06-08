@@ -1,4 +1,6 @@
 import { ProductCard } from "./ProductCard";
+import type { PublicSpecial } from "@/features/specials/types/public-special";
+import { getPublicProductSpecialBadge } from "@/features/specials/utils/public-special-display";
 
 type ProductGroup = {
   id: string;
@@ -60,6 +62,7 @@ type VisibleProductGroup = {
 type CategorySectionProps = {
   parentGroup: MenuGroup;
   childGroups: MenuGroup[];
+  activeSpecials?: PublicSpecial[];
   onCustomize?: (productId: string) => void;
   loadingProductId?: string | null;
   orderingActionsDisabled?: boolean;
@@ -68,6 +71,7 @@ type CategorySectionProps = {
 export function CategorySection({
   parentGroup,
   childGroups,
+  activeSpecials = [],
   onCustomize,
   loadingProductId,
   orderingActionsDisabled = false,
@@ -130,6 +134,13 @@ export function CategorySection({
                       <ProductCard
                         key={productGroup.id}
                         product={productGroup.product}
+                        specialBadge={getPublicProductSpecialBadge({
+                          specials: activeSpecials,
+                          product: {
+                            productId: productGroup.product.id,
+                            menuGroupIds: [parentGroup.id, childGroup.id],
+                          },
+                        })}
                         onCustomize={onCustomize}
                         isLoading={loadingProductId === productGroup.product.id}
                         orderingActionsDisabled={orderingActionsDisabled}

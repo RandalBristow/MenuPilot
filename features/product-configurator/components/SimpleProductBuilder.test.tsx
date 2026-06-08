@@ -41,7 +41,17 @@ function buildSimpleProduct(overrides: Partial<ProductConfig> = {}): ProductConf
   }
 }
 
-function renderSimpleProductBuilder(product = buildSimpleProduct()) {
+function renderSimpleProductBuilder({
+  product = buildSimpleProduct(),
+  onConfiguredItem,
+  submitBehavior,
+  allowedVariantOptionIds,
+}: {
+  product?: ProductConfig
+  onConfiguredItem?: Parameters<typeof SimpleProductBuilder>[0]["onConfiguredItem"]
+  submitBehavior?: Parameters<typeof SimpleProductBuilder>[0]["submitBehavior"]
+  allowedVariantOptionIds?: string[] | null
+} = {}) {
   return render(
     <CartProvider>
       <SimpleProductBuilder
@@ -49,6 +59,9 @@ function renderSimpleProductBuilder(product = buildSimpleProduct()) {
         open
         onOpenChange={() => undefined}
         mode="create"
+        submitBehavior={submitBehavior}
+        onConfiguredItem={onConfiguredItem}
+        allowedVariantOptionIds={allowedVariantOptionIds}
       />
     </CartProvider>
   )
@@ -81,6 +94,18 @@ describe("SimpleProductBuilder", () => {
     )
   })
 
+  it("filters variants when a deal component provides allowed variants", () => {
+    renderSimpleProductBuilder({
+      allowedVariantOptionIds: ["large"],
+    })
+
+    expect(screen.queryByRole("button", { name: /small/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /large/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    )
+  })
+
   it("shows quantity before variant selections", () => {
     renderSimpleProductBuilder()
 
@@ -94,8 +119,8 @@ describe("SimpleProductBuilder", () => {
   })
 
   it("handles a quantity-only product", () => {
-    renderSimpleProductBuilder(
-      buildSimpleProduct({
+    renderSimpleProductBuilder({
+      product: buildSimpleProduct({
         id: "chips",
         name: "Chips",
         description: null,
@@ -103,8 +128,8 @@ describe("SimpleProductBuilder", () => {
         has_variants: false,
         base_price: 1.5,
         variants: [],
-      })
-    )
+      }),
+    })
 
     expect(screen.queryByText("Choose an option")).not.toBeInTheDocument()
     expect(screen.getByText("Quantity")).toBeInTheDocument()
@@ -133,8 +158,42 @@ describe("SimpleProductBuilder", () => {
         quantity: 1,
         unitPrice: 3.5,
         totalPrice: 3.5,
+        configuredLineTotal: 3.5,
+        chargedModifierTotal: 0,
+        modifierExtraTotal: 0,
+        childExtraTotal: 0,
         modifiers: [],
       },
     ])
+  })
+
+  it("returns configured variant-only results without mutating cart", () => {
+    const onConfiguredItem = vi.fn()
+
+    renderSimpleProductBuilder({
+      submitBehavior: "return",
+      onConfiguredItem,
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /large/i }))
+    fireEvent.click(screen.getByRole("button", { name: /add to special/i }))
+
+    expect(onConfiguredItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "iced-tea",
+        productName: "Iced Tea",
+        variantId: "large",
+        variantName: "Large",
+        quantity: 1,
+        unitPrice: 3.5,
+        totalPrice: 3.5,
+        configuredLineTotal: 3.5,
+        chargedModifierTotal: 0,
+        modifierExtraTotal: 0,
+        childExtraTotal: 0,
+        modifiers: [],
+      })
+    )
+    expect(window.localStorage.getItem("menupilot-cart")).toBeNull()
   })
 })

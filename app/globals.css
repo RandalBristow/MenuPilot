@@ -143,3 +143,74 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
+
+.deal-builder-shell {
+  width: min(calc(100vw - 1rem), 64rem);
+  max-width: min(calc(100vw - 1rem), 64rem) !important;
+  container-type: inline-size;
+}
+
+@media (min-width: 640px) {
+  .deal-builder-shell {
+    width: min(calc(100vw - 2rem), 64rem);
+    max-width: min(calc(100vw - 2rem), 64rem) !important;
+  }
+}
+
+.deal-builder-summary {
+  display: none;
+}
+
+.deal-builder-products-grid {
+  grid-template-columns: 1fr;
+}
+
+@container (min-width: 58rem) {
+  .deal-builder-content {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+  }
+
+  .deal-builder-summary {
+    display: block;
+  }
+
+  .deal-builder-footer {
+    display: none;
+  }
+}
+
+@container (min-width: 44rem) {
+  .deal-builder-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 62rem) {
+  .deal-builder-main {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+
+  .deal-builder-products-grid {
+    gap: 0.625rem;
+    grid-template-columns: repeat(3, minmax(0, 13rem));
+    justify-content: start;
+  }
+
+  .deal-builder-product-media {
+    aspect-ratio: auto;
+    height: 7rem;
+  }
+
+  .deal-builder-product-body {
+    padding: 0.625rem;
+  }
+
+  .deal-builder-product-actions {
+    gap: 0.375rem;
+  }
+
+  .deal-builder-card-button {
+    height: 2.25rem;
+  }
+}

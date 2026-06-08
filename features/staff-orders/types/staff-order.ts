@@ -68,12 +68,30 @@ export type StaffOrderModifier = {
 
 export type StaffOrderItem = {
   id: string
+  parentOrderItemId: string | null
+  relationshipType: string | null
   productName: string
   variantName: string | null
   quantity: number
   unitPrice: number
   lineSubtotal: number
   modifiers: StaffOrderModifier[]
+  discounts: StaffOrderDiscount[]
+  children: StaffOrderItem[]
+}
+
+export type StaffOrderDiscount = {
+  id: string
+  orderId: string
+  orderItemId: string | null
+  specialId: string | null
+  nameSnapshot: string
+  specialTypeSnapshot: string
+  discountTypeSnapshot: string
+  discountValueSnapshot: number
+  amount: number
+  couponCodeSnapshot: string | null
+  createdAt: string
 }
 
 export type StaffOrder = {
@@ -84,7 +102,11 @@ export type StaffOrder = {
   fulfillmentType: string
   orderStatus: StaffOrderStatus | string
   paymentStatus: string
+  subtotal: number
+  discountTotal: number
   total: number
   createdAt: string
   items: StaffOrderItem[]
+  discounts: StaffOrderDiscount[]
+  orderLevelDiscounts: StaffOrderDiscount[]
 }

@@ -20,6 +20,7 @@ type ThemedAccordionProps = {
   onOpenIdsChange?: (openIds: string[]) => void
   allowMultiple?: boolean
   compact?: boolean
+  keepMounted?: boolean
   className?: string
 }
 
@@ -30,6 +31,7 @@ export function ThemedAccordion({
   onOpenIdsChange,
   allowMultiple = true,
   compact = false,
+  keepMounted = false,
   className,
 }: ThemedAccordionProps) {
   const baseId = useId()
@@ -112,11 +114,12 @@ export function ThemedAccordion({
               />
             </button>
 
-            {isOpen ? (
+            {isOpen || keepMounted ? (
               <div
                 id={contentId}
                 role="region"
                 aria-labelledby={triggerId}
+                hidden={!isOpen}
                 className="border-t border-border/70 bg-card px-2.5 py-2.5"
               >
                 {item.content}

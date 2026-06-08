@@ -3,7 +3,7 @@ import { MenuClient } from "@/features/menu/components/MenuClient"
 import { LEGACY_MENU_BUSINESS_SLUG } from "@/features/menu/utils/legacy-menu-context"
 
 export default async function MenuRoutePage() {
-  const { business, menus } = await getMenuByBusinessSlug(
+  const { business, menus, activeSpecials } = await getMenuByBusinessSlug(
     LEGACY_MENU_BUSINESS_SLUG
   )
   const menu = menus?.[0]
@@ -22,6 +22,7 @@ export default async function MenuRoutePage() {
       businessSlug={business.slug}
       businessStatus={business.status}
       menu={menu}
+      activeSpecials={activeSpecials}
     />
   )
 }

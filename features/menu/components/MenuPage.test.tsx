@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
+import type { PublicSpecial } from "@/features/specials/types/public-special"
 import { MenuPage } from "./MenuPage"
 
 const menu = {
@@ -55,6 +56,27 @@ const menuWithProduct = {
   ],
 }
 
+function buildSpecial(
+  overrides: Partial<PublicSpecial> = {}
+): PublicSpecial {
+  return {
+    id: "special-a",
+    businessId: "business-a",
+    name: "Pizza Night",
+    customerDescription: "Save on selected pizzas.",
+    specialType: "line_discount",
+    discountType: "percentage",
+    discountValue: 20,
+    minOrderAmount: null,
+    startsAt: null,
+    endsAt: null,
+    eligibleProducts: [],
+    eligibleMenuGroupIds: [],
+    availabilityWindows: [],
+    ...overrides,
+  }
+}
+
 describe("MenuPage", () => {
   it("shows setup preview messaging when supplied", () => {
     render(
@@ -93,5 +115,98 @@ describe("MenuPage", () => {
     expect(
       screen.getByRole<HTMLButtonElement>("button", { name: "Preview only" })
     ).toBeDisabled()
+  })
+
+  it("does not show the specials section when no active specials exist", () => {
+    render(<MenuPage businessName="Pronto Demo Pizza & Carryout" menu={menu} />)
+
+    expect(screen.queryByText("Current Specials")).not.toBeInTheDocument()
+  })
+
+  it("shows active specials in the public menu specials section", () => {
+    render(
+      <MenuPage
+        businessName="Pronto Demo Pizza & Carryout"
+        menu={menu}
+        activeSpecials={[
+          buildSpecial({
+            name: "Family Night",
+            discountType: "fixed_amount",
+            discountValue: 5,
+            specialType: "cart_discount",
+          }),
+        ]}
+      />
+    )
+
+    expect(screen.getByText("Current Specials")).toBeInTheDocument()
+    expect(screen.getByText("Family Night")).toBeInTheDocument()
+    expect(screen.getByText("$5.00 off")).toBeInTheDocument()
+    expect(
+      screen.getByText("Save on selected pizzas.")
+    ).toBeInTheDocument()
+  })
+
+  it("shows product badges for eligible line specials", () => {
+    render(
+      <MenuPage
+        businessName="Pronto Demo Pizza & Carryout"
+        menu={menuWithProduct}
+        activeSpecials={[
+          buildSpecial({
+            eligibleProducts: [{ productId: "product-a" }],
+          }),
+        ]}
+      />
+    )
+
+    expect(screen.getByText("Special: 20% off")).toBeInTheDocument()
+  })
+
+  it("does not show product badges for cart-level specials", () => {
+    render(
+      <MenuPage
+        businessName="Pronto Demo Pizza & Carryout"
+        menu={menuWithProduct}
+        activeSpecials={[
+          buildSpecial({
+            specialType: "cart_discount",
+            discountType: "fixed_amount",
+            discountValue: 5,
+          }),
+        ]}
+      />
+    )
+
+    expect(screen.getByText("Current Specials")).toBeInTheDocument()
+    expect(screen.queryByText(/^Special:/)).not.toBeInTheDocument()
+  })
+
+  it("shows a build action for active orderable deals", () => {
+    const onBuildDeal = vi.fn()
+
+    render(
+      <MenuPage
+        businessName="Pronto Demo Pizza & Carryout"
+        menu={menu}
+        activeSpecials={[
+          buildSpecial({
+            id: "deal-a",
+            name: "Family Deal",
+            specialType: "orderable_deal",
+            discountType: "fixed_price",
+            discountValue: 24.99,
+          }),
+        ]}
+        onBuildDeal={onBuildDeal}
+      />
+    )
+
+    expect(screen.getByText("Family Deal")).toBeInTheDocument()
+    expect(screen.getByText("Deal $24.99")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Build Deal" }))
+
+    expect(onBuildDeal).toHaveBeenCalledWith("deal-a")
   })
 })

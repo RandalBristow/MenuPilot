@@ -1,6 +1,9 @@
 "use client"
 
-import type { CartItem } from "@/features/cart/types/cart"
+import type {
+  ConfiguredCartItem,
+  ConfiguredProductResult,
+} from "@/features/cart/types/cart"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   Dialog,
@@ -9,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { resolveProductBuilderMode } from "@/features/product-configurator/utils/resolve-product-builder-mode"
+import type { ProductConfiguratorSubmitBehavior } from "@/features/product-configurator/utils/submit-configured-product-result"
+import type { ModifierIncludedRuleOverride } from "@/features/product-configurator/utils/modifier-included-rule-overrides"
 import { GenericConfigurableBuilder } from "./GenericConfigurableBuilder"
 import { PizzaBuilder, type ProductConfig } from "./PizzaBuilder"
 import { SimpleProductBuilder } from "./SimpleProductBuilder"
@@ -18,8 +23,12 @@ type ProductConfiguratorProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
-  cartItem?: CartItem | null
+  cartItem?: ConfiguredCartItem | null
   businessSlug?: string | null
+  submitBehavior?: ProductConfiguratorSubmitBehavior
+  allowedVariantOptionIds?: string[] | null
+  modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
 export type { ProductConfig }
@@ -31,6 +40,10 @@ export function ProductConfigurator({
   mode,
   cartItem = null,
   businessSlug = null,
+  submitBehavior = "cart",
+  allowedVariantOptionIds = null,
+  modifierIncludedRuleOverrides = null,
+  onConfiguredItem,
 }: ProductConfiguratorProps) {
   const builderMode = resolveProductBuilderMode(product)
 
@@ -43,6 +56,10 @@ export function ProductConfigurator({
         onOpenChange={onOpenChange}
         editingCartItem={mode === "edit" ? cartItem : null}
         businessSlug={businessSlug}
+        submitBehavior={submitBehavior}
+        allowedVariantOptionIds={allowedVariantOptionIds}
+        modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
+        onConfiguredItem={onConfiguredItem}
       />
     )
   }
@@ -82,6 +99,10 @@ export function ProductConfigurator({
         mode={mode}
         cartItem={cartItem}
         businessSlug={businessSlug}
+        submitBehavior={submitBehavior}
+        allowedVariantOptionIds={allowedVariantOptionIds}
+        modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
+        onConfiguredItem={onConfiguredItem}
       />
     )
   }
@@ -95,6 +116,10 @@ export function ProductConfigurator({
       mode={mode}
       cartItem={cartItem}
       businessSlug={businessSlug}
+      submitBehavior={submitBehavior}
+      allowedVariantOptionIds={allowedVariantOptionIds}
+      modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
+      onConfiguredItem={onConfiguredItem}
     />
   )
 }

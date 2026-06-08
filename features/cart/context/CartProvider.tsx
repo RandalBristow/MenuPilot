@@ -1,69 +1,31 @@
 "use client"
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import type {
+  CartItem,
+  ConfiguredCartItem,
+  DealCartItem,
+} from "@/features/cart/types/cart"
+import {
+  getCartItemCount,
+  getCartSubtotal,
+  isCartItem,
+} from "@/features/cart/utils/cart-items"
 
 type CartContextValue = {
   items: CartItem[]
   itemCount: number
   subtotal: number
-  addItem: (item: CartItem) => void
-  updateItem: (cartItemId: string, updatedItem: CartItem) => void
+  addItem: (item: ConfiguredCartItem) => void
+  updateItem: (cartItemId: string, updatedItem: ConfiguredCartItem) => void
+  addDealItem: (item: DealCartItem) => void
+  updateDealItem: (cartItemId: string, updatedItem: DealCartItem) => void
   removeItem: (cartItemId: string) => void
   clearCart: () => void
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
 const CART_STORAGE_KEY = "menupilot-cart"
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function isCartModifier(value: unknown): value is CartModifier {
-  if (!isRecord(value)) return false
-
-  return (
-    typeof value.optionId === "string" &&
-    typeof value.optionName === "string" &&
-    typeof value.groupId === "string" &&
-    typeof value.groupName === "string" &&
-    (value.placement === "left" ||
-      value.placement === "whole" ||
-      value.placement === "right") &&
-    typeof value.multiplier === "number" &&
-    typeof value.priceDelta === "number"
-  )
-}
-
-function isCartItem(value: unknown): value is CartItem {
-  if (!isRecord(value)) return false
-
-  return (
-    typeof value.cartItemId === "string" &&
-    (typeof value.businessId === "string" ||
-      value.businessId === null ||
-      value.businessId === undefined) &&
-    (typeof value.businessSlug === "string" ||
-      value.businessSlug === null ||
-      value.businessSlug === undefined) &&
-    (typeof value.locationId === "string" ||
-      value.locationId === null ||
-      value.locationId === undefined) &&
-    (typeof value.locationSlug === "string" ||
-      value.locationSlug === null ||
-      value.locationSlug === undefined) &&
-    typeof value.productId === "string" &&
-    typeof value.productName === "string" &&
-    (typeof value.variantId === "string" || value.variantId === null) &&
-    (typeof value.variantName === "string" || value.variantName === null) &&
-    typeof value.quantity === "number" &&
-    typeof value.unitPrice === "number" &&
-    typeof value.totalPrice === "number" &&
-    Array.isArray(value.modifiers) &&
-    value.modifiers.every(isCartModifier)
-  )
-}
 
 function readStoredCartItems() {
   if (typeof window === "undefined") return []
@@ -111,17 +73,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timeoutId)
   }, [])
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.totalPrice, 0),
-    [items]
-  )
+  const subtotal = useMemo(() => getCartSubtotal(items), [items])
 
-  const itemCount = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity, 0),
-    [items]
-  )
+  const itemCount = useMemo(() => getCartItemCount(items), [items])
 
-  function addItem(item: CartItem) {
+  function addItem(item: ConfiguredCartItem) {
     setItems((current) => {
       const nextItems = [...current, item]
       writeStoredCartItems(nextItems)
@@ -129,7 +85,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  function updateItem(cartItemId: string, updatedItem: CartItem) {
+  function updateItem(cartItemId: string, updatedItem: ConfiguredCartItem) {
+    setItems((current) => {
+      const nextItems = current.map((item) =>
+        item.cartItemId === cartItemId ? updatedItem : item
+      )
+      writeStoredCartItems(nextItems)
+      return nextItems
+    })
+  }
+
+  function addDealItem(item: DealCartItem) {
+    setItems((current) => {
+      const nextItems = [...current, item]
+      writeStoredCartItems(nextItems)
+      return nextItems
+    })
+  }
+
+  function updateDealItem(cartItemId: string, updatedItem: DealCartItem) {
     setItems((current) => {
       const nextItems = current.map((item) =>
         item.cartItemId === cartItemId ? updatedItem : item
@@ -162,6 +136,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         subtotal,
         addItem,
         updateItem,
+        addDealItem,
+        updateDealItem,
         removeItem,
         clearCart,
       }}

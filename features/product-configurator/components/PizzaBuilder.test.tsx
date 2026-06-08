@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom/vitest"
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { CartProvider } from "@/features/cart/context/CartProvider"
+import type { ConfiguredProductResult } from "@/features/cart/types/cart"
 import { PizzaBuilder, type ProductConfig } from "./PizzaBuilder"
 
 function buildPizzaProduct(): ProductConfig {
@@ -216,19 +217,33 @@ function buildDeluxePizzaProduct(): ProductConfig {
   }
 }
 
-function renderPizzaBuilder(product = buildPizzaProduct()) {
+function renderPizzaBuilder({
+  product = buildPizzaProduct(),
+  submitBehavior,
+  onConfiguredItem,
+}: {
+  product?: ProductConfig
+  submitBehavior?: Parameters<typeof PizzaBuilder>[0]["submitBehavior"]
+  onConfiguredItem?: (result: ConfiguredProductResult) => void
+} = {}) {
   return render(
     <CartProvider>
       <PizzaBuilder
         product={product}
         open
         onOpenChange={() => undefined}
+        submitBehavior={submitBehavior}
+        onConfiguredItem={onConfiguredItem}
       />
     </CartProvider>
   )
 }
 
 describe("PizzaBuilder", () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   it("shows selected modifier options with a checkmark and without Selected label", async () => {
     renderPizzaBuilder()
 
@@ -270,7 +285,7 @@ describe("PizzaBuilder", () => {
   })
 
   it("charges the sixth topping after one default topping is swapped out", async () => {
-    renderPizzaBuilder(buildDeluxePizzaProduct())
+    renderPizzaBuilder({ product: buildDeluxePizzaProduct() })
 
     expect(await screen.findByRole("button", { name: /add to cart/i }))
       .toHaveTextContent("$10.00")
@@ -294,5 +309,58 @@ describe("PizzaBuilder", () => {
 
     expect(screen.getByRole("button", { name: /add to cart/i }))
       .toHaveTextContent("$11.00")
+  })
+
+  it("cart mode still adds configured pizza items to cart", async () => {
+    renderPizzaBuilder()
+
+    fireEvent.click(await screen.findByRole("button", { name: /add to cart/i }))
+
+    const storedCart = JSON.parse(
+      window.localStorage.getItem("menupilot-cart") ?? "[]"
+    ) as unknown[]
+
+    expect(storedCart).toHaveLength(1)
+    expect(storedCart[0]).toMatchObject({
+      productId: "build-your-own-pizza",
+      productName: "Build Your Own Pizza",
+      variantId: "medium",
+      variantName: "Medium",
+      quantity: 1,
+      unitPrice: 10,
+      totalPrice: 10,
+      configuredLineTotal: 10,
+      chargedModifierTotal: 0,
+      modifierExtraTotal: 0,
+      childExtraTotal: 0,
+    })
+  })
+
+  it("return mode returns a configured pizza result without mutating cart", async () => {
+    const onConfiguredItem = vi.fn()
+
+    renderPizzaBuilder({
+      submitBehavior: "return",
+      onConfiguredItem,
+    })
+
+    fireEvent.click(await screen.findByRole("button", { name: /add to special/i }))
+
+    expect(onConfiguredItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "build-your-own-pizza",
+        productName: "Build Your Own Pizza",
+        variantId: "medium",
+        variantName: "Medium",
+        quantity: 1,
+        unitPrice: 10,
+        totalPrice: 10,
+        configuredLineTotal: 10,
+        chargedModifierTotal: 0,
+        modifierExtraTotal: 0,
+        childExtraTotal: 0,
+      })
+    )
+    expect(window.localStorage.getItem("menupilot-cart")).toBeNull()
   })
 })

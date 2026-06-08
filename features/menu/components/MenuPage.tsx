@@ -4,6 +4,12 @@ import { useState } from "react";
 import { CategorySection } from "./CategorySection";
 import { MobileCategoryNav } from "./MobileCategoryNav";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
+import type { PublicSpecial } from "@/features/specials/types/public-special";
+import { ThemedButton } from "@/components/themed/ThemedButton";
+import {
+  formatPublicSpecialDiscount,
+  getPublicSpecialEligibilitySummary,
+} from "@/features/specials/utils/public-special-display";
 
 type MenuGroup = {
   id: string;
@@ -65,8 +71,11 @@ type Menu = {
 type MenuPageProps = {
   businessName: string;
   menu: Menu;
+  activeSpecials?: PublicSpecial[];
   onCustomize?: (productId: string) => void;
+  onBuildDeal?: (specialId: string) => void;
   loadingProductId?: string | null;
+  loadingDealId?: string | null;
   headerAction?: React.ReactNode;
   previewMessage?: string | null;
   orderingActionsDisabled?: boolean;
@@ -75,8 +84,11 @@ type MenuPageProps = {
 export function MenuPage({
   businessName,
   menu,
+  activeSpecials = [],
   onCustomize,
+  onBuildDeal,
   loadingProductId,
+  loadingDealId,
   headerAction,
   previewMessage,
   orderingActionsDisabled = false,
@@ -183,10 +195,77 @@ export function MenuPage({
         </aside>
 
         <div className="space-y-14">
+          {activeSpecials.length > 0 ? (
+            <section aria-labelledby="current-specials" className="space-y-3">
+              <div>
+                <h2 id="current-specials" className="text-2xl font-bold">
+                  Current Specials
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Discounts are confirmed at checkout.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {activeSpecials.map((special) => {
+                  const isOrderableDeal =
+                    special.specialType === "orderable_deal";
+
+                  return (
+                    <div
+                      key={special.id}
+                      className="rounded-lg border bg-card p-4 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <h3 className="font-semibold leading-6">
+                          {special.name}
+                        </h3>
+                        <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                          {formatPublicSpecialDiscount(special)}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-sm leading-5 text-muted-foreground">
+                        {special.customerDescription ??
+                          getPublicSpecialEligibilitySummary(special)}
+                      </p>
+
+                      {special.customerDescription ? (
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                          {getPublicSpecialEligibilitySummary(special)}
+                        </p>
+                      ) : null}
+
+                      {isOrderableDeal ? (
+                        <ThemedButton
+                          type="button"
+                          size="sm"
+                          className="mt-4"
+                          disabled={
+                            orderingActionsDisabled ||
+                            loadingDealId === special.id
+                          }
+                          onClick={() => onBuildDeal?.(special.id)}
+                        >
+                          {orderingActionsDisabled
+                            ? "Preview only"
+                            : loadingDealId === special.id
+                              ? "Loading..."
+                              : "Build Deal"}
+                        </ThemedButton>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
+
           {selectedParentGroup ? (
             <CategorySection
               parentGroup={selectedParentGroup}
               childGroups={selectedChildGroups}
+              activeSpecials={activeSpecials}
               onCustomize={onCustomize}
               loadingProductId={loadingProductId}
               orderingActionsDisabled={orderingActionsDisabled}

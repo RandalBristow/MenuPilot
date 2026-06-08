@@ -11,10 +11,18 @@ import {
 } from "@/components/ui/dialog"
 import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product"
 import { useCart } from "@/features/cart/context/CartProvider"
-import type { CartItem } from "@/features/cart/types/cart"
-import { buildConfiguredCartItem } from "@/features/product-configurator/utils/build-cart-item"
+import type {
+  ConfiguredCartItem,
+  ConfiguredProductResult,
+} from "@/features/cart/types/cart"
+import { buildConfiguredProductResult } from "@/features/product-configurator/utils/build-cart-item"
 import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety"
 import { filterEnabledProductVariants } from "@/features/product-configurator/utils/filter-enabled-product-variants"
+import {
+  submitConfiguredProductResult,
+  type ProductConfiguratorSubmitBehavior,
+} from "@/features/product-configurator/utils/submit-configured-product-result"
+import type { ModifierIncludedRuleOverride } from "@/features/product-configurator/utils/modifier-included-rule-overrides"
 import type { ProductConfig } from "./PizzaBuilder"
 
 type SimpleProductBuilderProps = {
@@ -22,11 +30,15 @@ type SimpleProductBuilderProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: "create" | "edit"
-  cartItem?: CartItem | null
+  cartItem?: ConfiguredCartItem | null
   businessSlug?: string | null
+  submitBehavior?: ProductConfiguratorSubmitBehavior
+  allowedVariantOptionIds?: string[] | null
+  modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
-function getInitialQuantity(cartItem?: CartItem | null) {
+function getInitialQuantity(cartItem?: ConfiguredCartItem | null) {
   return cartItem?.quantity ?? 1
 }
 
@@ -37,10 +49,21 @@ export function SimpleProductBuilder({
   mode,
   cartItem = null,
   businessSlug = null,
+  submitBehavior = "cart",
+  allowedVariantOptionIds = null,
+  onConfiguredItem,
 }: SimpleProductBuilderProps) {
   const sortedVariants = useMemo(
-    () => filterEnabledProductVariants(product.variants),
-    [product.variants]
+    () => {
+      const enabledVariants = filterEnabledProductVariants(product.variants)
+
+      if (!allowedVariantOptionIds?.length) return enabledVariants
+
+      return enabledVariants.filter((variant) =>
+        allowedVariantOptionIds.includes(variant.id)
+      )
+    },
+    [allowedVariantOptionIds, product.variants]
   )
   const [variantId, setVariantId] = useState(
     getSafeInitialVariantId(sortedVariants, cartItem?.variantId)
@@ -71,8 +94,7 @@ export function SimpleProductBuilder({
   function handleSubmit() {
     if (!canSubmit) return
 
-    const nextCartItem = buildConfiguredCartItem({
-      cartItemId: cartItem?.cartItemId ?? crypto.randomUUID(),
+    const result = buildConfiguredProductResult({
       businessId: product.business_id ?? cartItem?.businessId,
       businessSlug: businessSlug ?? cartItem?.businessSlug,
       locationId: cartItem?.locationId,
@@ -88,16 +110,26 @@ export function SimpleProductBuilder({
         : null,
       quantity,
       unitPrice: pricing.unitPrice,
+      configuredLineTotal: pricing.lineTotal,
+      chargedModifierTotal: 0,
+      modifierExtraTotal: 0,
+      childExtraTotal: 0,
       modifiers: [],
     })
 
-    if (mode === "edit" && cartItem) {
-      updateItem(cartItem.cartItemId, nextCartItem)
-    } else {
-      addItem(nextCartItem)
-    }
+    const submitResult = submitConfiguredProductResult({
+      submitBehavior,
+      mode,
+      result,
+      existingCartItem: cartItem,
+      onConfiguredItem,
+      addItem,
+      updateItem,
+    })
 
-    onOpenChange(false)
+    if (submitResult.ok) {
+      onOpenChange(false)
+    }
   }
 
   return (
@@ -197,7 +229,13 @@ export function SimpleProductBuilder({
             onClick={handleSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>{mode === "edit" ? "Save changes" : "Add to cart"}</span>
+            <span>
+              {submitBehavior === "return"
+                ? "Add to Special"
+                : mode === "edit"
+                  ? "Save changes"
+                  : "Add to cart"}
+            </span>
             <span>${pricing.lineTotal.toFixed(2)}</span>
           </ThemedButton>
         </div>

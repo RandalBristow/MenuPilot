@@ -1,6 +1,6 @@
 # Routes
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-06_
 
 Status values:
 
@@ -50,7 +50,7 @@ Future Platform Admin business switching should open an explicit tenant admin co
 | `/platform/businesses` | hidden/internal | Business list showing setup status, contact fields, location counts, first-location state, and a link to create a new business. |
 | `/platform/businesses/new` | hidden/internal | Platform Admin create-business and first-location form. New businesses and locations start in setup mode; first locations start disabled and not accepting orders. |
 | `/platform/businesses/[businessId]` | hidden/internal | Business detail page showing business contact/status fields, locations, ordering flags, setup warnings, and activation controls for business/location status and ordering flags. |
-| `/businesses/[businessSlug]/admin` | hidden/internal | Tenant-aware business setup landing page opened from Platform Admin. Shows selected business context, default-location orderability, grouped links for Product Catalog, Variants, Modifiers, Media, Customer Preview, and Locations / Orders when a location exists, plus disabled future Specials. |
+| `/businesses/[businessSlug]/admin` | hidden/internal | Tenant-aware business setup landing page opened from Platform Admin. Shows selected business context, default-location orderability, grouped links for Product Catalog, Variants, Modifiers, Specials, Media, Customer Preview, and Locations / Orders when a location exists. |
 
 ## Tenant Product Management
 
@@ -91,6 +91,16 @@ These routes are internal business-scoped route shells for reusable modifier lib
 | --- | --- | --- |
 | `/admin/media` | current | Media Library for managing image assets in `media_assets`; product images are selected from here through `products.image_media_id`. |
 | `/businesses/[businessSlug]/admin/media` | hidden/internal | Tenant-scoped Media Library. Reads, uploads, URL imports, metadata edits, and storage paths use the selected business. |
+
+## Tenant Specials Management
+
+These routes are internal business-scoped route shells for reusable Specials MVP management. Expired specials remain visible and reusable; checkout only applies currently eligible enabled specials.
+
+| Route | Status | Purpose |
+| --- | --- | --- |
+| `/businesses/[businessSlug]/admin/specials` | hidden/internal | Tenant-scoped Specials Admin list. Shows enabled state, computed lifecycle status, eligibility summary, schedule summary, and enable/disable/edit actions. |
+| `/businesses/[businessSlug]/admin/specials/new` | hidden/internal | Tenant-scoped create-special form for line discounts, fixed-price line specials, cart discounts, eligibility, date range, and recurring day/time availability. |
+| `/businesses/[businessSlug]/admin/specials/[specialId]` | hidden/internal | Tenant-scoped edit-special form. Cross-tenant special IDs return not found or are rejected by server-side actions. |
 
 ## Product Management
 

@@ -46,7 +46,7 @@ function getLinkHref(name: RegExp) {
 }
 
 describe("TenantAdminShellPage", () => {
-  it("groups setup links by catalog, variants, modifiers, media, and preview", () => {
+  it("groups setup links by catalog, variants, modifiers, specials, media, and preview", () => {
     render(
       <TenantAdminShellPage
         business={setupBusiness}
@@ -62,6 +62,7 @@ describe("TenantAdminShellPage", () => {
     expect(screen.queryByText("Product Variant Assignments")).not.toBeInTheDocument()
     expect(screen.getByText("Modifiers")).toBeInTheDocument()
     expect(screen.queryByText("Product Modifier Assignments")).not.toBeInTheDocument()
+    expect(screen.getAllByText("Specials").length).toBeGreaterThan(0)
     expect(screen.getByText("Media")).toBeInTheDocument()
     expect(screen.getByText("Customer Preview")).toBeInTheDocument()
     expect(screen.getByText("Platform Admin Mode")).toBeInTheDocument()
@@ -84,6 +85,9 @@ describe("TenantAdminShellPage", () => {
     )
     expect(getLinkHref(/^Modifier Library/)).toBe(
       "/businesses/randys-pizza/admin/modifiers"
+    )
+    expect(getLinkHref(/^Specials/)).toBe(
+      "/businesses/randys-pizza/admin/specials"
     )
   })
 
@@ -137,7 +141,7 @@ describe("TenantAdminShellPage", () => {
     )
   })
 
-  it("keeps future specials disabled and shows no-location order messaging", () => {
+  it("keeps future bundles disabled and shows no-location order messaging", () => {
     render(
       <TenantAdminShellPage
         business={setupBusiness}
@@ -145,9 +149,9 @@ describe("TenantAdminShellPage", () => {
       />
     )
 
-    expect(screen.getByText("Specials")).toBeInTheDocument()
+    expect(screen.getByText("Bundles / Combos")).toBeInTheDocument()
     expect(screen.getByText("Locations / Orders")).toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: /specials/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /^Specials/ })).toBeInTheDocument()
     expect(
       screen.queryByRole("link", { name: /orders/i })
     ).not.toBeInTheDocument()

@@ -1,4 +1,8 @@
-import type { CartItem, CartModifier } from "@/features/cart/types/cart"
+import type {
+  CartModifier,
+  ConfiguredCartItem,
+  ConfiguredProductResult,
+} from "@/features/cart/types/cart"
 
 export type CartItemVariantSnapshot = {
   id: string
@@ -8,6 +12,9 @@ export type CartItemVariantSnapshot = {
 
 export type BuildCartItemInput = {
   cartItemId: string
+} & BuildConfiguredProductResultInput
+
+export type BuildConfiguredProductResultInput = {
   businessId?: string | null
   businessSlug?: string | null
   locationId?: string | null
@@ -17,11 +24,14 @@ export type BuildCartItemInput = {
   selectedVariant: CartItemVariantSnapshot
   quantity: number
   unitPrice: number
+  configuredLineTotal?: number
+  chargedModifierTotal?: number
+  modifierExtraTotal?: number
+  childExtraTotal?: number
   modifiers: CartModifier[]
 }
 
-export function buildConfiguredCartItem({
-  cartItemId,
+export function buildConfiguredProductResult({
   businessId,
   businessSlug,
   locationId,
@@ -31,10 +41,15 @@ export function buildConfiguredCartItem({
   selectedVariant,
   quantity,
   unitPrice,
+  configuredLineTotal,
+  chargedModifierTotal,
+  modifierExtraTotal,
+  childExtraTotal,
   modifiers,
-}: BuildCartItemInput): CartItem {
+}: BuildConfiguredProductResultInput): ConfiguredProductResult {
+  const totalPrice = unitPrice * quantity
+
   return {
-    cartItemId,
     businessId,
     businessSlug,
     locationId,
@@ -45,7 +60,21 @@ export function buildConfiguredCartItem({
     variantName: selectedVariant?.name ?? null,
     quantity,
     unitPrice,
-    totalPrice: unitPrice * quantity,
+    totalPrice,
+    configuredLineTotal: configuredLineTotal ?? totalPrice,
+    chargedModifierTotal,
+    modifierExtraTotal,
+    childExtraTotal,
     modifiers,
+  }
+}
+
+export function buildConfiguredCartItem({
+  cartItemId,
+  ...input
+}: BuildCartItemInput): ConfiguredCartItem {
+  return {
+    cartItemId,
+    ...buildConfiguredProductResult(input),
   }
 }

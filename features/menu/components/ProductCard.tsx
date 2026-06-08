@@ -46,6 +46,7 @@ type Product = {
 
 type ProductCardProps = {
   product: Product;
+  specialBadge?: string | null;
   onCustomize?: (productId: string) => void;
   isLoading?: boolean;
   orderingActionsDisabled?: boolean;
@@ -98,6 +99,7 @@ function isSupabaseStorageUrl(src: string) {
 
 export function ProductCard({
   product,
+  specialBadge = null,
   onCustomize,
   isLoading = false,
   orderingActionsDisabled = false,
@@ -143,6 +145,11 @@ export function ProductCard({
 
         <div className="flex flex-1 flex-col p-4">
           <div className="min-h-14">
+            {specialBadge ? (
+              <span className="mb-2 inline-flex w-fit rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                Special: {specialBadge}
+              </span>
+            ) : null}
             <h3 className="text-lg font-semibold leading-6 md:text-xl">
               {product.name}
             </h3>

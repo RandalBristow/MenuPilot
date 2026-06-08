@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCart } from "@/features/cart/context/CartProvider";
+import { getCartSubtotal } from "@/features/cart/utils/cart-items";
 import { createOrder } from "@/features/checkout/actions/create-order";
 import { CheckoutForm } from "./CheckoutForm";
 import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
@@ -24,6 +25,7 @@ export function CheckoutPage({
   orderBlockedReason = null,
 }: CheckoutPageProps) {
   const { items, clearCart } = useCart();
+  const effectiveOrderBlockedReason = orderBlockedReason;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -116,9 +118,9 @@ export function CheckoutPage({
               .
             </p>
           ) : null}
-          {orderBlockedReason ? (
+          {effectiveOrderBlockedReason ? (
             <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-              {orderBlockedReason}
+              {effectiveOrderBlockedReason}
             </p>
           ) : null}
         </div>
@@ -127,13 +129,13 @@ export function CheckoutPage({
           <CheckoutForm
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            isSubmitBlocked={Boolean(orderBlockedReason)}
+            isSubmitBlocked={Boolean(effectiveOrderBlockedReason)}
             errorMessage={submitError}
           />
 
           <CheckoutOrderSummary
             items={items}
-            subtotal={items.reduce((sum, item) => sum + item.totalPrice, 0)}
+            subtotal={getCartSubtotal(items)}
           />
         </div>
       </div>

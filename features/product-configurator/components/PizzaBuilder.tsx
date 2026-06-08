@@ -7,7 +7,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product";
 import { useCart } from "@/features/cart/context/CartProvider";
-import type { CartItem, CartModifier } from "@/features/cart/types/cart";
+import type {
+  CartModifier,
+  ConfiguredCartItem,
+  ConfiguredProductResult,
+} from "@/features/cart/types/cart";
+import { buildConfiguredProductResult } from "@/features/product-configurator/utils/build-cart-item";
 import { getSafeInitialVariantId } from "@/features/product-configurator/utils/cart-safety";
 import { filterEnabledModifierOptions } from "@/features/product-configurator/utils/filter-enabled-modifier-options";
 import { filterEnabledProductVariants } from "@/features/product-configurator/utils/filter-enabled-product-variants";
@@ -30,6 +35,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings";
+import {
+  submitConfiguredProductResult,
+  type ProductConfiguratorSubmitBehavior,
+} from "@/features/product-configurator/utils/submit-configured-product-result";
+import {
+  resolveIncludedQuantity,
+  type ModifierIncludedRuleOverride,
+} from "@/features/product-configurator/utils/modifier-included-rule-overrides";
 
 type Variant = {
   id: string;
@@ -123,8 +136,12 @@ type PizzaBuilderProps = {
   product: ProductConfig;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editingCartItem?: CartItem | null;
+  editingCartItem?: ConfiguredCartItem | null;
   businessSlug?: string | null;
+  submitBehavior?: ProductConfiguratorSubmitBehavior;
+  allowedVariantOptionIds?: string[] | null;
+  modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null;
+  onConfiguredItem?: (result: ConfiguredProductResult) => void;
 };
 
 type IncludedModifierGroup = {
@@ -135,7 +152,7 @@ type IncludedModifierGroup = {
   charge_for_extra: boolean;
 };
 
-function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
+function getInitialSelectedModifiers(editingCartItem?: ConfiguredCartItem | null) {
   if (!editingCartItem) return {};
 
   return editingCartItem.modifiers.reduce<Record<string, SelectedModifier>>(
@@ -151,7 +168,7 @@ function getInitialSelectedModifiers(editingCartItem?: CartItem | null) {
   );
 }
 
-function getInitialQuantity(editingCartItem?: CartItem | null) {
+function getInitialQuantity(editingCartItem?: ConfiguredCartItem | null) {
   return editingCartItem?.quantity ?? 1;
 }
 
@@ -174,11 +191,19 @@ export function PizzaBuilder({
   onOpenChange,
   editingCartItem = null,
   businessSlug = null,
+  submitBehavior = "cart",
+  allowedVariantOptionIds = null,
+  modifierIncludedRuleOverrides = null,
+  onConfiguredItem,
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
     () =>
-      filterEnabledProductVariants(product.variants),
-    [product.variants],
+      filterEnabledProductVariants(product.variants).filter((variant) =>
+        allowedVariantOptionIds?.length
+          ? allowedVariantOptionIds.includes(variant.id)
+          : true,
+      ),
+    [allowedVariantOptionIds, product.variants],
   );
 
   const isVariantUnavailable = product.has_variants && sortedVariants.length === 0;
@@ -214,9 +239,13 @@ export function PizzaBuilder({
 
           return {
             ...group,
-            included_quantity: includedRule
-              ? Number(includedRule.included_quantity)
-              : 0,
+            included_quantity: resolveIncludedQuantity({
+              modifierGroupId: group.id,
+              productIncludedQuantity: includedRule
+                ? Number(includedRule.included_quantity)
+                : 0,
+              overrides: modifierIncludedRuleOverrides,
+            }),
             is_swappable: includedRule?.is_swappable ?? false,
             charge_for_extra: includedRule?.charge_for_extra ?? true,
             modifier_options: filterEnabledModifierOptions(
@@ -224,7 +253,11 @@ export function PizzaBuilder({
             ),
           };
         }),
-    [product.product_modifier_groups, product.product_included_modifier_groups],
+    [
+      modifierIncludedRuleOverrides,
+      product.product_modifier_groups,
+      product.product_included_modifier_groups,
+    ],
   );
 
   const modifierGroups = useMemo(
@@ -319,6 +352,9 @@ export function PizzaBuilder({
 
   const unitTotal = pricing.unitPrice;
   const total = pricing.lineTotal;
+  const modifierExtraTotal = Object.values(
+    pricing.pricedSelectedModifiers,
+  ).reduce((sum, modifier) => sum + modifier.priceDelta, 0);
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -427,29 +463,42 @@ export function PizzaBuilder({
       })
       .filter(Boolean) as CartModifier[];
 
-    const cartItem: CartItem = {
-      cartItemId: editingCartItem?.cartItemId ?? crypto.randomUUID(),
+    const result = buildConfiguredProductResult({
       businessId: product.business_id ?? editingCartItem?.businessId,
       businessSlug: businessSlug ?? editingCartItem?.businessSlug,
       locationId: editingCartItem?.locationId,
       locationSlug: editingCartItem?.locationSlug,
       productId: product.id,
       productName: product.name,
-      variantId: selectedVariant?.id ?? null,
-      variantName: selectedVariant?.name ?? null,
+      selectedVariant: selectedVariant
+        ? {
+            id: selectedVariant.id,
+            name: selectedVariant.name,
+            base_price: Number(selectedVariant.base_price),
+          }
+        : null,
       quantity,
       unitPrice: unitTotal,
-      totalPrice: total,
+      configuredLineTotal: total,
+      chargedModifierTotal: modifierExtraTotal,
+      modifierExtraTotal,
+      childExtraTotal: modifierExtraTotal,
       modifiers,
-    };
+    });
 
-    if (editingCartItem) {
-      updateItem(editingCartItem.cartItemId, cartItem);
-    } else {
-      addItem(cartItem);
+    const submitResult = submitConfiguredProductResult({
+      submitBehavior,
+      mode: editingCartItem ? "edit" : "create",
+      result,
+      existingCartItem: editingCartItem,
+      onConfiguredItem,
+      addItem,
+      updateItem,
+    });
+
+    if (submitResult.ok) {
+      onOpenChange(false);
     }
-
-    onOpenChange(false);
   }
 
   return (
@@ -627,7 +676,13 @@ export function PizzaBuilder({
             onClick={handleCartSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>{editingCartItem ? "Save changes" : "Add to cart"}</span>
+            <span>
+              {submitBehavior === "return"
+                ? "Add to Special"
+                : editingCartItem
+                  ? "Save changes"
+                  : "Add to cart"}
+            </span>
             <span>${total.toFixed(2)}</span>
           </ThemedButton>
         </div>

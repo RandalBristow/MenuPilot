@@ -23,6 +23,7 @@ import {
 } from "@/features/admin-products/utils/product-admin-routes"
 import { getMediaAdminHref } from "@/features/admin-media/utils/media-admin-routes"
 import { getModifierAdminHref } from "@/features/admin-modifiers/utils/modifier-admin-routes"
+import { getSpecialAdminBaseHref } from "@/features/specials/utils/special-admin-routes"
 import { BusinessPricingSettingsForm } from "@/features/pricing-settings/components/BusinessPricingSettingsForm"
 import type {
   TenantBusinessContext,
@@ -122,6 +123,20 @@ function buildSetupSections({
       ],
     },
     {
+      title: "Specials",
+      description:
+        "Create reusable discounts for products, categories, and cart totals.",
+      links: [
+        {
+          label: "Specials",
+          description:
+            "Create, schedule, enable, disable, and reuse business specials.",
+          href: getSpecialAdminBaseHref(businessSlug),
+          icon: TicketPercent,
+        },
+      ],
+    },
+    {
       title: "Media",
       description: "Manage reusable images and media for this business.",
       links: [
@@ -172,8 +187,8 @@ function buildSetupSections({
 
 const futureSections = [
   {
-    title: "Specials",
-    description: "Future Specials Engine work after product setup is stable.",
+    title: "Bundles / Combos",
+    description: "Future BundleBuilder and ComboBuilder work.",
     icon: TicketPercent,
   },
 ]
@@ -340,16 +355,20 @@ export function TenantAdminShellPage({
       className: "order-3 lg:order-5",
     },
     {
-      section: getSetupSection(setupSections, "Media"),
+      section: getSetupSection(setupSections, "Specials"),
       className: "order-4 lg:order-2",
     },
     {
-      section: getSetupSection(setupSections, "Customer Preview"),
+      section: getSetupSection(setupSections, "Media"),
       className: "order-5 lg:order-4",
     },
     {
-      section: getSetupSection(setupSections, "Locations / Orders"),
+      section: getSetupSection(setupSections, "Customer Preview"),
       className: "order-6 lg:order-6",
+    },
+    {
+      section: getSetupSection(setupSections, "Locations / Orders"),
+      className: "order-7 lg:order-7",
     },
   ].filter(
     (item): item is { section: SetupSection; className: string } =>

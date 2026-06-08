@@ -1,6 +1,6 @@
 # MenuPilot Completion Checklist
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-08_
 
 This file is the step-by-step project itinerary. The project is considered complete when every required checklist item is complete or intentionally deferred with a documented reason.
 
@@ -41,10 +41,20 @@ Completed:
 - [x] Platform Admin activation controls
 - [x] Product setup warning for defaults exceeding included selections
 - [x] Tenant onboarding regression checklist
+- [x] Tenant-scoped Specials Admin for passive specials and orderable deals
+- [x] Public active-specials display and orderable deal build actions
+- [x] Checkout passive Specials discounts and orderable deal validation/order snapshots
+- [x] Staff discount snapshots and nested orderable deal display
+- [x] Orderable deal component variant restrictions
+- [x] Orderable deal component Modifier Group included-count overrides
+- [x] Mix-and-Match fixed unit price schema/type foundation
+- [x] Mix-and-Match tenant-scoped admin editing
 
 Next focus:
 - [~] Run Product Entry Regression Matrix
 - [~] Run `TENANT_ONBOARDING_REGRESSION.md`
+- [~] Manually verify Specials Admin, public deal building, checkout, and staff display with a real tenant
+- [ ] Build Mix-and-Match public runtime/cart/checkout validation for `mix_and_match_fixed_unit_price`
 - [ ] Decide whether to retire/redirect legacy seeded demo routes before clean database rebuild
 - [ ] Do not wipe/rebuild the development database until tenant onboarding regression passes or exceptions are documented
 
@@ -375,16 +385,31 @@ For each feature:
 
 ## 4.3 Specials
 
-- [ ] Create `specials`
-- [ ] Create `special_schedules`
-- [ ] Create `special_bundle_groups`
-- [ ] Create `special_modifier_allowances`
-- [ ] Support fixed-price specials
-- [ ] Support discount specials
-- [ ] Support bundle specials
-- [ ] Support combo specials
+- [x] Create `specials`
+- [x] Create `special_products`
+- [x] Create `special_menu_groups`
+- [x] Create `order_discounts`
+- [x] Create `special_availability_windows`
+- [x] Create `special_components`
+- [x] Create `special_component_products`
+- [x] Create `special_component_product_variant_options`
+- [x] Create `special_component_modifier_group_overrides`
+- [x] Support fixed-price line specials
+- [x] Support line discount specials
+- [x] Support cart discount specials
+- [x] Support orderable deal fixed/base price specials
+- [x] Support day/time/date availability
+- [x] Support orderable deal component variant restrictions
+- [x] Support orderable deal component Modifier Group included-count overrides
+- [x] Add `mix_and_match_fixed_unit_price` schema/types foundation
+- [x] Add `mix_and_match_fixed_unit_price` tenant-scoped admin editing
+- [ ] Support category/subcategory component eligibility
+- [ ] Support bundle/combo builder behavior beyond current orderable deals
 - [ ] Support BOGO specials
-- [ ] Support day/time/date availability
+- [ ] Support free-item-with-purchase specials
+- [ ] Support discounted add-on specials
+- [ ] Support coupon codes
+- [ ] Support usage limits
 - [ ] Support location-specific specials
 
 ## 4.4 Website builder
@@ -572,19 +597,19 @@ For each feature:
 
 # 9. Admin Shell
 
-- [ ] Build admin layout shell
+- [x] Build tenant-aware admin landing shell
 - [ ] Build sidebar navigation
 - [ ] Build top bar
-- [ ] Build visible business context header, e.g. `Managing: {Business Name}`
-- [ ] Build Platform Admin back link from business admin context
-- [ ] Build business switcher for Platform Admin/app-owner use
+- [x] Build visible business context header, e.g. `Managing: {Business Name}`
+- [x] Build Platform Admin back link from business admin context
+- [x] Build business switcher for Platform Admin/app-owner use
 - [ ] Build location switcher
-- [ ] Support explicit tenant admin route context, such as `/businesses/[businessSlug]/admin`
+- [x] Support explicit tenant admin route context, such as `/businesses/[businessSlug]/admin`
 - [ ] Build user menu
 - [ ] Build breadcrumbs
-- [ ] Build admin dashboard home
+- [x] Build admin dashboard home
 - [ ] Build consistent page header component
-- [ ] Build empty state component
+- [x] Build empty state component
 - [ ] Build loading state component
 - [ ] Build error state component
 
@@ -648,19 +673,20 @@ For each feature:
 
 # 11. Media Library
 
-- [ ] Build media library page
-- [ ] Build upload button
+- [x] Build tenant-scoped media library page
+- [x] Build upload button
 - [ ] Build drag/drop upload
-- [ ] Save file to Supabase Storage
-- [ ] Save metadata to `media_assets`
-- [ ] Display image grid
+- [x] Save file to Supabase Storage
+- [x] Save metadata to `media_assets`
+- [x] Display image grid/list
+- [x] Import media by URL
 - [ ] Search by filename
 - [ ] Filter by folder/tag
-- [ ] Edit alt text
-- [ ] Edit caption
+- [x] Edit alt text
+- [x] Edit caption
 - [ ] Archive asset
-- [ ] Build reusable media picker modal
-- [ ] Use media picker in product form
+- [x] Build reusable media picker modal
+- [x] Use media picker in product form
 - [ ] Use media picker in page builder
 - [ ] Use media picker in theme editor
 
@@ -978,7 +1004,9 @@ For each feature:
 - [x] Show cart drawer/page
 - [x] Show item configuration summary
 - [x] Show modifier placement/multiplier summary
+- [x] Show nested orderable deal parent and component child items
 - [ ] Show add-ons indented under parent where appropriate
+- [ ] Edit/reconfigure orderable deal cart items
 
 ---
 
@@ -987,10 +1015,10 @@ For each feature:
 ## 19.1 Fulfillment
 
 - [x] Choose pickup or delivery
-- [ ] Validate pickup enabled
-- [ ] Validate delivery enabled
+- [x] Validate pickup enabled for active/orderable scoped checkout
+- [x] Validate delivery enabled for active/orderable scoped checkout
 - [ ] Select requested time or ASAP
-- [ ] Validate location accepting orders
+- [x] Validate location accepting orders
 - [ ] Validate business hours
 - [ ] Validate pickup/delivery hours
 - [ ] Calculate prep time
@@ -1017,7 +1045,8 @@ For each feature:
 ## 19.4 Totals
 
 - [x] Calculate subtotal
-- [ ] Apply specials/discounts later
+- [x] Apply passive Specials discounts after configured-product pricing
+- [x] Validate/order-price orderable deals server-side
 - [ ] Calculate taxes
 - [ ] Calculate fees
 - [ ] Calculate delivery fee
@@ -1064,6 +1093,8 @@ For each feature:
 - [x] Create order item records
 - [x] Create order item modifier records
 - [ ] Create delivery details if delivery
+- [x] Create order discount snapshot records
+- [x] Create parent/child order item snapshots for orderable deals
 - [x] Generate order number
 - [x] Store snapshots
 - [x] Return order confirmation
@@ -1094,6 +1125,8 @@ For each feature:
 - [x] Mark preparing
 - [x] Mark ready
 - [x] Mark completed
+- [x] Show applied discount snapshots
+- [x] Show nested orderable deal children
 - [ ] Cancel order with reason
 - [ ] Print kitchen ticket optional
 - [ ] Reprint receipt optional
@@ -1201,15 +1234,15 @@ For each feature:
 
 ## 25.2 Themed components
 
-- [ ] Create `ThemedButton`
-- [ ] Create `ThemedCard`
+- [x] Create `ThemedButton`
+- [x] Create `ThemedCard`
 - [ ] Create `ThemedSection`
 - [ ] Create `ThemedHero`
 - [ ] Create `ThemedMenuItemCard`
 - [ ] Create `ThemedProductGrid`
 - [ ] Create `ThemedNavBar`
 - [ ] Create `ThemedFooter`
-- [ ] Create `ThemedBadge`
+- [x] Create `ThemedBadge`
 - [ ] Create `ThemedPrice`
 
 ## 25.3 Theme admin
@@ -1232,36 +1265,52 @@ For each feature:
 
 ## 26.1 Specials admin
 
-- [ ] Build specials list
-- [ ] Add special
-- [ ] Choose special type
-- [ ] Edit name/description/image
-- [ ] Enable/disable special
+- [x] Build tenant-scoped specials list
+- [x] Add special
+- [x] Choose special type
+- [x] Edit name/description
+- [x] Enable/disable special
 - [ ] Set location scope
-- [ ] Set start/end dates
-- [ ] Set schedule rules
+- [x] Set start/end dates
+- [x] Set recurring schedule rules
 - [ ] Set cannot-combine flag
+- [x] Reuse expired specials without auto-disable/delete
+- [x] Edit orderable deal base price
+- [x] Edit orderable deal component slots
+- [x] Edit orderable deal allowed products
+- [x] Edit orderable deal component product variant restrictions
+- [x] Edit orderable deal component product Modifier Group included-count overrides
 
 ## 26.2 Special templates
 
-- [ ] Fixed-price item special
-- [ ] Simple discount special
-- [ ] Bundle special
-- [ ] Combo special
+- [x] Fixed-price line special
+- [x] Simple line discount special
+- [x] Cart discount special
+- [x] Orderable deal with fixed/base price and required components
+- [~] Mix-and-match fixed unit price deal schema/type/admin foundation
+- [D] Bundle special beyond current orderable deal components
+- [D] Combo special beyond current orderable deal components
 - [ ] BOGO special
 - [ ] Limited-time feature special
+- [ ] Free item with purchase
+- [ ] Discounted add-on
+- [ ] Coupon code
 
-## 26.3 Bundle logic
+## 26.3 Orderable deal and future bundle logic
 
-- [ ] Build bundle group editor
-- [ ] Choose allowed products/groups
-- [ ] Set quantity required
-- [ ] Set required variant
-- [ ] Set included modifier allowance
-- [ ] Set extra modifier behavior
-- [ ] Test 2 large 3-topping pizzas
-- [ ] Validate special server-side
-- [ ] Apply special to cart/order
+- [x] Build orderable deal component editor
+- [x] Choose exact allowed products per component
+- [x] Set component quantity rules
+- [x] Set required variant restrictions per component product
+- [x] Set included Modifier Group count overrides per component product
+- [x] Test/support Large 2-Topping Pizza style deal through included-count overrides
+- [x] Validate orderable deal server-side
+- [x] Apply orderable deal to cart/order as nested parent/child order items
+- [x] Add Mix-and-Match fixed unit price schema/types
+- [x] Build Mix-and-Match admin UI
+- [ ] Build Mix-and-Match public runtime
+- [ ] Build Mix-and-Match checkout validation
+- [ ] Build category/subcategory component eligibility
 
 ---
 
@@ -1482,8 +1531,8 @@ For each feature:
 
 The MVP is complete when:
 
-- [ ] Business can be created
-- [ ] Location can be created
+- [x] Business can be created
+- [x] Location can be created
 - [ ] Admin can log in
 - [ ] Staff can log in
 - [x] Menu groups can be created
@@ -1505,6 +1554,9 @@ The MVP is complete when:
 - [ ] Order history can be searched
 - [ ] Basic public theme is applied
 - [x] Disabled products/options do not appear
+- [x] Tenant-scoped business admin context exists
+- [x] Tenant-scoped public menu, checkout, and staff routes exist
+- [~] Tenant onboarding manual regression remains to be completed
 
 ---
 
@@ -1513,15 +1565,16 @@ The MVP is complete when:
 V1 is complete when:
 
 - [ ] Delivery works
-- [ ] Specials work at least for fixed/bundle cases
+- [~] Specials work for passive discounts and orderable deal MVP; Mix & Match admin editing exists, but Mix & Match runtime/checkout and advanced specials remain pending
 - [ ] Website page builder works
-- [ ] Media library works
+- [x] Media library works for tenant-scoped product images
 - [ ] Theme editor works at basic level
 - [ ] Google map/review sections work
 - [ ] Admin reports exist
 - [ ] Taxes/fees/tips are configurable
 - [ ] Notifications send order confirmations
 - [ ] Multi-location support is reliable
+- [~] Tenant-scoped single-default-location flows are implemented; full multi-location management remains pending
 
 ---
 

@@ -1,6 +1,6 @@
 # Tenant Onboarding Regression
 
-_Last updated: 2026-06-06_
+_Last updated: 2026-06-08_
 
 This checklist proves a brand-new business can be created, configured, activated, ordered from, and viewed in staff orders without relying on the seeded `pronto-demo` / `main-street` tenant.
 
@@ -55,6 +55,7 @@ Expected result:
 - [ ] Confirm Product Catalog links stay under `/businesses/[businessSlug]/admin/products...`.
 - [ ] Confirm Variant links stay under `/businesses/[businessSlug]/admin/products...`.
 - [ ] Confirm Modifier links stay under `/businesses/[businessSlug]/admin/modifiers...`.
+- [ ] Confirm Specials link stays under `/businesses/[businessSlug]/admin/specials...`.
 - [ ] Confirm Media link stays under `/businesses/[businessSlug]/admin/media`.
 - [ ] Confirm Pizza Pricing Settings show half-topping pricing and half included-slot counting enabled by default.
 - [ ] Save Pizza Pricing Settings and confirm a themed toast appears.
@@ -199,6 +200,45 @@ Expected result:
 - Media reads/writes/uploads are scoped to selected business.
 - Product images reference selected business media through `image_media_id`.
 
+## H2. Specials Setup
+
+Using `/businesses/[businessSlug]/admin/specials`:
+
+- [ ] Create a disabled line discount special.
+- [ ] Enable the special.
+- [ ] Create a cart discount special with a minimum order amount.
+- [ ] Create a lunch-window special and confirm its computed status reflects the current local time.
+- [ ] Create a holiday/date-range special with a past end date and confirm it remains visible as expired.
+- [ ] Confirm expired specials are not auto-disabled or deleted.
+- [ ] Confirm selected products/categories are scoped to the selected business.
+- [ ] Confirm an active special applies at checkout.
+- [ ] Confirm an expired or currently inactive special does not apply at checkout.
+- [ ] Confirm staff orders show applied discount snapshots after checkout.
+- [ ] Create an orderable deal, set its deal base price, add component slots, and select exact allowed products for each component from multiple product categories/subcategories, such as Pizza, Drinks, and Breads.
+- [ ] For a component product with variants, restrict it to one variant option, such as `2 Liter` or a large pizza size, and confirm the form reloads that restriction.
+- [ ] For a component product with no variant restriction selected, confirm all enabled variants remain available.
+- [ ] For a pizza component product, set a Modifier Group included-count override, such as Pizza Toppings = 2, and confirm the form reloads that override.
+- [ ] Edit the orderable deal and confirm saved components and product choices reload correctly.
+- [ ] Confirm the public menu shows a Build Deal action for the active orderable deal.
+- [ ] Build the deal, configure each child product, confirm restricted products only show allowed variants, confirm the component modifier included-count override affects only the deal child pricing, and add one nested deal item to cart.
+- [ ] Submit checkout with the deal cart item.
+- [ ] Confirm checkout rejects a stale/tampered deal cart item that uses a disallowed component product variant.
+- [ ] Confirm checkout recalculates deal child modifier pricing using server-loaded component included-count overrides and ignores stale client child prices.
+- [ ] Confirm order total equals deal base plus child extras.
+- [ ] Confirm staff orders show the deal parent and nested child product configurations.
+- [ ] Confirm passive discounts do not discount the deal item.
+- [D] Mix-and-match fixed unit price schema/type foundation and admin editing exist, but public runtime, checkout validation, cart behavior, and staff display are not implemented yet.
+
+Expected result:
+
+- Specials are reusable business-owned setup records.
+- Checkout applies only currently eligible enabled specials.
+- Expired specials remain available for later reuse.
+- Orderable deals can be built into cart and checked out through parent/child order item snapshots.
+- Optional orderable deal component variant restrictions are enforced in DealBuilder and checkout; no restriction means all enabled variants are allowed.
+- Optional orderable deal component modifier included-count overrides apply only inside that deal component; normal product modifier setup outside the deal is unchanged.
+- Mix-and-match runtime remains deferred until DealBuilder/runtime behavior, checkout validation, cart behavior, and staff display are built.
+
 ## I. Public Menu Preview
 
 Using `/businesses/[businessSlug]/menu`:
@@ -292,6 +332,7 @@ Expected result:
 | Variants | Implemented, needs manual verification | Tenant-scoped variant group and assignment routes/actions/tests. | Create reusable variant group/options, assign to product, set overrides. |
 | Modifiers | Implemented, needs manual verification | Tenant-scoped modifier library routes/actions/tests; option move/safe delete support. | Create hierarchy, move option, safe-delete unused option, verify isolation. |
 | Media | Implemented, needs manual verification | `/businesses/[businessSlug]/admin/media`; media action tests; selected-business storage paths. | Upload/import media and confirm selected business ownership/path. |
+| Specials | Implemented orderable-deal MVP, needs manual verification | `/businesses/[businessSlug]/admin/specials...`; specials action/query/status tests; checkout loader schedule tests; orderable deal component editing tests; Mix & Match admin editing tests. Mix-and-match runtime is not built. | Create active, disabled, expired, lunch-window, orderable deal, and Mix & Match admin records; confirm checkout/staff behavior for supported passive/orderable deal flows. Do not expect Mix & Match public ordering yet. |
 | Public menu | Implemented, needs manual verification | `/businesses/[businessSlug]/menu`; scoped menu query tests. | Confirm setup preview, active menu, and no Pronto products. |
 | Checkout | Implemented, needs manual verification | `/businesses/[businessSlug]/checkout`; checkout tenant context/order action tests. | Submit real order from scoped cart and confirm business/location IDs. |
 | Staff orders | Implemented, needs manual verification | `/businesses/[businessSlug]/locations/[locationSlug]/orders`; scoped staff query/action tests. | Confirm order appears and status updates remain scoped. |
@@ -313,7 +354,7 @@ Known remaining risks before a clean database rebuild:
 - Auth/role protection is deferred; Platform Admin must remain internal.
 - Checkout order creation still needs a transaction/RPC pattern before real payment use.
 - Stripe/payment automation is deferred.
-- Full draft/publish, specials, website builder, delivery, and billing are intentionally out of scope.
+- Full draft/publish, rich specials cart preview, child deal reconfigure behavior, website builder, delivery, and billing are intentionally out of scope.
 
 Clean database rebuild recommendation:
 

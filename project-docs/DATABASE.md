@@ -1,6 +1,6 @@
 # Database
 
-_Last updated: 2026-06-06_
+_Last updated: 2026-06-08_
 
 All schema changes must be made through files in `database/migrations/`.
 
@@ -26,6 +26,12 @@ All schema changes must be made through files in `database/migrations/`.
 | `016_backfill_required_modifier_option_groups.sql` | Backfills Modifier Option Groups/Lists for seeded options that were created directly under Modifier Groups and removes placeholder pizza sauce seed options. |
 | `017_platform_onboarding_defaults.sql` | Adds minimal Platform Admin onboarding schema support: business primary contact fields, location status, and setup-safe defaults for new businesses/locations. |
 | `018_business_pricing_settings.sql` | Adds one business-level pricing settings row for pizza half-topping pricing and included-slot behavior. |
+| `019_specials_mvp.sql` | Adds business-scoped Specials MVP tables for future line discounts, fixed-price line specials, cart discounts, eligibility, and order discount snapshots. |
+| `020_special_availability_windows.sql` | Adds business-scoped recurring day/time availability windows for reusable specials. |
+| `021_orderable_deal_components.sql` | Adds schema/type support for future orderable deal specials with components and exact allowed product choices. |
+| `022_orderable_deal_variant_restrictions.sql` | Adds optional reusable variant option restrictions for orderable deal component products. |
+| `023_orderable_deal_modifier_overrides.sql` | Adds optional orderable deal component/product Modifier Group included-count overrides. |
+| `024_mix_and_match_specials.sql` | Adds schema/type foundation for Mix-and-Match fixed unit price specials, exact mix-pool product eligibility, variant restrictions, and Modifier Group included-count overrides. |
 
 ## Core Tenant Tables
 
@@ -137,11 +143,14 @@ Some of these foundation tables exist before their full admin UI is built.
 - `orders`
 - `order_items`
 - `order_item_modifiers`
+- `order_discounts`
 - `charges`
 - `order_charges`
 - `payments`
 
 Checkout currently validates/reprices cart contents server-side, then creates unpaid pickup orders with item and modifier snapshots. Stripe payment records/webhooks are planned but not implemented.
+
+`orders.discount_total` stores the total applied discount amount. `order_discounts` stores applied discount snapshots for future Specials Engine integration. A null `order_item_id` means the discount was applied at the order level; a non-null `order_item_id` means the discount was applied to a specific order item.
 
 Known order-system gaps:
 - Order creation should be moved to a transaction/RPC-style pattern.
@@ -172,3 +181,55 @@ Reusable configuration should follow this pattern:
 5. Keep unassigned reusable objects view-only from product context.
 
 Product setup remains the foundation for specials, printable menus, draft/publish/versioning, and later AI-assisted owner/admin tools.
+
+## Specials MVP Schema
+
+Specials are business-scoped. The MVP schema supports:
+
+- `specials` for reusable special definitions.
+- `special_products` for product and optional reusable variant option eligibility.
+- `special_menu_groups` for menu group/category eligibility.
+- `special_availability_windows` for recurring day/time availability.
+- `order_discounts` for applied discount snapshots.
+- `special_components` for future orderable deal component slots.
+- `special_component_products` for exact products selectable inside each future deal component.
+- `special_component_product_variant_options` for optional reusable variant option restrictions on those component products.
+- `special_component_modifier_group_overrides` for optional component/product-specific included Modifier Group counts.
+- `special_mix_match_rules` for the future Mix-and-Match fixed unit price rule.
+- `special_mix_match_products` for exact products eligible in a future Mix-and-Match pool.
+- `special_mix_match_product_variant_options` for optional reusable variant option restrictions on Mix-and-Match pool products.
+- `special_mix_match_modifier_group_overrides` for optional pool product Modifier Group included-count overrides.
+
+Allowed `special_type` values are `line_discount`, `fixed_price_line`, `cart_discount`, `orderable_deal`, and `mix_and_match_fixed_unit_price`. Allowed `discount_type` values are `percentage`, `fixed_amount`, and `fixed_price`.
+
+Passive special eligibility and orderable deal component choices are intentionally separate:
+
+- `special_products` and `special_menu_groups` define passive discount eligibility for normal cart lines.
+- `special_component_products` defines which products a customer may choose for an orderable deal component.
+- `special_component_product_variant_options` defines optional variant allow-lists for a chosen component product. If no rows exist for a component product, every enabled variant for that product is allowed.
+- `special_component_modifier_group_overrides` defines optional included-selection overrides for a chosen component product and assigned Modifier Group. If no row exists, the product's normal included Modifier Group rule is used.
+- Do not reuse passive eligibility rows as orderable deal component choices.
+
+Mix-and-Match fixed unit price specials are schema/type-supported only. Runtime/admin/checkout/public behavior is not built yet.
+
+- `special_mix_match_rules` stores one rule per `mix_and_match_fixed_unit_price` special: minimum quantity, optional maximum quantity, fixed unit price, and whether extra items beyond the minimum are allowed.
+- `special_mix_match_products` stores exact products eligible for the mix pool. Category/subcategory eligibility is not built yet.
+- `special_mix_match_product_variant_options` stores optional reusable variant allow-lists for a mix pool product. If no rows exist for a mix product, runtime should treat all enabled variants as allowed when Mix-and-Match runtime is built.
+- `special_mix_match_modifier_group_overrides` stores optional included-selection overrides for a mix pool product and assigned Modifier Group. If no row exists, runtime should use the product's normal included Modifier Group rule when Mix-and-Match runtime is built.
+- Hybrid deals such as "Any 2 for $7.99 each plus choose a 2-liter" should use the Mix-and-Match pool rule for the fixed-unit-price items and the existing orderable component model later for required attached side components.
+
+For the first orderable deal MVP, `orderable_deal` uses `specials.discount_value` as the deal base/fixed price unless a later migration adds a clearer `deal_base_price` column. Runtime pricing is deal base price plus allowed child extras. DealBuilder filters child product variants when component restrictions exist, applies component/product modifier included-count overrides during child configuration, and checkout enforces the same variant restrictions and modifier included-count overrides server-side.
+
+Special availability windows use `day_of_week` values `0` Sunday through `6` Saturday. All-day windows store null `start_time` and `end_time`; non-all-day windows require `start_time < end_time`. Overnight recurring windows are intentionally not supported in the MVP.
+
+Passive specials apply after configured-product pricing. The shared configured-product pricing resolver remains responsible for product, variant, modifier, included-selection, placement, multiplier, and quantity pricing. Checkout integration, tenant-scoped Specials Admin UI, staff order discount display, public passive-special display, cart deal runtime, orderable deal checkout snapshots, and component variant restrictions exist. Coupon UI and BundleBuilder/ComboBuilder remain pending.
+
+Future orderable deal expansions that are intentionally deferred:
+
+- `special_component_menu_groups`
+- `special_component_subcategories`
+- exclusion tables
+- optional component pricing tables
+- allowed/excluded modifier option rules
+- deal-specific default modifiers
+- premium modifier pricing rules

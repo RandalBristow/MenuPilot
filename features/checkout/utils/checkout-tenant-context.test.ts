@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { CartItem } from "@/features/cart/types/cart"
+import type { ConfiguredCartItem } from "@/features/cart/types/cart"
 import type {
   TenantBusinessContext,
   TenantLocationContext,
@@ -48,7 +48,9 @@ function buildLocation(
   }
 }
 
-function buildCartItem(overrides: Partial<CartItem> = {}): CartItem {
+function buildCartItem(
+  overrides: Partial<ConfiguredCartItem> = {}
+): ConfiguredCartItem {
   return {
     cartItemId: "cart-1",
     businessId: "business-a",
