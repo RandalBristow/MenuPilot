@@ -43,6 +43,11 @@ import {
   resolveIncludedQuantity,
   type ModifierIncludedRuleOverride,
 } from "@/features/product-configurator/utils/modifier-included-rule-overrides";
+import {
+  getDealComponentDisplayTotal,
+  getDealComponentPricingCopy,
+  type DealComponentPricingContext,
+} from "@/features/product-configurator/utils/deal-component-pricing-context";
 
 type Variant = {
   id: string;
@@ -141,6 +146,7 @@ type PizzaBuilderProps = {
   submitBehavior?: ProductConfiguratorSubmitBehavior;
   allowedVariantOptionIds?: string[] | null;
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null;
+  dealComponentPricingContext?: DealComponentPricingContext | null;
   onConfiguredItem?: (result: ConfiguredProductResult) => void;
 };
 
@@ -194,6 +200,7 @@ export function PizzaBuilder({
   submitBehavior = "cart",
   allowedVariantOptionIds = null,
   modifierIncludedRuleOverrides = null,
+  dealComponentPricingContext = null,
   onConfiguredItem,
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
@@ -355,6 +362,14 @@ export function PizzaBuilder({
   const modifierExtraTotal = Object.values(
     pricing.pricedSelectedModifiers,
   ).reduce((sum, modifier) => sum + modifier.priceDelta, 0);
+  const dealDisplayTotal = getDealComponentDisplayTotal({
+    context: dealComponentPricingContext,
+    quantity,
+    childExtraTotal: modifierExtraTotal,
+  });
+  const dealPricingCopy = getDealComponentPricingCopy(
+    dealComponentPricingContext,
+  );
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -567,7 +582,9 @@ export function PizzaBuilder({
                       </div>
 
                       <span className="text-sm font-semibold">
-                        ${Number(variant.base_price).toFixed(2)}
+                        {dealComponentPricingContext?.displayPricingContext
+                          ? `Normally $${Number(variant.base_price).toFixed(2)}`
+                          : `$${Number(variant.base_price).toFixed(2)}`}
                       </span>
                     </Label>
                   ))}
@@ -676,14 +693,21 @@ export function PizzaBuilder({
             onClick={handleCartSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>
-              {submitBehavior === "return"
-                ? "Add to Special"
-                : editingCartItem
-                  ? "Save changes"
-                  : "Add to cart"}
+            <span className="flex min-w-0 flex-col items-start leading-tight">
+              <span>
+                {submitBehavior === "return"
+                  ? "Add to Special"
+                  : editingCartItem
+                    ? "Save changes"
+                    : "Add to cart"}
+              </span>
+              {dealPricingCopy ? (
+                <span className="text-xs font-normal opacity-85">
+                  {dealPricingCopy}
+                </span>
+              ) : null}
             </span>
-            <span>${total.toFixed(2)}</span>
+            <span>${(dealDisplayTotal ?? total).toFixed(2)}</span>
           </ThemedButton>
         </div>
       </DialogContent>

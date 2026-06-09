@@ -23,4 +23,11 @@ export type PublicSpecial = {
   eligibleProducts: PublicSpecialProductEligibility[]
   eligibleMenuGroupIds: string[]
   availabilityWindows: SpecialAvailabilityWindow[]
+  mixRule?: {
+    minQuantity: number
+    maxQuantity: number | null
+    unitPrice: number
+    allowExtraItems: boolean
+  } | null
+  mixProductCount?: number
 }

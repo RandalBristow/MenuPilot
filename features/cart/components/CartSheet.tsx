@@ -67,6 +67,24 @@ function formatPlacement(placement: CartModifier["placement"]) {
   return placement.charAt(0).toUpperCase() + placement.slice(1)
 }
 
+function formatDealChildPricing(child: DealCartChildItem) {
+  if (child.componentPricingMode === "fixed_price") {
+    const price = child.componentBasePrice ?? child.componentFixedPrice ?? 0
+
+    return `Fixed price $${price.toFixed(2)}`
+  }
+
+  if (child.componentPricingMode === "normal_price") {
+    return "Normal product price"
+  }
+
+  if (child.componentPricingMode === "included") {
+    return "Included"
+  }
+
+  return null
+}
+
 function ModifierDetails({
   modifiers,
   itemKey,
@@ -113,6 +131,8 @@ function ModifierDetails({
 }
 
 function DealChildLine({ child }: { child: DealCartChildItem }) {
+  const pricing = formatDealChildPricing(child)
+
   return (
     <div className="space-y-2 rounded-lg border bg-background/60 p-3">
       <div className="flex items-start justify-between gap-3">
@@ -122,6 +142,11 @@ function DealChildLine({ child }: { child: DealCartChildItem }) {
             <span>Qty {child.quantity}</span>
             {child.variantName ? <span>{child.variantName}</span> : null}
           </div>
+          {pricing ? (
+            <p className="mt-1 text-xs font-medium text-muted-foreground">
+              {pricing}
+            </p>
+          ) : null}
         </div>
 
         {child.childExtraTotal > 0 ? (
@@ -148,6 +173,18 @@ function DealCartItemCard({
   const sortedComponents = [...item.components].sort(
     (left, right) => left.sortOrder - right.sortOrder
   )
+  const isMixAndMatch = item.specialType === "mix_and_match_fixed_unit_price"
+  const label = isMixAndMatch ? "Mix & Match" : "Deal"
+  const summary = isMixAndMatch
+    ? item.ruleSummary ??
+      `${item.selectedQuantity ?? 0} selected at ${
+        item.unitPrice ? `$${item.unitPrice.toFixed(2)}` : "one fixed price"
+      } each`
+    : `${item.usesComponentPricing ? "Component base" : "Base"} $${item.dealBasePrice.toFixed(2)}${
+        item.childExtraTotal > 0
+          ? ` + ${item.childExtraTotal.toFixed(2)} extras`
+          : ""
+      }`
 
   return (
     <ThemedCard className="space-y-4 p-4">
@@ -156,15 +193,15 @@ function DealCartItemCard({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold leading-tight">{item.specialName}</h3>
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              Deal
+              {label}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Base ${item.dealBasePrice.toFixed(2)}
-            {item.childExtraTotal > 0
-              ? ` + ${item.childExtraTotal.toFixed(2)} extras`
-              : ""}
-          </p>
+          <p className="text-sm text-muted-foreground">{summary}</p>
+          {isMixAndMatch && item.childExtraTotal > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Extras +${item.childExtraTotal.toFixed(2)}
+            </p>
+          ) : null}
         </div>
 
         <p className="shrink-0 text-right font-semibold leading-tight">
@@ -194,14 +231,16 @@ function DealCartItemCard({
       </div>
 
       <div className="flex justify-end border-t pt-3">
-        <ThemedButton
-          type="button"
-          variant="link"
-          onClick={() => onEdit(item)}
-          className="mr-4 h-auto bg-transparent p-0 text-sm font-medium text-foreground hover:bg-transparent"
-        >
-          Customize
-        </ThemedButton>
+        {!isMixAndMatch ? (
+          <ThemedButton
+            type="button"
+            variant="link"
+            onClick={() => onEdit(item)}
+            className="mr-4 h-auto bg-transparent p-0 text-sm font-medium text-foreground hover:bg-transparent"
+          >
+            Customize
+          </ThemedButton>
+        ) : null}
 
         <ThemedButton
           type="button"

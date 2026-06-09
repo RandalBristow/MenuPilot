@@ -3,6 +3,9 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { resolveBusinessContext } from "@/features/tenant/queries/resolve-business-context"
 import { resolveVariantsForProduct } from "@/features/product-configurator/utils/apply-effective-product-variants"
 import type {
+  OrderableDealComponentPricingMode,
+} from "@/features/specials/types/orderable-deal"
+import type {
   SpecialAvailabilityWindow,
   SpecialDiscountType,
   SpecialType,
@@ -97,6 +100,8 @@ export type SpecialAdminComponent = {
   minQuantity: number
   maxQuantity: number
   pricingBehavior: "included_base"
+  pricingMode: OrderableDealComponentPricingMode
+  fixedPrice: number | null
   isRequired: boolean
   productIds: string[]
   productVariantRestrictions: Array<{
@@ -119,6 +124,14 @@ export type SpecialAdminFormData = {
   special: SpecialAdminListItem | null
   products: SpecialEligibilityOption[]
   menuGroups: SpecialMenuGroupOption[]
+}
+
+type RawSpecialMixMatchRule = {
+  id: string
+  min_quantity: number
+  max_quantity: number | null
+  unit_price: number | string
+  allow_extra_items: boolean
 }
 
 type RawSpecial = {
@@ -156,6 +169,8 @@ type RawSpecial = {
     min_quantity: number
     max_quantity: number
     pricing_behavior: "included_base"
+    pricing_mode?: OrderableDealComponentPricingMode | null
+    fixed_price?: number | string | null
     is_required: boolean
     special_component_products: Array<{
       id: string
@@ -173,13 +188,8 @@ type RawSpecial = {
     }> | null
   }> | null
   special_mix_match_rules:
-    | Array<{
-        id: string
-        min_quantity: number
-        max_quantity: number | null
-        unit_price: number | string
-        allow_extra_items: boolean
-      }>
+    | RawSpecialMixMatchRule[]
+    | RawSpecialMixMatchRule
     | null
   special_mix_match_products:
     | Array<{
@@ -310,6 +320,12 @@ function toNumber(value: number | string | null | undefined) {
   return typeof value === "number" ? value : Number(value)
 }
 
+function firstRecord<T>(value: T | T[] | null | undefined) {
+  if (Array.isArray(value)) return value[0] ?? null
+
+  return value ?? null
+}
+
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -432,7 +448,7 @@ function getMixMatchEligibilitySummary({
   return `${count} pool ${count === 1 ? "product" : "products"}`
 }
 
-function mapRawSpecial({
+export function mapRawSpecial({
   special,
   productNamesById,
   menuGroupNamesById,
@@ -471,6 +487,11 @@ function mapRawSpecial({
         minQuantity: component.min_quantity,
         maxQuantity: component.max_quantity,
         pricingBehavior: component.pricing_behavior,
+        pricingMode: component.pricing_mode ?? "included",
+        fixedPrice:
+          component.fixed_price === null || component.fixed_price === undefined
+            ? null
+            : toNumber(component.fixed_price),
         isRequired: component.is_required,
         productIds: componentProducts.map((row) => row.product_id),
         productVariantRestrictions: componentProducts
@@ -498,7 +519,7 @@ function mapRawSpecial({
   const mixProductRows = [...(special.special_mix_match_products ?? [])].sort(
     (first, second) => first.sort_order - second.sort_order
   )
-  const rawMixRule = special.special_mix_match_rules?.[0] ?? null
+  const rawMixRule = firstRecord(special.special_mix_match_rules)
   const mixMatchRule = rawMixRule
     ? {
         id: rawMixRule.id,
@@ -821,6 +842,8 @@ async function loadRawSpecials(businessId: string, specialId?: string) {
         min_quantity,
         max_quantity,
         pricing_behavior,
+        pricing_mode,
+        fixed_price,
         is_required,
         special_component_products (
           id,

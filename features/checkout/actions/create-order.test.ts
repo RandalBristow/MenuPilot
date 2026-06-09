@@ -3,6 +3,7 @@ import type { ConfiguredCartItem } from "@/features/cart/types/cart"
 import type { CheckoutTenantContext } from "@/features/checkout/utils/checkout-tenant-context"
 import type { CheckoutProductConfig } from "@/features/checkout/utils/validate-and-price-cart"
 import type { SpecialCandidate } from "@/features/specials/types/special"
+import type { MixAndMatchDealCandidate } from "@/features/specials/utils/validate-and-price-mix-and-match-deal"
 import type { OrderableDealCandidate } from "@/features/specials/utils/validate-and-price-orderable-deal"
 import { createOrder } from "./create-order"
 
@@ -30,6 +31,11 @@ const specialsMock = vi.hoisted(() => ({
 
 const dealsMock = vi.hoisted(() => ({
   dealsById: new Map<string, OrderableDealCandidate>(),
+  calls: [] as unknown[],
+}))
+
+const mixDealsMock = vi.hoisted(() => ({
+  dealsById: new Map<string, MixAndMatchDealCandidate>(),
   calls: [] as unknown[],
 }))
 
@@ -63,6 +69,13 @@ vi.mock("@/features/specials/queries/load-orderable-deals-for-checkout", () => (
   loadOrderableDealsForCheckout: (input: unknown) => {
     dealsMock.calls.push(input)
     return Promise.resolve(dealsMock.dealsById)
+  },
+}))
+
+vi.mock("@/features/specials/queries/load-mix-and-match-deals-for-checkout", () => ({
+  loadMixAndMatchDealsForCheckout: (input: unknown) => {
+    mixDealsMock.calls.push(input)
+    return Promise.resolve(mixDealsMock.dealsById)
   },
 }))
 
@@ -194,6 +207,29 @@ function orderableDeal(
   }
 }
 
+function mixAndMatchDeal(
+  overrides: Partial<MixAndMatchDealCandidate> = {}
+): MixAndMatchDealCandidate {
+  return {
+    businessId: "business-a",
+    specialId: "mix-1",
+    name: "Any 2 Subs",
+    specialType: "mix_and_match_fixed_unit_price",
+    isEnabled: true,
+    startsAt: null,
+    endsAt: null,
+    availabilityWindows: [],
+    rule: {
+      minQuantity: 2,
+      maxQuantity: null,
+      unitPrice: 7.99,
+      allowExtraItems: true,
+    },
+    poolProducts: [{ productId: "product-a" }],
+    ...overrides,
+  }
+}
+
 function buildTenantContext(
   overrides: Partial<CheckoutTenantContext> = {}
 ): CheckoutTenantContext {
@@ -313,6 +349,59 @@ function buildDealCartItem({
   }
 }
 
+function buildMixCartItem({
+  configuredLineTotal = 24,
+  childQuantity = 2,
+  childExtraTotal = 0,
+  totalPrice = 15.98,
+}: {
+  configuredLineTotal?: number
+  childQuantity?: number
+  childExtraTotal?: number
+  totalPrice?: number
+} = {}) {
+  return {
+    cartItemId: "mix-cart-1",
+    itemType: "deal" as const,
+    specialType: "mix_and_match_fixed_unit_price" as const,
+    businessId: "business-a",
+    businessSlug: "business-a",
+    locationId: null,
+    locationSlug: null,
+    specialId: "mix-1",
+    specialName: "Any 2 Subs",
+    ruleSummary: "Any 2+ for $7.99 each",
+    selectedQuantity: childQuantity,
+    unitPrice: 7.99,
+    mixBaseTotal: totalPrice,
+    dealBasePrice: totalPrice,
+    childExtraTotal,
+    totalPrice,
+    components: [
+      {
+        componentId: "mix:mix-1",
+        componentLabel: "Mix & Match selections",
+        sortOrder: 1,
+        requiredQuantity: 2,
+        selectedQuantity: childQuantity,
+        children: [
+          {
+            childLineId: "mix-child-1",
+            productId: "product-a",
+            productName: "Client Sub",
+            variantId: null,
+            variantName: null,
+            quantity: childQuantity,
+            configuredLineTotal,
+            childExtraTotal,
+            modifiers: [],
+          },
+        ],
+      },
+    ],
+  }
+}
+
 function buildInput(overrides: Partial<Parameters<typeof createOrder>[0]> = {}) {
   return {
     customerName: "Jane",
@@ -387,6 +476,8 @@ describe("createOrder tenant checkout", () => {
     specialsMock.calls = []
     dealsMock.dealsById = new Map()
     dealsMock.calls = []
+    mixDealsMock.dealsById = new Map()
+    mixDealsMock.calls = []
     supabaseMock.inserts = []
     supabaseMock.orderItemIds = ["order-item-a"]
   })
@@ -695,6 +786,61 @@ describe("createOrder tenant checkout", () => {
           modifier_option_id: "pepperoni",
         }),
       ],
+    })
+    expect(
+      supabaseMock.inserts.some((insert) => insert.table === "order_discounts")
+    ).toBe(false)
+  })
+
+  it("accepts a valid Mix & Match deal and inserts parent and child order items", async () => {
+    mixDealsMock.dealsById = new Map([["mix-1", mixAndMatchDeal()]])
+    supabaseMock.orderItemIds = ["mix-parent-item", "mix-child-item"]
+
+    const result = await createOrder(
+      buildInput({ items: [buildMixCartItem()] })
+    )
+
+    expect(result.ok).toBe(true)
+    expect(dealsMock.calls[0]).toMatchObject({
+      businessId: "business-a",
+      specialIds: [],
+      timeZone: "America/New_York",
+    })
+    expect(mixDealsMock.calls[0]).toMatchObject({
+      businessId: "business-a",
+      specialIds: ["mix-1"],
+      timeZone: "America/New_York",
+    })
+    expect(supabaseMock.inserts[0]).toMatchObject({
+      table: "orders",
+      payload: {
+        subtotal: 15.98,
+        discount_total: 0,
+        total: 15.98,
+      },
+    })
+    expect(supabaseMock.inserts[1]).toMatchObject({
+      table: "order_items",
+      payload: {
+        product_id: null,
+        product_name_snapshot: "Any 2 Subs",
+        relationship_type: "deal",
+        line_subtotal: 15.98,
+      },
+    })
+    expect(supabaseMock.inserts[1].payload).toMatchObject({
+      notes: expect.stringContaining("mix_and_match_fixed_unit_price"),
+    })
+    expect(supabaseMock.inserts[2]).toMatchObject({
+      table: "order_items",
+      payload: {
+        parent_order_item_id: "mix-parent-item",
+        relationship_type: "deal_component",
+        product_id: "product-a",
+        product_name_snapshot: "Server Pizza",
+        quantity: 2,
+        line_subtotal: 0,
+      },
     })
     expect(
       supabaseMock.inserts.some((insert) => insert.table === "order_discounts")

@@ -215,6 +215,8 @@ function buildFormData(overrides: Record<string, string | string[]> = {}) {
     startsAt: "",
     endsAt: "",
     availabilityMode: "always",
+    "componentPricingMode-0": "included",
+    "componentFixedPrice-0": "",
   }
 
   Object.entries({ ...defaults, ...overrides }).forEach(([key, value]) => {
@@ -322,6 +324,8 @@ describe("special admin actions", () => {
         special_id: "special-new",
         label: "Choose a pizza",
         required_quantity: 1,
+        pricing_mode: "included",
+        fixed_price: null,
       }),
     })
     expect(
@@ -354,6 +358,116 @@ describe("special admin actions", () => {
         }),
       ],
     })
+  })
+
+  it("saves orderable deal component fixed pricing", async () => {
+    await expect(
+      saveSpecial(
+        buildFormData({
+          specialType: "orderable_deal",
+          discountType: "fixed_price",
+          discountValue: "29.99",
+          componentCount: "1",
+          "componentLabel-0": "Choose a large pizza",
+          "componentSortOrder-0": "1",
+          "componentRequiredQuantity-0": "1",
+          "componentMinQuantity-0": "1",
+          "componentMaxQuantity-0": "1",
+          "componentPricingMode-0": "fixed_price",
+          "componentFixedPrice-0": "7.99",
+          "componentProductIds-0": ["product-a"],
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT")
+
+    expect(
+      dbMock.operations.find(
+        (operation) =>
+          operation.table === "special_components" &&
+          operation.operation === "insert"
+      )
+    ).toMatchObject({
+      payload: expect.objectContaining({
+        pricing_mode: "fixed_price",
+        fixed_price: 7.99,
+      }),
+    })
+  })
+
+  it("rejects missing, negative, deferred, and invalid component pricing modes", async () => {
+    await expect(
+      saveSpecial(
+        buildFormData({
+          specialType: "orderable_deal",
+          discountType: "fixed_price",
+          discountValue: "29.99",
+          componentCount: "1",
+          "componentLabel-0": "Choose a large pizza",
+          "componentSortOrder-0": "1",
+          "componentRequiredQuantity-0": "1",
+          "componentMinQuantity-0": "1",
+          "componentMaxQuantity-0": "1",
+          "componentPricingMode-0": "fixed_price",
+          "componentFixedPrice-0": "",
+          "componentProductIds-0": ["product-a"],
+        })
+      )
+    ).rejects.toThrow("fixed component price")
+
+    await expect(
+      saveSpecial(
+        buildFormData({
+          specialType: "orderable_deal",
+          discountType: "fixed_price",
+          discountValue: "29.99",
+          componentCount: "1",
+          "componentLabel-0": "Choose a large pizza",
+          "componentSortOrder-0": "1",
+          "componentRequiredQuantity-0": "1",
+          "componentMinQuantity-0": "1",
+          "componentMaxQuantity-0": "1",
+          "componentPricingMode-0": "fixed_price",
+          "componentFixedPrice-0": "-1",
+          "componentProductIds-0": ["product-a"],
+        })
+      )
+    ).rejects.toThrow("zero or greater")
+
+    await expect(
+      saveSpecial(
+        buildFormData({
+          specialType: "orderable_deal",
+          discountType: "fixed_price",
+          discountValue: "29.99",
+          componentCount: "1",
+          "componentLabel-0": "Choose a large pizza",
+          "componentSortOrder-0": "1",
+          "componentRequiredQuantity-0": "1",
+          "componentMinQuantity-0": "1",
+          "componentMaxQuantity-0": "1",
+          "componentPricingMode-0": "normal_price",
+          "componentProductIds-0": ["product-a"],
+        })
+      )
+    ).rejects.toThrow("not available yet")
+
+    await expect(
+      saveSpecial(
+        buildFormData({
+          specialType: "orderable_deal",
+          discountType: "fixed_price",
+          discountValue: "29.99",
+          componentCount: "1",
+          "componentLabel-0": "Choose a large pizza",
+          "componentSortOrder-0": "1",
+          "componentRequiredQuantity-0": "1",
+          "componentMinQuantity-0": "1",
+          "componentMaxQuantity-0": "1",
+          "componentPricingMode-0": "bad_mode",
+          "componentProductIds-0": ["product-a"],
+        })
+      )
+    ).rejects.toThrow("invalid")
   })
 
   it("saves orderable deal modifier included-count overrides", async () => {
@@ -577,6 +691,38 @@ describe("special admin actions", () => {
           operation.operation === "insert"
       )
     ).toBe(false)
+  })
+
+  it("saves explicit zero mix modifier override rows", async () => {
+    await expect(
+      saveSpecial(
+        buildFormData({
+          specialType: "mix_and_match_fixed_unit_price",
+          discountType: "fixed_price",
+          mixMinQuantity: "2",
+          mixUnitPrice: "7.99",
+          mixAllowExtraItems: "true",
+          mixProductIds: ["product-a"],
+          "mixModifierIncludedCount::product-a::modifier-toppings": "0",
+        })
+      )
+    ).rejects.toThrow("NEXT_REDIRECT")
+
+    expect(
+      dbMock.operations.find(
+        (operation) =>
+          operation.table === "special_mix_match_modifier_group_overrides" &&
+          operation.operation === "insert"
+      )
+    ).toMatchObject({
+      payload: [
+        expect.objectContaining({
+          product_id: "product-a",
+          modifier_group_id: "modifier-toppings",
+          included_selection_count: 0,
+        }),
+      ],
+    })
   })
 
   it("rejects invalid mix and match quantity and unit price rules", async () => {

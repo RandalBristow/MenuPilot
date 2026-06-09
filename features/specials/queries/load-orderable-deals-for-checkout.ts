@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { OrderableDealCandidate } from "@/features/specials/utils/validate-and-price-orderable-deal"
 import { getSpecialComputedStatus } from "@/features/specials/utils/special-schedule"
 import type { SpecialAvailabilityWindow } from "@/features/specials/types/special"
+import type { OrderableDealComponentPricingMode } from "@/features/specials/types/orderable-deal"
 
 type RawAvailabilityWindow = {
   id: string
@@ -32,6 +33,8 @@ type RawComponent = {
   min_quantity: number
   max_quantity: number
   pricing_behavior: "included_base"
+  pricing_mode?: OrderableDealComponentPricingMode | null
+  fixed_price?: number | string | null
   is_required: boolean
   special_component_products: RawComponentProduct[] | null
   special_component_modifier_group_overrides?:
@@ -134,6 +137,11 @@ export function mapCheckoutOrderableDeal({
         minQuantity: component.min_quantity,
         maxQuantity: component.max_quantity,
         pricingBehavior: component.pricing_behavior,
+        pricingMode: component.pricing_mode ?? "included",
+        fixedPrice:
+          component.fixed_price === null || component.fixed_price === undefined
+            ? null
+            : toNumber(component.fixed_price),
         isRequired: component.is_required,
         allowedProductIds: (component.special_component_products ?? [])
           .map((row) => firstRecord(row.products))
@@ -232,6 +240,8 @@ export async function loadOrderableDealsForCheckout({
         min_quantity,
         max_quantity,
         pricing_behavior,
+        pricing_mode,
+        fixed_price,
         is_required,
         special_component_products (
           product_id,

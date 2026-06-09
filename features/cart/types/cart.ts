@@ -40,6 +40,9 @@ export type DealCartChildItem = {
   variantName: string | null
   quantity: number
   configuredLineTotal: number | null
+  componentPricingMode?: "included" | "fixed_price" | "normal_price"
+  componentFixedPrice?: number | null
+  componentBasePrice?: number
   childExtraTotal: number
   modifiers: CartModifier[]
 }
@@ -50,18 +53,28 @@ export type DealCartComponent = {
   sortOrder: number
   requiredQuantity: number
   selectedQuantity: number
+  pricingMode?: "included" | "fixed_price" | "normal_price"
+  fixedPrice?: number | null
+  componentBaseTotal?: number
   children: DealCartChildItem[]
 }
 
 export type DealCartItem = {
   cartItemId: string
   itemType: "deal"
+  specialType?: "orderable_deal" | "mix_and_match_fixed_unit_price"
   businessId?: string | null
   businessSlug?: string | null
   locationId?: string | null
   locationSlug?: string | null
   specialId: string
   specialName: string
+  ruleSummary?: string | null
+  selectedQuantity?: number | null
+  unitPrice?: number | null
+  mixBaseTotal?: number | null
+  usesComponentPricing?: boolean
+  componentBaseTotal?: number | null
   dealBasePrice: number
   childExtraTotal: number
   totalPrice: number

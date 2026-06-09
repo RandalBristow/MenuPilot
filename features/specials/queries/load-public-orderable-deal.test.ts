@@ -27,6 +27,8 @@ const activeRawDeal = {
       min_quantity: 1,
       max_quantity: 1,
       pricing_behavior: "included_base" as const,
+      pricing_mode: "fixed_price" as const,
+      fixed_price: "7.99",
       is_required: true,
       special_component_products: [
         {
@@ -77,6 +79,8 @@ describe("mapPublicOrderableDeal", () => {
         {
           id: "component-1",
           label: "Choose a pizza",
+          pricingMode: "fixed_price",
+          fixedPrice: 7.99,
           products: [
             {
               id: "product-1",
@@ -92,6 +96,30 @@ describe("mapPublicOrderableDeal", () => {
           ],
         },
       ],
+    })
+  })
+
+  it("defaults missing component pricing mode to included", () => {
+    const deal = mapPublicOrderableDeal({
+      rawDeal: {
+        ...activeRawDeal,
+        special_components: [
+          {
+            ...activeRawDeal.special_components[0],
+            pricing_mode: null,
+            fixed_price: null,
+          },
+        ],
+      },
+      businessSlug: "demo",
+      businessId: "business-1",
+      currentTime: new Date("2026-06-06T12:00:00Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(deal?.components[0]).toMatchObject({
+      pricingMode: "included",
+      fixedPrice: null,
     })
   })
 

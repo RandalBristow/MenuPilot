@@ -24,6 +24,8 @@ const rawDeal = {
       min_quantity: 1,
       max_quantity: 1,
       pricing_behavior: "included_base" as const,
+      pricing_mode: "fixed_price" as const,
+      fixed_price: "7.99",
       is_required: true,
       special_component_products: [
         {
@@ -60,6 +62,8 @@ describe("mapCheckoutOrderableDeal", () => {
 
     expect(deal?.components[0]).toMatchObject({
       componentId: "component-1",
+      pricingMode: "fixed_price",
+      fixedPrice: 7.99,
       allowedProductIds: ["product-1"],
       allowedProductVariantOptions: [
         {
@@ -74,6 +78,29 @@ describe("mapCheckoutOrderableDeal", () => {
           includedSelectionCount: 2,
         },
       ],
+    })
+  })
+
+  it("defaults missing component pricing mode to included", () => {
+    const deal = mapCheckoutOrderableDeal({
+      rawDeal: {
+        ...rawDeal,
+        special_components: [
+          {
+            ...rawDeal.special_components[0],
+            pricing_mode: null,
+            fixed_price: null,
+          },
+        ],
+      },
+      businessId: "business-1",
+      currentTime: new Date("2026-06-06T12:00:00Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(deal?.components[0]).toMatchObject({
+      pricingMode: "included",
+      fixedPrice: null,
     })
   })
 })

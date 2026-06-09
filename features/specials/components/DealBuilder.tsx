@@ -76,6 +76,22 @@ function getDealChildExtra(result: ConfiguredProductResult) {
   return Number((firstIncludedUnitExtra + extraUnitTotal).toFixed(2))
 }
 
+function getComponentPricingText(
+  component: PublicOrderableDeal["components"][number]
+) {
+  if (component.pricingMode === "fixed_price") {
+    return component.fixedPrice === null
+      ? "Fixed price unavailable"
+      : `Fixed price: ${formatMoney(component.fixedPrice)}`
+  }
+
+  if (component.pricingMode === "normal_price") {
+    return "Normal product price is not supported yet"
+  }
+
+  return "Included"
+}
+
 function getSelectedChildKey(componentId: string, productId: string) {
   return `${componentId}:${productId}`
 }
@@ -305,6 +321,8 @@ export function DealBuilder({
           minQuantity: component.minQuantity,
           maxQuantity: component.maxQuantity,
           pricingBehavior: component.pricingBehavior,
+          pricingMode: component.pricingMode,
+          fixedPrice: component.fixedPrice,
           isRequired: component.isRequired,
           allowedProductIds: component.products.map((product) => product.id),
           allowedProductVariantOptions: component.products
@@ -471,6 +489,8 @@ export function DealBuilder({
       locationSlug: null,
       specialId: deal.id,
       specialName: deal.name,
+      usesComponentPricing: true,
+      componentBaseTotal: validation.componentBaseTotal,
       dealBasePrice: validation.dealBasePrice,
       childExtraTotal: validation.childExtraTotal,
       totalPrice: validation.total,
@@ -480,6 +500,9 @@ export function DealBuilder({
         sortOrder: component.sortOrder,
         requiredQuantity: component.requiredQuantity,
         selectedQuantity: component.selectedQuantity,
+        pricingMode: component.pricingMode,
+        fixedPrice: component.fixedPrice,
+        componentBaseTotal: component.componentBaseTotal,
         children: component.children.map((child) => {
           const selectedChild = childrenById.get(child.childLineId)
 
@@ -491,6 +514,9 @@ export function DealBuilder({
             variantName: child.variantName,
             quantity: child.quantity,
             configuredLineTotal: child.configuredLineTotal,
+            componentPricingMode: child.componentPricingMode,
+            componentFixedPrice: child.componentFixedPrice,
+            componentBasePrice: child.componentBasePrice,
             childExtraTotal: child.childExtraTotal,
             modifiers: selectedChild?.result.modifiers ?? [],
           }
@@ -526,6 +552,11 @@ export function DealBuilder({
   const incompleteSteps = steps.filter((step) => !selectedChildrenByStep.has(step.key))
   const displayedTotal = validation?.ok ? validation.total : deal?.dealBasePrice ?? 0
   const displayedExtras = validation?.ok ? validation.childExtraTotal : 0
+  const validationErrors =
+    validation && !validation.ok ? validation.errors : []
+  const activeBuilderComponent = activeComponentId
+    ? deal?.components.find((component) => component.id === activeComponentId)
+    : null
 
   function renderSummaryPanel({ compact = false }: { compact?: boolean } = {}) {
     if (!deal) return null
@@ -568,6 +599,9 @@ export function DealBuilder({
                         }`
                       : "Not selected"}
                   </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {getComponentPricingText(step.component)}
+                  </span>
                 </span>
               </button>
             )
@@ -587,8 +621,8 @@ export function DealBuilder({
 
         <div className="space-y-1 border-t pt-3 text-sm">
           <div className="flex justify-between">
-            <span>Base</span>
-            <span>{formatMoney(deal.dealBasePrice)}</span>
+            <span>Component base</span>
+            <span>{formatMoney(validation?.ok ? validation.componentBaseTotal : 0)}</span>
           </div>
           <div className="flex justify-between">
             <span>Extras</span>
@@ -652,6 +686,21 @@ export function DealBuilder({
                 </p>
               ) : null}
 
+              {validationErrors.length > 0 ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  <p className="font-semibold">This deal needs attention:</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5">
+                    {validationErrors.map((validationError) => (
+                      <li
+                        key={`${validationError.code}:${validationError.componentId ?? ""}:${validationError.childLineId ?? ""}`}
+                      >
+                        {validationError.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
               {deal ? (
                 <>
                 {activeStep && !isReviewStep ? (
@@ -667,6 +716,9 @@ export function DealBuilder({
                         {activeStep.slotCount > 1
                           ? `Choose ${activeStep.slotIndex + 1} of ${activeStep.slotCount}.`
                           : activeStep.component.description ?? "Choose one item for this part of the deal."}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {getComponentPricingText(activeStep.component)}
                       </p>
                     </div>
 
@@ -725,6 +777,9 @@ export function DealBuilder({
                                     Restricted variant
                                   </p>
                                 ) : null}
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  {getComponentPricingText(activeStep.component)}
+                                </p>
                               </div>
 
                               <div className="deal-builder-product-actions mt-auto grid gap-2">
@@ -786,15 +841,20 @@ export function DealBuilder({
                                   {step.component.label}
                                 </h4>
                                 {selectedChild ? (
-                                  <p className="text-sm text-muted-foreground">
-                                    {selectedChild.result.productName}
-                                    {selectedChild.result.variantName
-                                      ? ` - ${selectedChild.result.variantName}`
-                                      : ""}
-                                    {getDealChildExtra(selectedChild.result) > 0
-                                      ? ` - Extras ${formatMoney(getDealChildExtra(selectedChild.result))}`
-                                      : ""}
-                                  </p>
+                                  <>
+                                    <p className="text-sm text-muted-foreground">
+                                      {selectedChild.result.productName}
+                                      {selectedChild.result.variantName
+                                        ? ` - ${selectedChild.result.variantName}`
+                                        : ""}
+                                      {getDealChildExtra(selectedChild.result) > 0
+                                        ? ` - Extras ${formatMoney(getDealChildExtra(selectedChild.result))}`
+                                        : ""}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {getComponentPricingText(step.component)}
+                                    </p>
+                                  </>
                                 ) : (
                                   <p className="text-sm text-destructive">
                                     Not selected
@@ -907,12 +967,21 @@ export function DealBuilder({
               : undefined
           }
           modifierIncludedRuleOverrides={
-            activeComponentId
-              ? deal?.components
-                  .find((component) => component.id === activeComponentId)
-                  ?.products.find((product) => product.id === builderProduct.id)
-                  ?.modifierGroupOverrides
+            activeBuilderComponent
+              ? activeBuilderComponent.products.find(
+                  (product) => product.id === builderProduct.id
+                )?.modifierGroupOverrides
               : undefined
+          }
+          dealComponentPricingContext={
+            activeBuilderComponent
+              ? {
+                  pricingMode: activeBuilderComponent.pricingMode,
+                  fixedPrice: activeBuilderComponent.fixedPrice,
+                  componentLabel: activeBuilderComponent.label,
+                  displayPricingContext: true,
+                }
+              : null
           }
           onConfiguredItem={handleConfiguredItem}
         />

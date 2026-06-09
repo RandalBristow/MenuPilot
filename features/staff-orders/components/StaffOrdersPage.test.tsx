@@ -40,6 +40,12 @@ function buildOrder(overrides: Partial<StaffOrder> = {}): StaffOrder {
         id: "order-item-a",
         parentOrderItemId: null,
         relationshipType: null,
+        specialType: null,
+        componentLabel: null,
+        componentPricingMode: null,
+        componentFixedPrice: null,
+        componentBasePrice: null,
+        childExtraTotal: null,
         productName: "Large Pizza",
         variantName: '16"',
         quantity: 1,
@@ -146,6 +152,12 @@ describe("StaffOrdersPage discount display", () => {
             id: "order-item-a",
             parentOrderItemId: null,
             relationshipType: null,
+            specialType: null,
+            componentLabel: null,
+            componentPricingMode: null,
+            componentFixedPrice: null,
+            componentBasePrice: null,
+            childExtraTotal: null,
             productName: "Large Pizza",
             variantName: '16"',
             quantity: 1,
@@ -180,5 +192,79 @@ describe("StaffOrdersPage discount display", () => {
     expect(screen.getAllByText("-$3.00").length).toBeGreaterThan(0)
     expect(screen.getByText("Subtotal")).toBeInTheDocument()
     expect(screen.getByText("Discounts")).toBeInTheDocument()
+  })
+
+  it("renders orderable deal child component pricing copy", async () => {
+    ordersMock.orders = [
+      buildOrder({
+        total: 15.98,
+        items: [
+          {
+            id: "deal-parent",
+            parentOrderItemId: null,
+            relationshipType: "deal",
+            specialType: "orderable_deal",
+            componentLabel: null,
+            componentPricingMode: null,
+            componentFixedPrice: null,
+            componentBasePrice: null,
+            childExtraTotal: null,
+            productName: "Two Large Pizzas Deal",
+            variantName: null,
+            quantity: 1,
+            unitPrice: 15.98,
+            lineSubtotal: 15.98,
+            modifiers: [],
+            discounts: [],
+            children: [
+              {
+                id: "deal-child-a",
+                parentOrderItemId: "deal-parent",
+                relationshipType: "deal_component",
+                specialType: "deal_component",
+                componentLabel: "Pizza 1",
+                componentPricingMode: "fixed_price",
+                componentFixedPrice: 7.99,
+                componentBasePrice: 7.99,
+                childExtraTotal: 0,
+                productName: "Build Your Own Pizza",
+                variantName: "Large",
+                quantity: 1,
+                unitPrice: 0,
+                lineSubtotal: 0,
+                modifiers: [],
+                discounts: [],
+                children: [],
+              },
+              {
+                id: "deal-child-b",
+                parentOrderItemId: "deal-parent",
+                relationshipType: "deal_component",
+                specialType: "deal_component",
+                componentLabel: "2-liter",
+                componentPricingMode: "included",
+                componentFixedPrice: null,
+                componentBasePrice: 0,
+                childExtraTotal: 0,
+                productName: "Pepsi",
+                variantName: "2 Liter",
+                quantity: 1,
+                unitPrice: 0,
+                lineSubtotal: 0,
+                modifiers: [],
+                discounts: [],
+                children: [],
+              },
+            ],
+          },
+        ],
+      }),
+    ]
+
+    render(await StaffOrdersPage())
+
+    expect(screen.getByText("Two Large Pizzas Deal")).toBeInTheDocument()
+    expect(screen.getByText("Fixed price $7.99")).toBeInTheDocument()
+    expect(screen.getByText("Included")).toBeInTheDocument()
   })
 })

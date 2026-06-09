@@ -14,6 +14,7 @@ vi.mock("next/navigation", () => ({
 
 import {
   formatDiscountSummary,
+  mapRawSpecial,
   mapProductOptions,
   type RawProductOption,
 } from "./get-specials-admin-data"
@@ -162,6 +163,190 @@ describe("specials admin data helpers", () => {
         id: "product-drink",
         parentMenuGroupName: "Drinks",
         menuGroupName: "2-Liters",
+      }),
+    ])
+  })
+
+  it("maps mix and match rule, pool products, variant restrictions, and zero modifier overrides", () => {
+    const special = mapRawSpecial({
+      special: {
+        id: "special-mix",
+        name: "Any 2 Pizzas",
+        description: null,
+        customer_description: "Choose any two.",
+        special_type: "mix_and_match_fixed_unit_price",
+        discount_type: "fixed_price",
+        discount_value: "7.99",
+        min_order_amount: null,
+        starts_at: null,
+        ends_at: null,
+        is_enabled: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+        special_availability_windows: null,
+        special_products: null,
+        special_menu_groups: null,
+        special_components: null,
+        special_mix_match_rules: {
+          id: "mix-rule",
+          min_quantity: 2,
+          max_quantity: 4,
+          unit_price: "7.99",
+          allow_extra_items: true,
+        },
+        special_mix_match_products: [
+          {
+            id: "mix-product-b",
+            product_id: "product-b",
+            sort_order: 2,
+            special_mix_match_product_variant_options: null,
+            special_mix_match_modifier_group_overrides: null,
+          },
+          {
+            id: "mix-product-a",
+            product_id: "product-a",
+            sort_order: 1,
+            special_mix_match_product_variant_options: [
+              { variant_group_option_id: "variant-large" },
+            ],
+            special_mix_match_modifier_group_overrides: [
+              {
+                product_id: "product-a",
+                modifier_group_id: "modifier-toppings",
+                included_selection_count: "0",
+              },
+            ],
+          },
+        ],
+      },
+      productNamesById: new Map([
+        ["product-a", "Deluxe Pizza"],
+        ["product-b", "Meat Pizza"],
+      ]),
+      menuGroupNamesById: new Map(),
+      currentTime: new Date("2026-01-01T00:00:00.000Z"),
+    })
+
+    expect(special.eligibilitySummary).toBe("2 pool products")
+    expect(special.mixMatchRule).toEqual(
+      expect.objectContaining({
+        id: "mix-rule",
+        minQuantity: 2,
+        maxQuantity: 4,
+        unitPrice: 7.99,
+        allowExtraItems: true,
+        productIds: ["product-a", "product-b"],
+        productVariantRestrictions: [
+          {
+            productId: "product-a",
+            allowedVariantOptionIds: ["variant-large"],
+          },
+        ],
+        modifierGroupOverrides: [
+          {
+            productId: "product-a",
+            modifierGroupId: "modifier-toppings",
+            includedSelectionCount: 0,
+          },
+        ],
+      })
+    )
+  })
+
+  it("maps orderable deal component pricing modes and defaults old rows to included", () => {
+    const special = mapRawSpecial({
+      special: {
+        id: "special-deal",
+        name: "Family Night",
+        description: null,
+        customer_description: null,
+        special_type: "orderable_deal",
+        discount_type: "fixed_price",
+        discount_value: "29.99",
+        min_order_amount: null,
+        starts_at: null,
+        ends_at: null,
+        is_enabled: true,
+        created_at: "2026-01-01T00:00:00.000Z",
+        special_availability_windows: null,
+        special_products: null,
+        special_menu_groups: null,
+        special_components: [
+          {
+            id: "component-fixed",
+            label: "Choose first pizza",
+            description: null,
+            sort_order: 1,
+            required_quantity: 1,
+            min_quantity: 1,
+            max_quantity: 1,
+            pricing_behavior: "included_base",
+            pricing_mode: "fixed_price",
+            fixed_price: "7.99",
+            is_required: true,
+            special_component_products: [
+              {
+                id: "component-product-a",
+                product_id: "product-a",
+                special_component_product_variant_options: [
+                  { variant_group_option_id: "variant-large" },
+                ],
+              },
+            ],
+            special_component_modifier_group_overrides: [
+              {
+                product_id: "product-a",
+                modifier_group_id: "modifier-toppings",
+                included_selection_count: "2",
+              },
+            ],
+          },
+          {
+            id: "component-old",
+            label: "Choose soda",
+            description: null,
+            sort_order: 2,
+            required_quantity: 1,
+            min_quantity: 1,
+            max_quantity: 1,
+            pricing_behavior: "included_base",
+            pricing_mode: null,
+            fixed_price: null,
+            is_required: true,
+            special_component_products: null,
+            special_component_modifier_group_overrides: null,
+          },
+        ],
+        special_mix_match_rules: null,
+        special_mix_match_products: null,
+      },
+      productNamesById: new Map([["product-a", "Build Your Own Pizza"]]),
+      menuGroupNamesById: new Map(),
+      currentTime: new Date("2026-01-01T00:00:00.000Z"),
+    })
+
+    expect(special.components).toEqual([
+      expect.objectContaining({
+        id: "component-fixed",
+        pricingMode: "fixed_price",
+        fixedPrice: 7.99,
+        productVariantRestrictions: [
+          {
+            productId: "product-a",
+            allowedVariantOptionIds: ["variant-large"],
+          },
+        ],
+        modifierGroupOverrides: [
+          {
+            productId: "product-a",
+            modifierGroupId: "modifier-toppings",
+            includedSelectionCount: 2,
+          },
+        ],
+      }),
+      expect.objectContaining({
+        id: "component-old",
+        pricingMode: "included",
+        fixedPrice: null,
       }),
     ])
   })

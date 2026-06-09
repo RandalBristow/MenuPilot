@@ -11,8 +11,14 @@ import type {
   SpecialAdminFormData,
   SpecialAdminListItem,
 } from "@/features/specials/queries/get-specials-admin-data"
+import type { OrderableDealComponentPricingMode } from "@/features/specials/types/orderable-deal"
 import type { SpecialType } from "@/features/specials/types/special"
 import { cn } from "@/lib/utils"
+
+type AdminComponentPricingMode = Exclude<
+  OrderableDealComponentPricingMode,
+  "normal_price"
+>
 
 const DAY_LABELS = [
   "Sunday",
@@ -32,6 +38,8 @@ type ComponentDraft = {
   requiredQuantity: number
   minQuantity: number
   maxQuantity: number
+  pricingMode: AdminComponentPricingMode
+  fixedPrice: string
   productIds: string[]
   productVariantRestrictions: Record<string, string[]>
   modifierGroupOverrides: Record<string, Record<string, string>>
@@ -75,6 +83,10 @@ function formatDateTimeInput(value: string | null | undefined) {
   return date.toISOString().slice(0, 16)
 }
 
+function parseAdminComponentPricingMode(value: string): AdminComponentPricingMode {
+  return value === "fixed_price" ? "fixed_price" : "included"
+}
+
 function getWindowForDay(special: SpecialAdminListItem | null, day: number) {
   return special?.availabilityWindows.find((window) => window.dayOfWeek === day)
 }
@@ -92,6 +104,8 @@ function buildInitialComponents(
         requiredQuantity: 1,
         minQuantity: 1,
         maxQuantity: 1,
+        pricingMode: "included",
+        fixedPrice: "",
         productIds: [],
         productVariantRestrictions: {},
         modifierGroupOverrides: {},
@@ -107,6 +121,12 @@ function buildInitialComponents(
     requiredQuantity: component.requiredQuantity,
     minQuantity: component.minQuantity,
     maxQuantity: component.maxQuantity,
+    pricingMode:
+      component.pricingMode === "fixed_price" ? "fixed_price" : "included",
+    fixedPrice:
+      component.fixedPrice === null || component.fixedPrice === undefined
+        ? ""
+        : String(component.fixedPrice),
     productIds: component.productIds,
     productVariantRestrictions: Object.fromEntries(
       component.productVariantRestrictions.map((restriction) => [
@@ -866,7 +886,7 @@ function MixMatchEditor({
 
               <ComponentProductPicker
                 title="Mix pool products"
-                helperText="Select exact products from this business. No selected variant rows means all enabled variants are allowed."
+                helperText="Select exact products from this business. Every selected mix item uses the fixed unit price. No selected variant rows means all enabled variants are allowed. Free attached items, such as plus a free 2-liter, are not supported here yet."
                 inputName="mixProductIds"
                 variantInputNamePrefix="mixProductVariantOptionIds"
                 modifierOverrideInputNamePrefix="mixModifierIncludedCount"
@@ -911,6 +931,8 @@ function DealComponentsEditor({
         requiredQuantity: 1,
         minQuantity: 1,
         maxQuantity: 1,
+        pricingMode: "included",
+        fixedPrice: "",
         productIds: [],
         productVariantRestrictions: {},
         modifierGroupOverrides: {},
@@ -947,6 +969,33 @@ function DealComponentsEditor({
                   ([productId]) => productIds.includes(productId)
                 )
               ),
+            }
+          : component
+      )
+    )
+  }
+
+  function updateComponentPricing({
+    key,
+    pricingMode,
+    fixedPrice,
+  }: {
+    key: string
+    pricingMode?: AdminComponentPricingMode
+    fixedPrice?: string
+  }) {
+    setComponents((current) =>
+      current.map((component) =>
+        component.key === key
+          ? {
+              ...component,
+              pricingMode: pricingMode ?? component.pricingMode,
+              fixedPrice:
+                pricingMode === "included"
+                  ? ""
+                  : fixedPrice !== undefined
+                    ? fixedPrice
+                    : component.fixedPrice,
             }
           : component
       )
@@ -1114,6 +1163,60 @@ function DealComponentsEditor({
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               />
             </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium">Pricing mode</span>
+              <select
+                name={`componentPricingMode-${index}`}
+                value={component.pricingMode}
+                onChange={(event) =>
+                  updateComponentPricing({
+                    key: component.key,
+                    pricingMode: parseAdminComponentPricingMode(
+                      event.target.value
+                    ),
+                  })
+                }
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              >
+                <option value="included">Included/free</option>
+                <option value="fixed_price">Fixed component price</option>
+              </select>
+              <span className="text-xs leading-5 text-muted-foreground">
+                {component.pricingMode === "fixed_price"
+                  ? "The component base item uses this fixed price instead of the product's normal base price."
+                  : "The component base item adds $0 to the deal total. Modifier or variant extras may still be charged later when runtime support is wired."}
+              </span>
+            </label>
+
+            {component.pricingMode === "fixed_price" ? (
+              <label className="grid gap-2">
+                <span className="text-sm font-medium">Fixed price</span>
+                <input
+                  name={`componentFixedPrice-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={component.fixedPrice}
+                  onChange={(event) =>
+                    updateComponentPricing({
+                      key: component.key,
+                      fixedPrice: event.target.value,
+                    })
+                  }
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                />
+              </label>
+            ) : (
+              <input
+                type="hidden"
+                name={`componentFixedPrice-${index}`}
+                value=""
+              />
+            )}
           </div>
 
           <ComponentProductPicker

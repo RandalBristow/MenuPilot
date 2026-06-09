@@ -1,16 +1,7 @@
 import type { ProductConfig } from "@/features/product-configurator/components/ProductConfigurator"
 import type { SpecialAvailabilityWindow } from "@/features/specials/types/special"
 
-export const ORDERABLE_DEAL_COMPONENT_PRICING_MODES = [
-  "included",
-  "fixed_price",
-  "normal_price",
-] as const
-
-export type OrderableDealComponentPricingMode =
-  (typeof ORDERABLE_DEAL_COMPONENT_PRICING_MODES)[number]
-
-export type PublicOrderableDealProduct = {
+export type PublicMixAndMatchProduct = {
   id: string
   name: string
   description: string | null
@@ -32,33 +23,23 @@ export type PublicOrderableDealProduct = {
   }>
 }
 
-export type PublicOrderableDealComponent = {
-  id: string
-  label: string
-  description: string | null
-  sortOrder: number
-  requiredQuantity: number
-  minQuantity: number
-  maxQuantity: number
-  pricingBehavior: "included_base"
-  pricingMode: OrderableDealComponentPricingMode
-  fixedPrice: number | null
-  isRequired: boolean
-  products: PublicOrderableDealProduct[]
-}
-
-export type PublicOrderableDeal = {
+export type PublicMixAndMatchDeal = {
   id: string
   businessId: string
   businessSlug?: string | null
   name: string
   customerDescription: string | null
-  dealBasePrice: number
   isEnabled: boolean
   startsAt: string | null
   endsAt: string | null
   availabilityWindows: SpecialAvailabilityWindow[]
-  components: PublicOrderableDealComponent[]
+  rule: {
+    minQuantity: number
+    maxQuantity: number | null
+    unitPrice: number
+    allowExtraItems: boolean
+  }
+  products: PublicMixAndMatchProduct[]
 }
 
-export type DealBuilderProductConfig = ProductConfig
+export type MixAndMatchBuilderProductConfig = ProductConfig

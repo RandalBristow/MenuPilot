@@ -14,6 +14,7 @@ import {
 import { resolveProductBuilderMode } from "@/features/product-configurator/utils/resolve-product-builder-mode"
 import type { ProductConfiguratorSubmitBehavior } from "@/features/product-configurator/utils/submit-configured-product-result"
 import type { ModifierIncludedRuleOverride } from "@/features/product-configurator/utils/modifier-included-rule-overrides"
+import type { DealComponentPricingContext } from "@/features/product-configurator/utils/deal-component-pricing-context"
 import { GenericConfigurableBuilder } from "./GenericConfigurableBuilder"
 import { PizzaBuilder, type ProductConfig } from "./PizzaBuilder"
 import { SimpleProductBuilder } from "./SimpleProductBuilder"
@@ -28,6 +29,7 @@ type ProductConfiguratorProps = {
   submitBehavior?: ProductConfiguratorSubmitBehavior
   allowedVariantOptionIds?: string[] | null
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  dealComponentPricingContext?: DealComponentPricingContext | null
   onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
@@ -43,6 +45,7 @@ export function ProductConfigurator({
   submitBehavior = "cart",
   allowedVariantOptionIds = null,
   modifierIncludedRuleOverrides = null,
+  dealComponentPricingContext = null,
   onConfiguredItem,
 }: ProductConfiguratorProps) {
   const builderMode = resolveProductBuilderMode(product)
@@ -59,6 +62,7 @@ export function ProductConfigurator({
         submitBehavior={submitBehavior}
         allowedVariantOptionIds={allowedVariantOptionIds}
         modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
+        dealComponentPricingContext={dealComponentPricingContext}
         onConfiguredItem={onConfiguredItem}
       />
     )
@@ -102,6 +106,7 @@ export function ProductConfigurator({
         submitBehavior={submitBehavior}
         allowedVariantOptionIds={allowedVariantOptionIds}
         modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
+        dealComponentPricingContext={dealComponentPricingContext}
         onConfiguredItem={onConfiguredItem}
       />
     )
@@ -119,6 +124,7 @@ export function ProductConfigurator({
       submitBehavior={submitBehavior}
       allowedVariantOptionIds={allowedVariantOptionIds}
       modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
+      dealComponentPricingContext={dealComponentPricingContext}
       onConfiguredItem={onConfiguredItem}
     />
   )

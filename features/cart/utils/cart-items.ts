@@ -21,6 +21,23 @@ function isNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
 }
 
+function isOptionalNumber(value: unknown) {
+  return value === undefined || value === null || isNumber(value)
+}
+
+function isOptionalBoolean(value: unknown) {
+  return value === undefined || typeof value === "boolean"
+}
+
+function isDealComponentPricingMode(value: unknown) {
+  return (
+    value === undefined ||
+    value === "included" ||
+    value === "fixed_price" ||
+    value === "normal_price"
+  )
+}
+
 export function isCartModifier(value: unknown): value is CartModifier {
   if (!isRecord(value)) return false
 
@@ -75,6 +92,9 @@ export function isDealCartChildItem(
     isNumber(value.quantity) &&
     (isNumber(value.configuredLineTotal) ||
       value.configuredLineTotal === null) &&
+    isDealComponentPricingMode(value.componentPricingMode) &&
+    isOptionalNumber(value.componentFixedPrice) &&
+    isOptionalNumber(value.componentBasePrice) &&
     isNumber(value.childExtraTotal) &&
     Array.isArray(value.modifiers) &&
     value.modifiers.every(isCartModifier)
@@ -92,6 +112,9 @@ export function isDealCartComponent(
     isNumber(value.sortOrder) &&
     isNumber(value.requiredQuantity) &&
     isNumber(value.selectedQuantity) &&
+    isDealComponentPricingMode(value.pricingMode) &&
+    isOptionalNumber(value.fixedPrice) &&
+    isOptionalNumber(value.componentBaseTotal) &&
     Array.isArray(value.children) &&
     value.children.every(isDealCartChildItem)
   )
@@ -102,6 +125,9 @@ export function isDealCartItem(value: unknown): value is DealCartItem {
 
   return (
     value.itemType === "deal" &&
+    (value.specialType === undefined ||
+      value.specialType === "orderable_deal" ||
+      value.specialType === "mix_and_match_fixed_unit_price") &&
     typeof value.cartItemId === "string" &&
     isNullableString(value.businessId) &&
     isNullableString(value.businessSlug) &&
@@ -109,6 +135,8 @@ export function isDealCartItem(value: unknown): value is DealCartItem {
     isNullableString(value.locationSlug) &&
     typeof value.specialId === "string" &&
     typeof value.specialName === "string" &&
+    isOptionalBoolean(value.usesComponentPricing) &&
+    isOptionalNumber(value.componentBaseTotal) &&
     isNumber(value.dealBasePrice) &&
     isNumber(value.childExtraTotal) &&
     isNumber(value.totalPrice) &&

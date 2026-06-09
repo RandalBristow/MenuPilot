@@ -19,6 +19,17 @@ type RawSpecialAvailabilityWindow = {
   is_all_day: boolean
 }
 
+type RawSpecialMixMatchRule = {
+  min_quantity: number
+  max_quantity: number | null
+  unit_price: number | string
+  allow_extra_items: boolean
+}
+
+type RawSpecialMixMatchProduct = {
+  product_id: string
+}
+
 type RawPublicSpecial = {
   id: string
   business_id: string
@@ -34,6 +45,8 @@ type RawPublicSpecial = {
   special_products: RawSpecialProduct[] | null
   special_menu_groups: RawSpecialMenuGroup[] | null
   special_availability_windows: RawSpecialAvailabilityWindow[] | null
+  special_mix_match_rules: RawSpecialMixMatchRule[] | RawSpecialMixMatchRule | null
+  special_mix_match_products: RawSpecialMixMatchProduct[] | null
 }
 
 export type LoadActivePublicSpecialsInput = {
@@ -82,6 +95,15 @@ export async function loadActivePublicSpecials({
         start_time,
         end_time,
         is_all_day
+      ),
+      special_mix_match_rules (
+        min_quantity,
+        max_quantity,
+        unit_price,
+        allow_extra_items
+      ),
+      special_mix_match_products (
+        product_id
       )
     `
     )
@@ -113,35 +135,50 @@ export async function loadActivePublicSpecials({
         timeZone,
       })
     )
-    .map((special) => ({
-      id: special.id,
-      businessId: special.business_id,
-      name: special.name,
-      customerDescription: special.customer_description,
-      specialType: special.special_type,
-      discountType: special.discount_type,
-      discountValue: toNumber(special.discount_value),
-      minOrderAmount:
-        special.min_order_amount === null
-          ? null
-          : toNumber(special.min_order_amount),
-      startsAt: special.starts_at,
-      endsAt: special.ends_at,
-      eligibleProducts: (special.special_products ?? []).map((product) => ({
-        productId: product.product_id,
-        variantGroupOptionId: product.variant_group_option_id,
-      })),
-      eligibleMenuGroupIds: (special.special_menu_groups ?? []).map(
-        (menuGroup) => menuGroup.menu_group_id
-      ),
-      availabilityWindows: (
-        special.special_availability_windows ?? []
-      ).map((window) => ({
-        id: window.id,
-        dayOfWeek: window.day_of_week,
-        startTime: window.start_time,
-        endTime: window.end_time,
-        isAllDay: window.is_all_day,
-      })),
-    }))
+    .map((special) => {
+      const mixRule = Array.isArray(special.special_mix_match_rules)
+        ? special.special_mix_match_rules[0] ?? null
+        : special.special_mix_match_rules
+
+      return {
+        id: special.id,
+        businessId: special.business_id,
+        name: special.name,
+        customerDescription: special.customer_description,
+        specialType: special.special_type,
+        discountType: special.discount_type,
+        discountValue: toNumber(special.discount_value),
+        minOrderAmount:
+          special.min_order_amount === null
+            ? null
+            : toNumber(special.min_order_amount),
+        startsAt: special.starts_at,
+        endsAt: special.ends_at,
+        eligibleProducts: (special.special_products ?? []).map((product) => ({
+          productId: product.product_id,
+          variantGroupOptionId: product.variant_group_option_id,
+        })),
+        eligibleMenuGroupIds: (special.special_menu_groups ?? []).map(
+          (menuGroup) => menuGroup.menu_group_id
+        ),
+        availabilityWindows: (
+          special.special_availability_windows ?? []
+        ).map((window) => ({
+          id: window.id,
+          dayOfWeek: window.day_of_week,
+          startTime: window.start_time,
+          endTime: window.end_time,
+          isAllDay: window.is_all_day,
+        })),
+        mixRule: mixRule
+          ? {
+              minQuantity: mixRule.min_quantity,
+              maxQuantity: mixRule.max_quantity,
+              unitPrice: toNumber(mixRule.unit_price),
+              allowExtraItems: mixRule.allow_extra_items,
+            }
+          : null,
+        mixProductCount: special.special_mix_match_products?.length ?? 0,
+      }
+    })
 }

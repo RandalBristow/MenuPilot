@@ -13,6 +13,11 @@ import type {
 } from "@/features/specials/utils/validate-and-price-orderable-deal"
 import { validateAndPriceOrderableDeal } from "@/features/specials/utils/validate-and-price-orderable-deal"
 import type {
+  MixAndMatchDealCandidate,
+  MixAndMatchSelectedChild,
+} from "@/features/specials/utils/validate-and-price-mix-and-match-deal"
+import { validateAndPriceMixAndMatchDeal } from "@/features/specials/utils/validate-and-price-mix-and-match-deal"
+import type {
   CheckoutProductConfig,
   CheckoutSubmittedCartItem,
   CheckoutModifierGroupConfig,
@@ -32,6 +37,9 @@ export type ValidatedPricedDealChildItem = {
   quantity: number
   unitPrice: number
   configuredLineTotal: number
+  componentPricingMode?: "included" | "fixed_price" | "normal_price" | null
+  componentFixedPrice?: number | null
+  componentBasePrice?: number | null
   childExtraTotal: number
   modifiers: ValidatedPricedModifier[]
 }
@@ -43,8 +51,13 @@ export type ValidatedPricedDealComponent = Omit<
   children: ValidatedPricedDealChildItem[]
 }
 
+export type ValidatedPricedDealSpecialType =
+  | "orderable_deal"
+  | "mix_and_match_fixed_unit_price"
+
 export type ValidatedPricedDealItem = {
   itemType: "deal"
+  specialType: ValidatedPricedDealSpecialType
   cartItemId: string
   specialId: string
   specialName: string
@@ -52,7 +65,12 @@ export type ValidatedPricedDealItem = {
   unitPrice: number
   lineSubtotal: number
   dealBasePrice: number
+  componentBaseTotal?: number | null
+  usesComponentPricing?: boolean
   childExtraTotal: number
+  selectedQuantity?: number | null
+  mixBaseTotal?: number | null
+  mixUnitPrice?: number | null
   components: ValidatedPricedDealComponent[]
 }
 
@@ -78,6 +96,7 @@ export type ValidateAndPriceCheckoutItemsInput = {
   items: CartItem[]
   products: CheckoutProductConfig[]
   dealsById: Map<string, OrderableDealCandidate>
+  mixAndMatchDealsById?: Map<string, MixAndMatchDealCandidate>
   businessId: string
   currentTime: Date
   timeZone?: string | null
@@ -196,6 +215,23 @@ function getDealComponentProductModifierOverrides({
     component?.modifierGroupOverrides
       ?.filter((override) => override.productId === productId)
       .map((override) => ({
+        modifierGroupId: override.modifierGroupId,
+        includedSelectionCount: override.includedSelectionCount,
+      })) ?? []
+  )
+}
+
+function getMixProductModifierOverrides({
+  deal,
+  productId,
+}: {
+  deal: MixAndMatchDealCandidate
+  productId: string
+}) {
+  return (
+    deal.poolProducts
+      .find((product) => product.productId === productId)
+      ?.modifierGroupOverrides?.map((override) => ({
         modifierGroupId: override.modifierGroupId,
         includedSelectionCount: override.includedSelectionCount,
       })) ?? []
@@ -331,7 +367,10 @@ function validateDealItem({
     businessId,
     currentTime,
     timeZone,
-    deal,
+    deal: {
+      ...deal,
+      useLegacyDealBasePrice: !item.usesComponentPricing,
+    },
     children: selectedChildren,
   })
 
@@ -386,6 +425,9 @@ function validateDealItem({
         quantity: validatedChild.quantity,
         unitPrice: validatedChild.unitPrice,
         configuredLineTotal: validatedChild.lineSubtotal,
+        componentPricingMode: child.componentPricingMode,
+        componentFixedPrice: child.componentFixedPrice,
+        componentBasePrice: child.componentBasePrice,
         childExtraTotal: child.childExtraTotal,
         modifiers: validatedChild.modifiers,
       }
@@ -396,6 +438,7 @@ function validateDealItem({
     ok: true,
     item: {
       itemType: "deal",
+      specialType: "orderable_deal",
       cartItemId: item.cartItemId,
       specialId: dealValidation.specialId,
       specialName: dealValidation.dealName,
@@ -403,8 +446,225 @@ function validateDealItem({
       unitPrice: dealValidation.total,
       lineSubtotal: dealValidation.total,
       dealBasePrice: dealValidation.dealBasePrice,
+      componentBaseTotal: dealValidation.componentBaseTotal,
+      usesComponentPricing: Boolean(item.usesComponentPricing),
       childExtraTotal: dealValidation.childExtraTotal,
       components: validatedDealComponents,
+    },
+  }
+}
+
+function validateMixAndMatchDealItem({
+  item,
+  productsById,
+  mixAndMatchDealsById,
+  businessId,
+  currentTime,
+  timeZone,
+}: {
+  item: DealCartItem
+  productsById: Map<string, CheckoutProductConfig>
+  mixAndMatchDealsById: Map<string, MixAndMatchDealCandidate>
+  businessId: string
+  currentTime: Date
+  timeZone?: string | null
+}):
+  | {
+      ok: true
+      item: ValidatedPricedDealItem
+    }
+  | {
+      ok: false
+      errors: CheckoutItemValidationError[]
+    } {
+  const deal = mixAndMatchDealsById.get(item.specialId)
+
+  if (!deal) {
+    return {
+      ok: false,
+      errors: [
+        {
+          code: "unavailable_mix_and_match_deal",
+          message: `${item.specialName} is not available right now.`,
+          cartItemId: item.cartItemId,
+        },
+      ],
+    }
+  }
+
+  const errors: CheckoutItemValidationError[] = []
+  const submittedChildrenById = new Map(
+    buildSubmittedDealChildren(item).map((child) => [child.cartItemId, child])
+  )
+  const validatedChildrenById = new Map<string, ValidatedPricedCartItem>()
+  const selectedChildren: MixAndMatchSelectedChild[] = []
+
+  for (const component of item.components) {
+    for (const child of component.children) {
+      const product = productsById.get(child.productId)
+
+      if (!product) continue
+
+      const submittedChild = submittedChildrenById.get(child.childLineId)
+      if (!submittedChild) continue
+
+      const childValidation = validateAndPriceCart({
+        items: [submittedChild],
+        products: [
+          applyDealModifierOverrides({
+            product,
+            overrides: getMixProductModifierOverrides({
+              deal,
+              productId: child.productId,
+            }),
+          }),
+        ],
+      })
+
+      if (!childValidation.ok) {
+        errors.push(
+          ...childValidation.errors.map((error) => ({
+            ...error,
+            message: `Mix & Match item error: ${error.message}`,
+          }))
+        )
+        continue
+      }
+
+      const [validatedChild] = childValidation.cart.items
+      validatedChildrenById.set(child.childLineId, validatedChild)
+
+      const basePrice = getVariantBasePrice({
+        product,
+        variantId: validatedChild.variantId,
+      })
+      const serverChildExtraTotal = roundCurrency(
+        Math.max(
+          0,
+          validatedChild.lineSubtotal - basePrice * validatedChild.quantity
+        )
+      )
+
+      if (
+        child.configuredLineTotal !== null &&
+        !isMoneyEqual(child.configuredLineTotal, validatedChild.lineSubtotal)
+      ) {
+        errors.push({
+          code: "stale_mix_child_price",
+          message: `${validatedChild.productName} has changed. Please rebuild this Mix & Match deal.`,
+          cartItemId: item.cartItemId,
+          productId: child.productId,
+        })
+      }
+
+      if (!isMoneyEqual(child.childExtraTotal, serverChildExtraTotal)) {
+        errors.push({
+          code: "stale_mix_child_extra",
+          message: `${validatedChild.productName} extras have changed. Please rebuild this Mix & Match deal.`,
+          cartItemId: item.cartItemId,
+          productId: child.productId,
+        })
+      }
+
+      selectedChildren.push({
+        childLineId: child.childLineId,
+        productId: validatedChild.productId,
+        productName: validatedChild.productName,
+        selectedVariantOptionId: validatedChild.variantId,
+        quantity: validatedChild.quantity,
+        configuredLineTotal: validatedChild.lineSubtotal,
+        childExtraTotal: serverChildExtraTotal,
+        variantName: validatedChild.variantName,
+      })
+    }
+  }
+
+  const dealValidation = validateAndPriceMixAndMatchDeal({
+    businessId,
+    currentTime,
+    timeZone,
+    deal,
+    children: selectedChildren,
+  })
+
+  if (!dealValidation.ok) {
+    errors.push(
+      ...dealValidation.errors.map((error) => ({
+        code: error.code,
+        message: error.message,
+        cartItemId: item.cartItemId,
+        productId: error.productId,
+      }))
+    )
+  } else if (!isMoneyEqual(item.totalPrice, dealValidation.total)) {
+    errors.push({
+      code: "stale_mix_total",
+      message: `${dealValidation.dealName} has changed. Please rebuild this Mix & Match deal.`,
+      cartItemId: item.cartItemId,
+    })
+  }
+
+  if (errors.length > 0 || !dealValidation.ok) {
+    return {
+      ok: false,
+      errors,
+    }
+  }
+
+  const component = item.components[0]
+  const validatedDealComponent: ValidatedPricedDealComponent = {
+    componentId: component?.componentId ?? `mix:${deal.specialId}`,
+    label: component?.componentLabel ?? "Mix & Match selections",
+    sortOrder: component?.sortOrder ?? 1,
+    requiredQuantity: dealValidation.minQuantity,
+    minQuantity: dealValidation.minQuantity,
+    maxQuantity: dealValidation.maxQuantity ?? dealValidation.selectedQuantity,
+    pricingBehavior: "included_base",
+    pricingMode: "included",
+    fixedPrice: null,
+    componentBaseTotal: dealValidation.mixBaseTotal,
+    selectedQuantity: dealValidation.selectedQuantity,
+    children: dealValidation.children.map((child) => {
+      const validatedChild = validatedChildrenById.get(child.childLineId)
+
+      if (!validatedChild) {
+        throw new Error("Could not map validated Mix & Match child.")
+      }
+
+      return {
+        childLineId: child.childLineId,
+        componentId: component?.componentId ?? `mix:${deal.specialId}`,
+        componentLabel: component?.componentLabel ?? "Mix & Match selections",
+        productId: validatedChild.productId,
+        productName: validatedChild.productName,
+        variantId: validatedChild.variantId,
+        variantName: validatedChild.variantName,
+        quantity: validatedChild.quantity,
+        unitPrice: validatedChild.unitPrice,
+        configuredLineTotal: validatedChild.lineSubtotal,
+        childExtraTotal: child.childExtraTotal,
+        modifiers: validatedChild.modifiers,
+      }
+    }),
+  }
+
+  return {
+    ok: true,
+    item: {
+      itemType: "deal",
+      specialType: "mix_and_match_fixed_unit_price",
+      cartItemId: item.cartItemId,
+      specialId: dealValidation.specialId,
+      specialName: dealValidation.dealName,
+      quantity: 1,
+      unitPrice: dealValidation.total,
+      lineSubtotal: dealValidation.total,
+      dealBasePrice: dealValidation.mixBaseTotal,
+      childExtraTotal: dealValidation.childExtraTotal,
+      selectedQuantity: dealValidation.selectedQuantity,
+      mixBaseTotal: dealValidation.mixBaseTotal,
+      mixUnitPrice: dealValidation.unitPrice,
+      components: [validatedDealComponent],
     },
   }
 }
@@ -413,6 +673,7 @@ export function validateAndPriceCheckoutItems({
   items,
   products,
   dealsById,
+  mixAndMatchDealsById = new Map(),
   businessId,
   currentTime,
   timeZone,
@@ -447,6 +708,26 @@ export function validateAndPriceCheckoutItems({
     }
 
     if (isDealCartItem(item)) {
+      if (item.specialType === "mix_and_match_fixed_unit_price") {
+        const result = validateMixAndMatchDealItem({
+          item,
+          productsById,
+          mixAndMatchDealsById,
+          businessId,
+          currentTime,
+          timeZone,
+        })
+
+        if (!result.ok) {
+          errors.push(...result.errors)
+          continue
+        }
+
+        validatedItems.push(result.item)
+        dealItems.push(result.item)
+        continue
+      }
+
       const result = validateDealItem({
         item,
         productsById,

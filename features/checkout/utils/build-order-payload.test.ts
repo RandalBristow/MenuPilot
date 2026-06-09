@@ -271,6 +271,7 @@ describe("checkout order payload helpers", () => {
       orderId: "order-1",
       item: {
         itemType: "deal",
+        specialType: "orderable_deal",
         cartItemId: "deal-cart-1",
         specialId: "deal-1",
         specialName: "Family Deal",
@@ -278,8 +279,25 @@ describe("checkout order payload helpers", () => {
         unitPrice: 26.99,
         lineSubtotal: 26.99,
         dealBasePrice: 24.99,
+        componentBaseTotal: 24.99,
+        usesComponentPricing: true,
         childExtraTotal: 2,
-        components: [],
+        components: [
+          {
+            componentId: "component-1",
+            label: "Choose a pizza",
+            sortOrder: 1,
+            requiredQuantity: 1,
+            minQuantity: 1,
+            maxQuantity: 1,
+            selectedQuantity: 1,
+            pricingBehavior: "included_base",
+            pricingMode: "fixed_price",
+            fixedPrice: 24.99,
+            componentBaseTotal: 24.99,
+            children: [],
+          },
+        ],
       },
     })
     const childPayload = buildDealChildOrderItemInsertPayload({
@@ -297,6 +315,9 @@ describe("checkout order payload helpers", () => {
         quantity: 1,
         unitPrice: 14,
         configuredLineTotal: 14,
+        componentPricingMode: "fixed_price",
+        componentFixedPrice: 24.99,
+        componentBasePrice: 24.99,
         childExtraTotal: 2,
         modifiers: [],
       },
@@ -307,6 +328,28 @@ describe("checkout order payload helpers", () => {
       product_name_snapshot: "Family Deal",
       relationship_type: "deal",
       line_subtotal: 26.99,
+      notes: JSON.stringify({
+        specialId: "deal-1",
+        specialType: "orderable_deal",
+        dealName: "Family Deal",
+        selectedQuantity: null,
+        mixUnitPrice: null,
+        mixBaseTotal: null,
+        usesComponentPricing: true,
+        dealBasePrice: 24.99,
+        componentBaseTotal: 24.99,
+        childExtraTotal: 2,
+        total: 26.99,
+        componentPricingSummaries: [
+          {
+            componentId: "component-1",
+            label: "Choose a pizza",
+            pricingMode: "fixed_price",
+            fixedPrice: 24.99,
+            componentBaseTotal: 24.99,
+          },
+        ],
+      }),
     })
     expect(childPayload).toMatchObject({
       parent_order_item_id: "parent-item-1",
@@ -314,6 +357,16 @@ describe("checkout order payload helpers", () => {
       product_id: "product-pizza",
       product_name_snapshot: "Cheese Pizza",
       line_subtotal: 2,
+      notes: JSON.stringify({
+        componentId: "component-1",
+        componentLabel: "Choose a pizza",
+        specialType: "deal_component",
+        componentPricingMode: "fixed_price",
+        componentFixedPrice: 24.99,
+        componentBasePrice: 24.99,
+        childExtraTotal: 2,
+        configuredLineTotal: 14,
+      }),
     })
   })
 

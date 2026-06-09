@@ -210,6 +210,9 @@ export function MenuPage({
                 {activeSpecials.map((special) => {
                   const isOrderableDeal =
                     special.specialType === "orderable_deal";
+                  const isMixAndMatch =
+                    special.specialType === "mix_and_match_fixed_unit_price";
+                  const isBuildableSpecial = isOrderableDeal || isMixAndMatch;
 
                   return (
                     <div
@@ -236,7 +239,7 @@ export function MenuPage({
                         </p>
                       ) : null}
 
-                      {isOrderableDeal ? (
+                      {isBuildableSpecial ? (
                         <ThemedButton
                           type="button"
                           size="sm"
@@ -251,7 +254,9 @@ export function MenuPage({
                             ? "Preview only"
                             : loadingDealId === special.id
                               ? "Loading..."
-                              : "Build Deal"}
+                              : isMixAndMatch
+                                ? "Build Mix & Match"
+                                : "Build Deal"}
                         </ThemedButton>
                       ) : null}
                     </div>

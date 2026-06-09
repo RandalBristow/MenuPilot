@@ -31,6 +31,11 @@ import {
   type ModifierIncludedRuleOverride,
 } from "@/features/product-configurator/utils/modifier-included-rule-overrides"
 import {
+  getDealComponentDisplayTotal,
+  getDealComponentPricingCopy,
+  type DealComponentPricingContext,
+} from "@/features/product-configurator/utils/deal-component-pricing-context"
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -59,6 +64,7 @@ export type StandardItemBuilderProps = {
   submitBehavior?: ProductConfiguratorSubmitBehavior
   allowedVariantOptionIds?: string[] | null
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  dealComponentPricingContext?: DealComponentPricingContext | null
   onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
@@ -122,6 +128,7 @@ export function StandardItemBuilder({
   submitBehavior = "cart",
   allowedVariantOptionIds = null,
   modifierIncludedRuleOverrides = null,
+  dealComponentPricingContext = null,
   onConfiguredItem,
 }: StandardItemBuilderProps) {
   const sortedVariants = useMemo(
@@ -288,6 +295,14 @@ export function StandardItemBuilder({
   const modifierExtraTotal = Object.values(
     pricing.pricedSelectedModifiers
   ).reduce((sum, modifier) => sum + modifier.priceDelta, 0)
+  const dealDisplayTotal = getDealComponentDisplayTotal({
+    context: dealComponentPricingContext,
+    quantity,
+    childExtraTotal: modifierExtraTotal,
+  })
+  const dealPricingCopy = getDealComponentPricingCopy(
+    dealComponentPricingContext
+  )
 
   function toggleModifier(group: ModifierGroup, option: ModifierOption) {
     setSelectedModifiers((current) => {
@@ -493,7 +508,9 @@ export function StandardItemBuilder({
                   >
                     <span className="font-medium">{variant.name}</span>
                     <span className="text-sm font-semibold">
-                      ${Number(variant.base_price).toFixed(2)}
+                      {dealComponentPricingContext?.displayPricingContext
+                        ? `Normally $${Number(variant.base_price).toFixed(2)}`
+                        : `$${Number(variant.base_price).toFixed(2)}`}
                     </span>
                   </button>
                 ))}
@@ -588,14 +605,21 @@ export function StandardItemBuilder({
             onClick={handleSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>
-              {submitBehavior === "return"
-                ? "Add to Special"
-                : mode === "edit"
-                  ? "Save changes"
-                  : "Add to cart"}
+            <span className="flex min-w-0 flex-col items-start leading-tight">
+              <span>
+                {submitBehavior === "return"
+                  ? "Add to Special"
+                  : mode === "edit"
+                    ? "Save changes"
+                    : "Add to cart"}
+              </span>
+              {dealPricingCopy ? (
+                <span className="text-xs font-normal opacity-85">
+                  {dealPricingCopy}
+                </span>
+              ) : null}
             </span>
-            <span>${total.toFixed(2)}</span>
+            <span>${(dealDisplayTotal ?? total).toFixed(2)}</span>
           </ThemedButton>
         </div>
       </DialogContent>

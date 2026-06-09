@@ -11,6 +11,7 @@ import { CartHeaderButton } from "@/features/cart/components/CartHeaderButton"
 import { getMenuCheckoutHref } from "@/features/menu/utils/menu-checkout-routes"
 import type { PublicSpecial } from "@/features/specials/types/public-special"
 import { DealBuilder } from "@/features/specials/components/DealBuilder"
+import { MixAndMatchBuilder } from "@/features/specials/components/MixAndMatchBuilder"
 
 type MenuPageProps = React.ComponentProps<typeof MenuPage>
 
@@ -39,6 +40,9 @@ export function MenuClient({
   const [productConfig, setProductConfig] = useState<ProductConfig | null>(null)
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+  const [selectedDealType, setSelectedDealType] = useState<
+    PublicSpecial["specialType"] | null
+  >(null)
   const [isDealOpen, setIsDealOpen] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const isSetupPreview = businessStatus === "setup"
@@ -72,7 +76,10 @@ export function MenuClient({
   }
 
   function handleBuildDeal(specialId: string) {
+    const special = activeSpecials.find((item) => item.id === specialId)
+
     setSelectedDealId(specialId)
+    setSelectedDealType(special?.specialType ?? null)
     setIsDealOpen(true)
   }
 
@@ -113,12 +120,21 @@ export function MenuClient({
         />
       ) : null}
 
-      <DealBuilder
-        open={isDealOpen}
-        onOpenChange={setIsDealOpen}
-        businessSlug={businessSlug}
-        specialId={selectedDealId}
-      />
+      {selectedDealType === "mix_and_match_fixed_unit_price" ? (
+        <MixAndMatchBuilder
+          open={isDealOpen}
+          onOpenChange={setIsDealOpen}
+          businessSlug={businessSlug}
+          specialId={selectedDealId}
+        />
+      ) : (
+        <DealBuilder
+          open={isDealOpen}
+          onOpenChange={setIsDealOpen}
+          businessSlug={businessSlug}
+          specialId={selectedDealId}
+        />
+      )}
     </>
   )
 }

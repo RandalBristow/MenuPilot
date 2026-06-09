@@ -4,7 +4,7 @@ _Last updated: 2026-06-08_
 
 ## Current State
 
-The Specials MVP schema, pure resolver, checkout integration, staff order discount display, tenant-scoped Specials Admin UI, public menu active-specials display, schema/type support for orderable deal components, Specials Admin component editing with optional component variant restrictions and modifier included-count overrides, tenant-scoped Mix & Match admin editing, a pure orderable deal validation/pricing helper, public DealBuilder runtime, checkout/order snapshots for orderable deals, staff nested deal display, and cart type/display support for nested orderable deal items exist. Cart discount previews are informational only; checkout remains authoritative.
+The Specials MVP schema, pure resolver, checkout integration, staff order discount display, tenant-scoped Specials Admin UI, public menu active-specials display, schema/type support for orderable deal components, Specials Admin component editing with optional component variant restrictions and modifier included-count overrides, tenant-scoped Mix & Match admin editing, pure orderable deal and Mix & Match validation/pricing helpers, public DealBuilder runtime, checkout/order snapshots for orderable deals and Mix & Match deals, staff nested deal display, and cart type/display support for nested deal items exist. Cart discount previews are informational only; checkout remains authoritative.
 
 The resolver lives in:
 
@@ -65,10 +65,13 @@ Implemented or mostly implemented:
 - [x] Recurring availability windows for enabled specials.
 - [x] Variant restrictions for orderable deal component products.
 - [x] Modifier Group included-count overrides for orderable deal component products.
+- [x] Admin editing for orderable deal component pricing modes.
+- [x] Public DealBuilder/cart-add support for orderable deal component pricing modes.
+- [x] Checkout, order snapshots, and staff display support for included/free and fixed-price orderable deal component pricing modes.
 
 Next planned:
 
-- [~] `mix_and_match_fixed_unit_price`: schema/type foundation and tenant-scoped admin editing exist for choosing a minimum number of eligible products from one pool, with each selected pool item using the same fixed unit price. Runtime/checkout/public behavior remains pending.
+- [x] `mix_and_match_fixed_unit_price`: schema/type foundation, tenant-scoped admin editing, pure validation/pricing helper, public builder runtime, cart parent/child display, checkout validation, order snapshots, and staff nested display exist for choosing a minimum number of eligible products from one pool, with each selected pool item using the same fixed unit price.
 - [ ] Category/subcategory component eligibility.
 - [ ] BOGO.
 - [ ] `free_item_with_purchase`.
@@ -77,6 +80,8 @@ Next planned:
 - [ ] Usage limits: one per order, limited total redemptions, location-specific, and fulfillment-specific carryout/delivery.
 - [ ] Tax/discount ordering rules.
 - [ ] Customer/account-specific promos.
+
+Current Specials focus should stay on Mix-and-Match regression, cart edit/reconfigure follow-up, and explicitly requested next deal types. Gift cards, abandoned-cart recovery, customer accounts, advanced customer marketing, and coupons are separate systems or later Specials expansions; do not fold them into Mix-and-Match unless explicitly requested.
 
 ## Supported Discount Types
 
@@ -105,19 +110,34 @@ Passive eligibility tables remain separate:
 - `special_component_products` defines selectable products for orderable deal components.
 - Do not reuse passive eligibility rows as component choices.
 
-For the first runtime MVP, `orderable_deal` will use `specials.discount_value` as the deal base/fixed price unless a later migration adds `deal_base_price`. The current pure helper prices deal base price plus explicit child extras supplied by the caller, such as `childExtraTotal`, `modifierExtraTotal`, or `chargedModifierTotal`. If no child extra/upcharge field is supplied, the helper treats that child extra as zero for MVP.
+For the first runtime MVP, `orderable_deal` uses `specials.discount_value` as the deal base/fixed price. The current pure helper prices deal base price plus explicit child extras supplied by the caller, such as `childExtraTotal`, `modifierExtraTotal`, or `chargedModifierTotal`. If no child extra/upcharge field is supplied, the helper treats that child extra as zero for MVP.
+
+Component-priced bundles are the correct model for ordered bundle deals where each slot has its own pricing behavior. Example: "Two Large 2-Topping Pizzas for $7.99 each with a free 2-liter" should not be modeled as a flat Mix & Match pool. It should be an `orderable_deal` with:
+
+- Component 1: first large Build Your Own pizza, `pricing_mode = 'fixed_price'`, `fixed_price = 7.99`, Large variant restriction, Pizza Toppings included-count override of 2.
+- Component 2: second large Build Your Own pizza, same fixed price, variant restriction, and topping override.
+- Component 3: one 2-liter, `pricing_mode = 'included'`, `fixed_price = null`, 2 Liter variant restriction.
+
+Schema foundation exists for future component pricing modes on `special_components`:
+
+- `pricing_mode = 'included'`: component base contributes `$0`. This is the default and leaves existing rows unchanged.
+- `pricing_mode = 'fixed_price'`: component base contributes `fixed_price`.
+- `pricing_mode = 'normal_price'`: deferred/future; component uses normal configured product base pricing.
+- `fixed_price`: nonnegative component fixed price, required by database constraint only when `pricing_mode = 'fixed_price'`.
+
+Admin save/reload wiring, public DealBuilder/cart-add, checkout/order snapshots, and staff display support exist for included/free and fixed-price component pricing modes. Public and checkout orderable deal loading includes `pricing_mode` and `fixed_price`; null or missing modes default to `included`. DealBuilder prices component base totals from component modes, adds child extras, stores component pricing snapshots in the nested cart item, and displays fixed-price or included/free child pricing in cart. When DealBuilder opens a child `ProductConfigurator` in return mode, it passes component pricing context so the sticky submit total shows fixed component price plus child extras or included/free plus child extras instead of the product's normal variant/base price. Variant rows may show normal pricing only as contextual "Normally ..." copy. Checkout reloads component pricing modes server-side, revalidates children, computes fixed/included component base totals through `validateAndPriceOrderableDeal`, rejects stale totals, and persists pricing mode/fixed price/base contribution metadata in parent/child order item notes. `normal_price` remains deferred and is rejected by checkout.
 
 The helper validates special type, business ownership, enabled/schedule/window status, component quantity rules, exact allowed product ids, child quantities, base price, and nonnegative child extras. It does not call Supabase, does not price configured products, and does not create `order_discounts`.
 
-Specials Admin can create and edit `orderable_deal` records. The form hides passive eligibility fields for orderable deals, treats `discount_value` as the deal base price, and edits component slots with labels, descriptions, quantity rules, exact allowed product choices, optional reusable variant option restrictions, and optional included Modifier Group count overrides for each selected component product. If no variant restrictions are selected for a component product, every enabled variant for that product remains allowed. If no modifier included-count override is entered, the product's normal included Modifier Group rule is used. The component allowed-products picker can browse all selected-business products by menu category and subcategory, with per-subcategory select/clear actions. Component saves replace the saved component list for that deal. Category/subcategory component eligibility rules, exclusions, allowed/excluded modifier option rules, deal-specific default modifiers, and optional component pricing tables remain deferred.
+Specials Admin can create and edit `orderable_deal` records. The form hides passive eligibility fields for orderable deals, treats `discount_value` as the deal base price, and edits component slots with labels, descriptions, quantity rules, component pricing mode, fixed component price when applicable, exact allowed product choices, optional reusable variant option restrictions, and optional included Modifier Group count overrides for each selected component product. If no variant restrictions are selected for a component product, every enabled variant for that product remains allowed. If no modifier included-count override is entered, the product's normal included Modifier Group rule is used. The component allowed-products picker can browse all selected-business products by menu category and subcategory, with per-subcategory select/clear actions. Component saves replace the saved component list for that deal. Admin currently offers Included/free and Fixed component price; Normal product price remains hidden/deferred until runtime support is built. Category/subcategory component eligibility rules, exclusions, allowed/excluded modifier option rules, and deal-specific default modifiers remain deferred.
 
 Orderable deal modifier included-count overrides are deal-context only. They do not create new modifiers for the deal and do not change the product's normal Product Modifier Assignment. They override only the included selection count for a selected component product and assigned Modifier Group while that product is being configured inside that deal component. Example: a "Large 2-Topping Pizza" deal can select the normal Build Your Masterpiece product, restrict it to the large variant, and override Pizza Toppings included selections to `2` for that component. Outside the deal, Build Your Masterpiece keeps its normal included topping setup.
 
-DealBuilder runtime exists for public menus. Active orderable deals show a Build Deal action, load exact component choices from `special_components` and `special_component_products`, and guide the customer through required component choices. Mobile keeps a step-by-step item wizard; larger screens show a wider product grid with a right-side deal summary panel. Each step shows only the products allowed for that component as image-backed cards with `Add to Deal` for default selections and `Customize` for child product configuration. DealBuilder passes any saved variant allow-list into `ProductConfigurator` return mode for child product configuration, validates the assembled selection with `validateAndPriceOrderableDeal`, shows a final review step, and adds one parent `DealCartItem` with nested component children to cart. Component choices are sorted by component/product sort order and filtered to the selected business.
+DealBuilder runtime exists for public menus. Active orderable deals show a Build Deal action, load exact component choices from `special_components` and `special_component_products`, and guide the customer through required component choices. Mobile keeps a step-by-step item wizard; larger screens show a wider product grid with a right-side deal summary panel. Each step shows only the products allowed for that component as image-backed cards with `Add to Deal` for default selections and `Customize` for child product configuration. DealBuilder displays each component as fixed price or included/free, passes any saved variant allow-list, Modifier Group included-count overrides, and component pricing context into `ProductConfigurator` return mode for child product configuration, validates the assembled selection with `validateAndPriceOrderableDeal`, shows component base, extras, and total, then adds one parent `DealCartItem` with nested component children to cart. Component choices are sorted by component/product sort order and filtered to the selected business.
 
-Cart can now store and display one parent orderable deal item with nested component child products. Deal cart entries keep tenant metadata, deal base price, child extra total, parent total, component labels/quantity counts, child configured snapshots, and child modifier snapshots. Deal entries count as one cart line and are not editable through existing product builders.
+Cart can now store and display one parent orderable deal item with nested component child products. Deal cart entries keep tenant metadata, component pricing mode/fixed price/base contribution snapshots, component base total, child extra total, parent total, component labels/quantity counts, child configured snapshots, and child modifier snapshots. Cart display shows each child as fixed price or included/free and keeps extras separate. Deal entries count as one cart line and are not editable through existing product builders.
 
-ProductConfigurator and the existing product builders support two submit behaviors: default `cart` mode writes configured products to cart as before, while `return` mode returns a `ConfiguredProductResult` snapshot without mutating cart. DealBuilder uses return mode for component child selection.
+ProductConfigurator and the existing product builders support two submit behaviors: default `cart` mode writes configured products to cart as before, while `return` mode returns a `ConfiguredProductResult` snapshot without mutating cart. DealBuilder uses return mode for component child selection and may provide a deal component pricing context for display only. The child configured-product result still carries the normal product pricing snapshot so DealBuilder and checkout can calculate extras server-side without trusting the customer-facing component total.
 
 Checkout validates orderable deal cart items server-side. It reloads the active deal, validates business ownership, schedule/window eligibility, component quantity rules, exact allowed child products, optional component product variant restrictions, optional component/product modifier included-count overrides, and each configured child product through the same server-side configured-product validation used for normal cart items. Client deal totals, child totals, client-visible variant choices, and client-visible modifier prices are not trusted; stale deal totals, child prices, or disallowed child variants cause checkout validation errors.
 
@@ -133,11 +153,11 @@ Passive specials apply only to normal configured top-level cart items in this MV
 
 Child edit/reconfigure behavior remains pending.
 
-Deferred expansion tables include component menu-group eligibility, subcategory eligibility, exclusions, allowed/excluded modifier options, deal-specific default modifiers, premium modifier pricing rules, and optional component pricing tables.
+Deferred expansion tables/features include component menu-group eligibility, subcategory eligibility, exclusions, allowed/excluded modifier options, deal-specific default modifiers, premium modifier pricing rules, and `normal_price` component pricing support.
 
 ## Mix-And-Match Fixed Unit Price Design
 
-`mix_and_match_fixed_unit_price` exists at schema/type and tenant-scoped admin editing level. It is not runtime-enabled yet.
+`mix_and_match_fixed_unit_price` exists at schema/type, tenant-scoped admin editing, pure helper, public builder runtime, cart-add, checkout validation, order snapshot, and staff nested display levels.
 
 The core distinction is:
 
@@ -149,7 +169,6 @@ Examples:
 - Any 2 eligible items for `$7.99` each.
 - Any 2 or more eligible items for `$7.99` each.
 - Any 3 subs for `$8.99` each.
-- Any 2 eligible items for `$7.99` each plus a required 2-liter.
 
 Recommended MVP behavior:
 
@@ -158,8 +177,8 @@ Recommended MVP behavior:
 - Maximum selected pool quantity is optional. If absent, the deal can repeat beyond the minimum.
 - If minimum is 2 and the customer chooses 3, all 3 pool items are priced at the fixed unit price.
 - If the business wants exactly 2, set max quantity to 2.
-- Optional required side components, such as "Choose your 2-liter", should reuse existing orderable deal component rules in a later task.
-- Side components are not supported in the current Mix & Match admin UI.
+- Required or free side components, such as "Choose your 2-liter", do not belong in the flat Mix pool.
+- Side components should use `orderable_deal` component pricing modes when runtime/admin/checkout wiring is built.
 - Passive specials should not stack on mix-and-match parent or child items by default.
 
 Current schema/admin foundation:
@@ -176,9 +195,10 @@ Current schema/admin foundation:
   - `created_at`
   - `updated_at`
 - `special_mix_match_products` stores exact products eligible for the mix pool.
-- `special_mix_match_product_variant_options` stores optional reusable variant option restrictions for mix pool products. No rows means all enabled variants should be allowed when runtime is built.
-- `special_mix_match_modifier_group_overrides` stores optional Modifier Group included-count overrides for mix pool products. No row means the product's normal included rule should be used when runtime is built.
-- Specials Admin can create/edit Mix & Match records and saves to `special_mix_match_rules`, `special_mix_match_products`, `special_mix_match_product_variant_options`, and `special_mix_match_modifier_group_overrides`. Runtime/checkout/public menu behavior remains deferred.
+- `special_mix_match_product_variant_options` stores optional reusable variant option restrictions for mix pool products. No rows means all enabled variants are allowed.
+- `special_mix_match_modifier_group_overrides` stores optional Modifier Group included-count overrides for mix pool products. No row means the product's normal included rule is used.
+- Specials Admin can create/edit Mix & Match records and saves to `special_mix_match_rules`, `special_mix_match_products`, `special_mix_match_product_variant_options`, and `special_mix_match_modifier_group_overrides`.
+- `validateAndPriceMixAndMatchDeal` lives in `features/specials/utils/validate-and-price-mix-and-match-deal.ts`. It is pure, does not call Supabase, and is wired into both the public Mix builder before cart add and server checkout after child product repricing.
 
 The current foundation intentionally uses dedicated mix pool tables instead of overloading fixed-slot `special_components`. Existing orderable deal components remain available for future attached side components, such as "Choose your 2-liter".
 
@@ -188,14 +208,17 @@ Admin UI:
 - Fields: deal name, internal/customer descriptions, enabled state, date range, recurring availability, unit price, minimum item count, optional maximum item count, allow-extra-items flag, exact eligible product pool, optional reusable variant restrictions, and optional Modifier Group included-count overrides.
 - Eligible product pool uses the current category/subcategory grouped product picker, filtered to real product categories.
 - Each selected pool product can have optional reusable variant restrictions and optional Modifier Group included-count overrides.
-- Required side components are intentionally not supported in Mix & Match admin editing yet. "Any 2 for $7.99 each and a 2-liter" needs a later side-component task before it can be modeled fully.
+- Required or free attached side components are intentionally not supported in Mix & Match admin editing yet. Do not add side items such as a free 2-liter to the Mix pool as a workaround; pool products all use the fixed unit price. "Any 2 for $7.99 each and a 2-liter" needs a later attached-component task before it can be modeled fully.
+- A blank Modifier Group included-count override means no override row. An explicit `0` is valid and persists as an override that includes zero selections for that pool product/group.
+- The field currently named "Allow extras" means extra pool items beyond the minimum/maximum rule, not extra toppings/modifiers. Extra toppings/modifiers are handled by normal configured-product pricing plus any Modifier Group included-count overrides. Rename this admin label in a later UI cleanup to avoid restaurant-user confusion.
 
 Public builder design:
 
-- Customer opens the mix-and-match deal.
-- Step 1 shows the eligible pool and selected item count, such as `0 of 2 selected`.
-- Customer can add default selections or customize each selected product through existing product builders.
-- Review shows selected pool item count, fixed unit price, child extras, optional side components, and total.
+- Customer opens the mix-and-match deal from the public Current Specials section.
+- The builder shows the eligible pool and selected item count, such as `0 of 2+ selected`.
+- Customer can add default selections with `Add to Mix` or customize each selected product through existing product builders in return mode.
+- Product-level variant restrictions and Modifier Group included-count overrides are passed into ProductConfigurator for Mix selections.
+- The builder validates selected pool item count, fixed unit price, child extras, and total before adding one nested parent deal item to cart.
 - For deals with side components, the flow becomes:
   - choose at least the required pool count
   - choose/configure required side components
@@ -203,23 +226,25 @@ Public builder design:
 
 Checkout validation design:
 
-- Reload the special, schedule, mix rule, eligible pool products, optional side components, variant restrictions, and modifier overrides server-side.
-- Validate business ownership and active availability.
-- Validate selected pool products are allowed.
-- Validate selected variants are allowed when restrictions exist.
-- Validate selected pool quantity is at least minimum and no more than max when max exists.
-- Reprice every child configured product server-side using existing configured-product validation.
-- Apply deal-context modifier included-count overrides before pricing each child.
-- Mix total equals selected eligible pool item count times unit price, plus child extras and side component extras.
-- Ignore client-provided deal totals.
-- Exclude passive discounts from mix-and-match items in the first MVP.
+- Checkout reloads the special, schedule, mix rule, eligible pool products, variant restrictions, and modifier overrides server-side.
+- Checkout validates business ownership, active availability, selected pool products, selected variants when restrictions exist, selected quantity min/max rules, and extra-item rules.
+- Checkout reprices every child configured product server-side using existing configured-product validation.
+- Checkout applies Mix-specific Modifier Group included-count overrides before pricing each child.
+- Mix total equals selected eligible pool item count times unit price plus child extras.
+- Checkout ignores client-provided deal totals and rejects stale Mix child totals or parent totals.
+- Passive discounts are excluded from mix-and-match items in this MVP.
+- Optional side components are still deferred.
+- The pure helper validates special type, business ownership, enabled/schedule/window status, min/max/allow-extra quantity rules, pool products, optional variant restrictions, positive child quantities, and nonnegative child extras.
+- The pure helper prices `selectedQuantity * unitPrice + childExtraTotal`, where `selectedQuantity` is the sum of selected child quantities.
+- The pure helper does not calculate configured-product pricing, does not apply modifier overrides itself, and does not create `order_discounts`. DealBuilder/checkout must price child configs with mix-specific modifier overrides before calling it.
 
 Cart, order, and staff display design:
 
-- Use the same nested deal cart shape: one parent deal item with nested children.
-- Add enough metadata to distinguish mix pool children from fixed side component children.
-- Parent display should show special name, fixed unit price summary, selected count, extras, and total.
-- Staff display should show the parent deal, nested selected products, modifier details, unit-price summary, and total.
+- Cart uses the same nested deal cart shape: one parent deal item with nested children.
+- Mix parent cart entries include `specialType = 'mix_and_match_fixed_unit_price'`, fixed unit price summary, selected count, extras, and total.
+- Cart display shows Mix & Match parent/children but does not expose Mix edit/reconfigure yet; customers can remove and rebuild.
+- Orders persist Mix & Match with the existing nested deal order item shape: parent `relationship_type = 'deal'`, child rows `relationship_type = 'deal_component'`, child modifiers on child rows, and parent `notes` storing `specialType = 'mix_and_match_fixed_unit_price'`.
+- Staff orders display Mix & Match parent/children using the nested deal display and label Mix parent rows.
 
 Do not build in the first mix-and-match MVP:
 
@@ -234,28 +259,25 @@ Do not build in the first mix-and-match MVP:
 - Passive discount stacking on deal items.
 - Inventory constraints.
 
-### Exact Next Build Prompt
+### Likely Next Build Prompt
 
 Follow `project-docs/DEV_RULES.md`, `project-docs/CODEX_INSTRUCTIONS.md`, `project-docs/UI_GUIDELINES.md`, `project-docs/PROJECT_STATE.md`, `project-docs/AI_HANDOFF.md`, `project-docs/ROADMAP.md`, and `project-docs/SPECIALS_ENGINE.md`.
 
-Task: Add tenant-scoped Specials Admin UI support for editing Mix-and-Match fixed unit price schema records.
+Task: Add cart edit/reconfigure support for orderable deals and Mix-and-Match deals.
 
 Scope:
 
-- Work in tenant-scoped Specials Admin form/actions/queries/tests and docs.
-- Do not build public DealBuilder runtime for Mix-and-Match.
-- Do not change checkout behavior.
-- Do not change cart/order/staff behavior.
-- Do not build BOGO, coupons, free item rewards, usage limits, category/subcategory eligibility, exclusions, or different unit prices per product.
+- Work in cart display/state, public deal builders, ProductConfigurator return mode integration, tests, and docs.
+- Do not change checkout discount calculation.
+- Do not change database schema unless a real blocker is discovered and reported first.
+- Do not build BOGO, coupons, free item rewards, usage limits, category/subcategory eligibility, exclusions, or side-component support unless explicitly requested.
 
 Requirements:
 
-- Allow Specials Admin to create/edit `mix_and_match_fixed_unit_price` records.
-- Add form fields for unit price, minimum quantity, optional maximum quantity, allow extra items, exact eligible products, optional variant restrictions, and optional Modifier Group included-count overrides.
-- Save to `special_mix_match_rules`, `special_mix_match_products`, `special_mix_match_product_variant_options`, and `special_mix_match_modifier_group_overrides`.
-- Preserve existing passive special and `orderable_deal` behavior.
-- Update Specials docs and roadmap.
-- Run `npm run test`, `npx tsc --noEmit`, and targeted ESLint for changed Specials files.
+- Let customers reopen an orderable deal or Mix-and-Match cart item, adjust child selections, and save the updated nested cart item.
+- Preserve server checkout authority; checkout must still reload and reprice all deal configuration.
+- Keep remove-and-rebuild behavior as a fallback if a saved deal definition is no longer available.
+- Update tests and docs.
 
 ## Stacking
 
@@ -309,6 +331,7 @@ Discount amounts are rounded to cents and capped so:
 - Child edit/reconfigure behavior for cart deal items.
 - Coupon UI.
 - BundleBuilder/ComboBuilder.
-- BOGO, mix-and-match, free-item rewards, usage limits, and category/subcategory component eligibility.
+- Mix-and-match cart edit/reconfigure support, BOGO, free-item rewards, usage limits, and category/subcategory component eligibility.
+- Gift cards/store credit, customer accounts/order history, abandoned cart recovery, and broad marketing notifications remain separate future systems, not current Specials runtime work.
 
 Checkout currently maps product id, selected reusable variant option id, quantity, and validated line subtotal into the resolver. Menu group eligibility exists in schema/resolver, but checkout does not pass menu group ids yet because validated checkout product config does not currently carry menu placement.

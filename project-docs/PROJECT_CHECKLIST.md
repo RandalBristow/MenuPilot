@@ -47,14 +47,16 @@ Completed:
 - [x] Staff discount snapshots and nested orderable deal display
 - [x] Orderable deal component variant restrictions
 - [x] Orderable deal component Modifier Group included-count overrides
+- [x] Orderable deal component pricing mode checkout/order/staff support
 - [x] Mix-and-Match fixed unit price schema/type foundation
 - [x] Mix-and-Match tenant-scoped admin editing
+- [x] Mix-and-Match public runtime and cart-add support
 
 Next focus:
 - [~] Run Product Entry Regression Matrix
 - [~] Run `TENANT_ONBOARDING_REGRESSION.md`
 - [~] Manually verify Specials Admin, public deal building, checkout, and staff display with a real tenant
-- [ ] Build Mix-and-Match public runtime/cart/checkout validation for `mix_and_match_fixed_unit_price`
+- [ ] Build Mix-and-Match checkout/order/staff support for `mix_and_match_fixed_unit_price`
 - [ ] Decide whether to retire/redirect legacy seeded demo routes before clean database rebuild
 - [ ] Do not wipe/rebuild the development database until tenant onboarding regression passes or exceptions are documented
 
@@ -401,8 +403,12 @@ For each feature:
 - [x] Support day/time/date availability
 - [x] Support orderable deal component variant restrictions
 - [x] Support orderable deal component Modifier Group included-count overrides
+- [x] Support orderable deal component pricing mode admin fields
+- [x] Support orderable deal component pricing modes in public DealBuilder/cart-add
+- [x] Support orderable deal component pricing modes in checkout/order/staff display
 - [x] Add `mix_and_match_fixed_unit_price` schema/types foundation
 - [x] Add `mix_and_match_fixed_unit_price` tenant-scoped admin editing
+- [x] Add `mix_and_match_fixed_unit_price` public runtime/cart-add support
 - [ ] Support category/subcategory component eligibility
 - [ ] Support bundle/combo builder behavior beyond current orderable deals
 - [ ] Support BOGO specials
@@ -733,6 +739,10 @@ For each feature:
 - [ ] Set product taxable flag
 - [ ] Set product featured flag
 - [ ] Set product prep time
+- [ ] Add dietary/allergen flags such as vegetarian, vegan, gluten-free, contains nuts, contains dairy, contains shellfish, and spicy
+- [ ] Add nutritional information such as calories and optional macros
+- [ ] Add age verification flag for regulated products if those are ever supported
+- [ ] Add quick 86 / temporarily sold out state separate from permanent admin enable/disable
 - [x] Assign product to groups
 - [x] Set primary group
 
@@ -936,6 +946,8 @@ For each feature:
 - [ ] Apply active business theme
 - [ ] Add responsive mobile nav
 - [ ] Add SEO metadata
+- [ ] Build public multi-location selection UX with address/distance/context
+- [ ] Add PWA manifest/service worker/installable app support
 
 ## 17.2 Home page
 
@@ -961,6 +973,8 @@ For each feature:
 - [x] Show variant starting price
 - [x] Add category navigation
 - [x] Add mobile-friendly category tabs
+- [ ] Show dietary/allergen flags and customer filtering when product data supports them
+- [ ] Hide or clearly mark quick-86 / temporarily sold out products
 
 ## 17.4 Product configurator UI
 
@@ -1007,6 +1021,7 @@ For each feature:
 - [x] Show nested orderable deal parent and component child items
 - [ ] Show add-ons indented under parent where appropriate
 - [ ] Edit/reconfigure orderable deal cart items
+- [ ] Preserve clear sold-out/unavailable messaging for temporarily unavailable cart items
 
 ---
 
@@ -1064,6 +1079,7 @@ For each feature:
 - [ ] Create payment intent route/action
 - [ ] Create checkout payment component
 - [ ] Connect payment to order
+- [ ] Confirm checkout order creation is transactional before accepting real payments
 - [ ] Store payment record
 - [ ] Add Stripe webhook endpoint
 - [ ] Verify webhook signatures
@@ -1076,6 +1092,7 @@ For each feature:
 - [ ] Test webhook locally
 - [ ] Build refund data model support
 - [ ] Build admin refund action later
+- [ ] Add gift cards / store credit later
 
 ---
 
@@ -1099,6 +1116,9 @@ For each feature:
 - [x] Store snapshots
 - [x] Return order confirmation
 - [x] Show confirmation page
+- [ ] Wrap full order creation in one Supabase RPC/Postgres transaction before real payments/production
+- [ ] Build staff-entered / phone order creation flow scoped to business/location
+- [ ] Build customer-facing order status route with safe lookup and limited order details
 
 ---
 
@@ -1118,7 +1138,7 @@ For each feature:
 - [x] Show preparing orders
 - [x] Show ready orders
 - [ ] Show completed/cancelled filter
-- [ ] Subscribe to new orders with Supabase Realtime if appropriate
+- [ ] Subscribe to new orders/status changes with Supabase Realtime before launch
 - [ ] Play/trigger visual alert for new order
 - [ ] Open order detail
 - [x] Accept order
@@ -1127,6 +1147,9 @@ For each feature:
 - [x] Mark completed
 - [x] Show applied discount snapshots
 - [x] Show nested orderable deal children
+- [ ] Prominently show customer/order notes and special instructions
+- [ ] Add quick 86 / temporarily sold out operational toggles for products/options/modifiers
+- [ ] Support staff-entered / phone orders from the staff/admin order flow
 - [ ] Cancel order with reason
 - [ ] Print kitchen ticket optional
 - [ ] Reprint receipt optional
@@ -1206,6 +1229,7 @@ For each feature:
 - [ ] Google reviews section
 - [ ] CTA section
 - [ ] Custom local business/ad card section
+- [ ] Catering inquiry / large-order request section
 
 ## 24.4 Navigation
 
@@ -1280,6 +1304,8 @@ For each feature:
 - [x] Edit orderable deal allowed products
 - [x] Edit orderable deal component product variant restrictions
 - [x] Edit orderable deal component product Modifier Group included-count overrides
+- [x] Edit orderable deal component pricing modes and fixed prices
+- [x] Public DealBuilder/cart display honors orderable deal component pricing modes
 
 ## 26.2 Special templates
 
@@ -1287,7 +1313,7 @@ For each feature:
 - [x] Simple line discount special
 - [x] Cart discount special
 - [x] Orderable deal with fixed/base price and required components
-- [~] Mix-and-match fixed unit price deal schema/type/admin foundation
+- [~] Mix-and-match fixed unit price deal schema/type/admin/public cart-add foundation
 - [D] Bundle special beyond current orderable deal components
 - [D] Combo special beyond current orderable deal components
 - [ ] BOGO special
@@ -1299,17 +1325,20 @@ For each feature:
 ## 26.3 Orderable deal and future bundle logic
 
 - [x] Build orderable deal component editor
+- [x] Build orderable deal component pricing mode admin controls
 - [x] Choose exact allowed products per component
 - [x] Set component quantity rules
 - [x] Set required variant restrictions per component product
 - [x] Set included Modifier Group count overrides per component product
 - [x] Test/support Large 2-Topping Pizza style deal through included-count overrides
+- [x] Price fixed/included orderable deal components through public cart-add
+- [x] Build checkout/order/staff support for included/free and fixed-price orderable deal component pricing modes
 - [x] Validate orderable deal server-side
 - [x] Apply orderable deal to cart/order as nested parent/child order items
 - [x] Add Mix-and-Match fixed unit price schema/types
 - [x] Build Mix-and-Match admin UI
-- [ ] Build Mix-and-Match public runtime
-- [ ] Build Mix-and-Match checkout validation
+- [x] Build Mix-and-Match public runtime
+- [ ] Build Mix-and-Match checkout/order/staff support
 - [ ] Build category/subcategory component eligibility
 
 ---
@@ -1360,6 +1389,7 @@ For each feature:
 - [ ] Log notification attempts
 - [ ] Handle notification failure gracefully
 - [ ] Allow admin to enable/disable templates
+- [ ] Add abandoned cart / incomplete checkout recovery after customer identity and notifications exist
 
 ---
 
@@ -1449,8 +1479,10 @@ For each feature:
 - [ ] Add error logging
 - [ ] Add graceful payment failure handling
 - [ ] Add display panel fallback state
-- [ ] Add order creation transaction pattern
+- [ ] Add checkout order creation transaction/RPC pattern before real payments/production
 - [ ] Add webhook idempotency
+- [ ] Refactor large server actions that hand-parse `FormData` to Zod or equivalent schema validation after Specials/Mix-and-Match stabilizes
+- [ ] Audit resolved `lucide-react` version with `npm ls lucide-react`
 
 ---
 
@@ -1495,7 +1527,12 @@ For each feature:
 - [ ] Test staff order update
 - [ ] Test admin menu update affects public menu
 
-## 36.3 Manual acceptance tests
+## 36.3 Test infrastructure
+
+- [ ] Improve Supabase module mocks so Vitest can revisit parallel execution
+- [ ] Revisit serial Vitest settings (`fileParallelism: false`, `maxWorkers: 1`) when mocks are less fragile
+
+## 36.4 Manual acceptance tests
 
 - [ ] Place pickup order
 - [ ] Place delivery order
@@ -1548,9 +1585,14 @@ The MVP is complete when:
 - [x] Customer can configure item
 - [x] Customer can add to cart
 - [x] Customer can checkout for pickup
+- [ ] Customer can check safe public order status after ordering
 - [ ] Customer can pay with Stripe
 - [x] Order appears in staff dashboard
 - [x] Staff can update order status
+- [ ] Staff can create phone/walk-in orders
+- [ ] Staff receives realtime order updates without manual refresh
+- [ ] Staff can quickly mark products/options temporarily sold out
+- [ ] Staff views order/customer notes prominently
 - [ ] Order history can be searched
 - [ ] Basic public theme is applied
 - [x] Disabled products/options do not appear
@@ -1565,7 +1607,7 @@ The MVP is complete when:
 V1 is complete when:
 
 - [ ] Delivery works
-- [~] Specials work for passive discounts and orderable deal MVP; Mix & Match admin editing exists, but Mix & Match runtime/checkout and advanced specials remain pending
+- [~] Specials work for passive discounts, orderable deal MVP, and Mix & Match MVP exists; cart deal edit/reconfigure and advanced specials remain pending
 - [ ] Website page builder works
 - [x] Media library works for tenant-scoped product images
 - [ ] Theme editor works at basic level
@@ -1573,6 +1615,9 @@ V1 is complete when:
 - [ ] Admin reports exist
 - [ ] Taxes/fees/tips are configurable
 - [ ] Notifications send order confirmations
+- [ ] Customer order history/reorder works
+- [ ] PWA installable experience works
+- [ ] Public multi-location selection is clear
 - [ ] Multi-location support is reliable
 - [~] Tenant-scoped single-default-location flows are implemented; full multi-location management remains pending
 
@@ -1629,6 +1674,14 @@ The full platform is complete when:
 - [ ] Add menu export
 - [ ] Add product import/export
 
+## 41.2A Customer Accounts And Reorder
+
+- [ ] Add lightweight phone/email order lookup
+- [ ] Add customer accounts
+- [ ] Add customer order history
+- [ ] Add reorder flow
+- [ ] Add saved customer info after auth/privacy model is decided
+
 ## 41.3 Platform Owner Tools
 
 - [ ] Build platform owner dashboard
@@ -1649,6 +1702,7 @@ The full platform is complete when:
 - [ ] Add billing status to business records
 - [ ] Add subscription management page
 - [ ] Add failed billing handling
+- [ ] Add gift cards / store credit
 
 ## 41.5 Customization and Branding
 
@@ -1678,6 +1732,7 @@ The full platform is complete when:
 - [ ] Add max orders per time slot
 - [ ] Add rush-mode prep time controls
 - [ ] Add temporary pause ordering controls
+- [ ] Add quick 86 / temporarily sold out workflows with clear temporary behavior and optional reset strategy
 
 ## 41.8 Accessibility and QA
 
@@ -1746,10 +1801,9 @@ The full platform is complete when:
 - [ ] Low stock thresholds
 - [ ] Out-of-stock reporting
 
-## 41.15 Social Media & External Links
+## 41.15 Regulatory And Safety Flags
 
-- [ ] Add social links to location settings
-- [ ] Display social icons in UI
-- [ ] External link blocks in page builder
-- [ ] Sponsor/advertisement links
+- [ ] Add full age-gate flow if regulated products are ever supported
+- [ ] Add admin guidance for allergen/dietary flag accuracy
+- [ ] Keep duplicate social/external-link tracking consolidated in section 41.9
 

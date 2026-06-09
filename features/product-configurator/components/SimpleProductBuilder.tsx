@@ -23,6 +23,11 @@ import {
   type ProductConfiguratorSubmitBehavior,
 } from "@/features/product-configurator/utils/submit-configured-product-result"
 import type { ModifierIncludedRuleOverride } from "@/features/product-configurator/utils/modifier-included-rule-overrides"
+import {
+  getDealComponentDisplayTotal,
+  getDealComponentPricingCopy,
+  type DealComponentPricingContext,
+} from "@/features/product-configurator/utils/deal-component-pricing-context"
 import type { ProductConfig } from "./PizzaBuilder"
 
 type SimpleProductBuilderProps = {
@@ -35,6 +40,7 @@ type SimpleProductBuilderProps = {
   submitBehavior?: ProductConfiguratorSubmitBehavior
   allowedVariantOptionIds?: string[] | null
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  dealComponentPricingContext?: DealComponentPricingContext | null
   onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
@@ -51,6 +57,7 @@ export function SimpleProductBuilder({
   businessSlug = null,
   submitBehavior = "cart",
   allowedVariantOptionIds = null,
+  dealComponentPricingContext = null,
   onConfiguredItem,
 }: SimpleProductBuilderProps) {
   const sortedVariants = useMemo(
@@ -90,6 +97,14 @@ export function SimpleProductBuilder({
     [product.base_price, product.builder_template, product.pricing_settings, quantity, selectedVariant]
   )
   const canSubmit = !isVariantUnavailable
+  const dealDisplayTotal = getDealComponentDisplayTotal({
+    context: dealComponentPricingContext,
+    quantity,
+    childExtraTotal: 0,
+  })
+  const dealPricingCopy = getDealComponentPricingCopy(
+    dealComponentPricingContext
+  )
 
   function handleSubmit() {
     if (!canSubmit) return
@@ -206,7 +221,9 @@ export function SimpleProductBuilder({
                       >
                         <span className="font-medium">{variant.name}</span>
                         <span className="text-sm font-semibold">
-                          ${Number(variant.base_price).toFixed(2)}
+                          {dealComponentPricingContext?.displayPricingContext
+                            ? `Normally $${Number(variant.base_price).toFixed(2)}`
+                            : `$${Number(variant.base_price).toFixed(2)}`}
                         </span>
                       </button>
                     )
@@ -229,14 +246,21 @@ export function SimpleProductBuilder({
             onClick={handleSubmit}
             className="h-12 w-full justify-between text-base"
           >
-            <span>
-              {submitBehavior === "return"
-                ? "Add to Special"
-                : mode === "edit"
-                  ? "Save changes"
-                  : "Add to cart"}
+            <span className="flex min-w-0 flex-col items-start leading-tight">
+              <span>
+                {submitBehavior === "return"
+                  ? "Add to Special"
+                  : mode === "edit"
+                    ? "Save changes"
+                    : "Add to cart"}
+              </span>
+              {dealPricingCopy ? (
+                <span className="text-xs font-normal opacity-85">
+                  {dealPricingCopy}
+                </span>
+              ) : null}
             </span>
-            <span>${pricing.lineTotal.toFixed(2)}</span>
+            <span>${(dealDisplayTotal ?? pricing.lineTotal).toFixed(2)}</span>
           </ThemedButton>
         </div>
       </DialogContent>

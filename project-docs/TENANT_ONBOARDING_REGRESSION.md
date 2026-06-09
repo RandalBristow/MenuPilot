@@ -218,16 +218,22 @@ Using `/businesses/[businessSlug]/admin/specials`:
 - [ ] For a component product with variants, restrict it to one variant option, such as `2 Liter` or a large pizza size, and confirm the form reloads that restriction.
 - [ ] For a component product with no variant restriction selected, confirm all enabled variants remain available.
 - [ ] For a pizza component product, set a Modifier Group included-count override, such as Pizza Toppings = 2, and confirm the form reloads that override.
+- [ ] Set an orderable deal pizza component to `Fixed component price`, enter `7.99`, save, reopen, and confirm the pricing mode and fixed price reload.
+- [ ] Set an orderable deal drink component to `Included/free`, save, reopen, and confirm the fixed price field stays hidden/blank.
+- [ ] Confirm the admin setup for "Two Large 2-Topping Pizzas for $7.99 each with a free 2-liter" uses three orderable deal components: Pizza 1 fixed price 7.99, Pizza 2 fixed price 7.99, and Soda included/free. Do not put the soda into a flat Mix & Match pool.
 - [ ] Edit the orderable deal and confirm saved components and product choices reload correctly.
 - [ ] Confirm the public menu shows a Build Deal action for the active orderable deal.
-- [ ] Build the deal, configure each child product, confirm restricted products only show allowed variants, confirm the component modifier included-count override affects only the deal child pricing, and add one nested deal item to cart.
-- [ ] Submit checkout with the deal cart item.
+- [ ] Build the component-priced deal, confirm the builder cycles Pizza 1 -> Pizza 2 -> Soda, confirm pizza components show fixed `$7.99`, confirm the soda shows included/free, confirm child customization sticky totals show fixed/included component pricing plus extras instead of the normal product base price, confirm restricted products only show allowed variants, confirm the component modifier included-count override affects only the deal child pricing, and add one nested deal item to cart.
+- [ ] Confirm the cart shows nested children with fixed/included component pricing and that two fixed `$7.99` pizzas plus an included/free soda totals `$15.98` before extras.
+- [ ] Submit checkout with the component-priced orderable deal and confirm checkout succeeds at `$15.98` before extras.
+- [ ] Submit checkout with a legacy/base-price orderable deal cart item that does not use component pricing modes.
 - [ ] Confirm checkout rejects a stale/tampered deal cart item that uses a disallowed component product variant.
 - [ ] Confirm checkout recalculates deal child modifier pricing using server-loaded component included-count overrides and ignores stale client child prices.
-- [ ] Confirm order total equals deal base plus child extras.
-- [ ] Confirm staff orders show the deal parent and nested child product configurations.
+- [ ] Confirm order total equals fixed/included component base totals plus child extras.
+- [ ] Confirm staff orders show the deal parent, nested child product configurations, and fixed/included component pricing copy.
 - [ ] Confirm passive discounts do not discount the deal item.
-- [D] Mix-and-match fixed unit price schema/type foundation and admin editing exist, but public runtime, checkout validation, cart behavior, and staff display are not implemented yet.
+- [x] Mix-and-match fixed unit price schema/type foundation, admin editing, public runtime, cart-add behavior, checkout validation, order snapshots, and staff nested display exist.
+- [ ] Create an active Mix & Match deal, build it from the public menu, add default and customized pool products, confirm one nested parent cart item is created, confirm checkout accepts valid Mix items and rejects stale totals, and confirm staff orders show the nested Mix parent/children.
 
 Expected result:
 
@@ -237,7 +243,7 @@ Expected result:
 - Orderable deals can be built into cart and checked out through parent/child order item snapshots.
 - Optional orderable deal component variant restrictions are enforced in DealBuilder and checkout; no restriction means all enabled variants are allowed.
 - Optional orderable deal component modifier included-count overrides apply only inside that deal component; normal product modifier setup outside the deal is unchanged.
-- Mix-and-match runtime remains deferred until DealBuilder/runtime behavior, checkout validation, cart behavior, and staff display are built.
+- Mix-and-match checkout/order/staff support remains deferred until the server validation and snapshot path is built.
 
 ## I. Public Menu Preview
 
@@ -271,6 +277,7 @@ Using `/businesses/[businessSlug]/menu` and `/businesses/[businessSlug]/checkout
 - [ ] Confirm scoped checkout blocks stale or cross-tenant cart items.
 - [ ] Submit a pickup order.
 - [ ] Confirm order succeeds.
+- [D] Future quick 86 / temporarily sold out products/options should be unavailable in menu and rejected by checkout.
 - [ ] Confirm order uses selected `business_id`.
 - [ ] Confirm order uses selected `location_id`.
 - [ ] Confirm server-side pricing is authoritative by checking totals against the configured product rules.
@@ -293,6 +300,10 @@ Using `/businesses/[businessSlug]/locations/[locationSlug]/orders`:
 - [ ] Mark preparing.
 - [ ] Mark ready.
 - [ ] Mark completed.
+- [D] Future customer-facing order status page should reflect staff status changes without exposing private order data.
+- [D] Future staff-entered / phone orders should create tenant/location-scoped orders that appear only in this staff route.
+- [D] Future realtime staff orders should show new/status-changed orders without manual refresh.
+- [D] Future staff order detail should make customer/order notes and special instructions prominent.
 - [ ] Confirm status changes affect only the selected business/location order.
 - [ ] Confirm an order from another business/location does not appear.
 - [ ] Confirm mismatched business/location route returns not found.
@@ -332,7 +343,7 @@ Expected result:
 | Variants | Implemented, needs manual verification | Tenant-scoped variant group and assignment routes/actions/tests. | Create reusable variant group/options, assign to product, set overrides. |
 | Modifiers | Implemented, needs manual verification | Tenant-scoped modifier library routes/actions/tests; option move/safe delete support. | Create hierarchy, move option, safe-delete unused option, verify isolation. |
 | Media | Implemented, needs manual verification | `/businesses/[businessSlug]/admin/media`; media action tests; selected-business storage paths. | Upload/import media and confirm selected business ownership/path. |
-| Specials | Implemented orderable-deal MVP, needs manual verification | `/businesses/[businessSlug]/admin/specials...`; specials action/query/status tests; checkout loader schedule tests; orderable deal component editing tests; Mix & Match admin editing tests. Mix-and-match runtime is not built. | Create active, disabled, expired, lunch-window, orderable deal, and Mix & Match admin records; confirm checkout/staff behavior for supported passive/orderable deal flows. Do not expect Mix & Match public ordering yet. |
+| Specials | Implemented orderable-deal and Mix & Match MVPs need manual verification | `/businesses/[businessSlug]/admin/specials...`; specials action/query/status tests; checkout loader schedule tests; orderable deal component editing tests; Mix & Match admin/runtime/checkout tests. | Create active, disabled, expired, lunch-window, orderable deal, and Mix & Match admin records; confirm checkout/staff behavior for supported passive/orderable/Mix deal flows; confirm Mix & Match can add to cart, checkout, persist nested order rows, and display in staff orders. |
 | Public menu | Implemented, needs manual verification | `/businesses/[businessSlug]/menu`; scoped menu query tests. | Confirm setup preview, active menu, and no Pronto products. |
 | Checkout | Implemented, needs manual verification | `/businesses/[businessSlug]/checkout`; checkout tenant context/order action tests. | Submit real order from scoped cart and confirm business/location IDs. |
 | Staff orders | Implemented, needs manual verification | `/businesses/[businessSlug]/locations/[locationSlug]/orders`; scoped staff query/action tests. | Confirm order appears and status updates remain scoped. |

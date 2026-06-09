@@ -17,6 +17,8 @@ const pizzaComponent: OrderableDealComponent = {
   minQuantity: 1,
   maxQuantity: 1,
   pricingBehavior: "included_base",
+  pricingMode: "included",
+  fixedPrice: null,
   isRequired: true,
   allowedProductIds: ["pizza-a", "pizza-b"],
 }
@@ -29,6 +31,8 @@ const breadComponent: OrderableDealComponent = {
   minQuantity: 1,
   maxQuantity: 1,
   pricingBehavior: "included_base",
+  pricingMode: "included",
+  fixedPrice: null,
   isRequired: true,
   allowedProductIds: ["bread-a"],
 }
@@ -106,9 +110,11 @@ describe("validateAndPriceOrderableDeal", () => {
       businessId,
       specialId: "deal-a",
       dealName: "Family Deal",
-      dealBasePrice: 29.99,
+      legacyDealBasePrice: 29.99,
+      dealBasePrice: 0,
+      componentBaseTotal: 0,
       childExtraTotal: 0,
-      total: 29.99,
+      total: 0,
       warnings: [],
       components: [
         {
@@ -120,6 +126,9 @@ describe("validateAndPriceOrderableDeal", () => {
           maxQuantity: 1,
           selectedQuantity: 1,
           pricingBehavior: "included_base",
+          pricingMode: "included",
+          fixedPrice: null,
+          componentBaseTotal: 0,
           children: [
             {
               componentId: "component-pizza",
@@ -129,6 +138,9 @@ describe("validateAndPriceOrderableDeal", () => {
               quantity: 1,
               configuredLineTotal: 18.99,
               basePrice: 16.99,
+              componentPricingMode: "included",
+              componentFixedPrice: null,
+              componentBasePrice: 0,
               childExtraTotal: 0,
               variantName: "Large",
             },
@@ -163,7 +175,7 @@ describe("validateAndPriceOrderableDeal", () => {
       "Choose your pizza",
       "Choose your bread",
     ])
-    expect(result.total).toBe(29.99)
+    expect(result.total).toBe(0)
   })
 
   it("supports a two-pizza deal using two separate components", () => {
@@ -232,7 +244,7 @@ describe("validateAndPriceOrderableDeal", () => {
     expect(result.components[0].children[0].quantity).toBe(2)
   })
 
-  it("adds explicit child extras to the deal base price", () => {
+  it("adds explicit child extras to included components", () => {
     const result = validate({
       children: [
         buildChild({
@@ -245,7 +257,137 @@ describe("validateAndPriceOrderableDeal", () => {
     if (!result.ok) return
 
     expect(result.childExtraTotal).toBe(3.5)
+    expect(result.dealBasePrice).toBe(0)
+    expect(result.total).toBe(3.5)
+  })
+
+  it("can preserve legacy deal-base pricing for existing checkout flow", () => {
+    const result = validate({
+      deal: buildDeal({ useLegacyDealBasePrice: true }),
+      children: [buildChild({ childExtraTotal: 3.5 })],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.legacyDealBasePrice).toBe(29.99)
+    expect(result.componentBaseTotal).toBe(0)
+    expect(result.dealBasePrice).toBe(29.99)
     expect(result.total).toBe(33.49)
+  })
+
+  it("prices fixed-price components by selected child quantity", () => {
+    const result = validate({
+      deal: buildDeal({
+        components: [
+          {
+            ...pizzaComponent,
+            pricingMode: "fixed_price",
+            fixedPrice: 7.99,
+          },
+        ],
+      }),
+      children: [buildChild()],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.dealBasePrice).toBe(7.99)
+    expect(result.componentBaseTotal).toBe(7.99)
+    expect(result.total).toBe(7.99)
+    expect(result.components[0].componentBaseTotal).toBe(7.99)
+    expect(result.components[0].children[0]).toMatchObject({
+      componentPricingMode: "fixed_price",
+      componentFixedPrice: 7.99,
+      componentBasePrice: 7.99,
+    })
+  })
+
+  it("prices two fixed pizza components plus one included soda", () => {
+    const firstPizza = {
+      ...pizzaComponent,
+      componentId: "pizza-1",
+      label: "Pizza 1",
+      pricingMode: "fixed_price" as const,
+      fixedPrice: 7.99,
+    }
+    const secondPizza = {
+      ...pizzaComponent,
+      componentId: "pizza-2",
+      label: "Pizza 2",
+      sortOrder: 2,
+      pricingMode: "fixed_price" as const,
+      fixedPrice: 7.99,
+    }
+    const sodaComponent = {
+      ...breadComponent,
+      componentId: "soda",
+      label: "Choose your 2-liter",
+      sortOrder: 3,
+      allowedProductIds: ["soda-a"],
+    }
+    const result = validate({
+      deal: buildDeal({
+        components: [firstPizza, secondPizza, sodaComponent],
+      }),
+      children: [
+        buildChild({ componentId: "pizza-1", childLineId: "child-1" }),
+        buildChild({ componentId: "pizza-2", childLineId: "child-2" }),
+        buildChild({
+          componentId: "soda",
+          childLineId: "child-soda",
+          productId: "soda-a",
+          productName: "Pepsi 2 Liter",
+          configuredLineTotal: 3.49,
+          basePrice: 3.49,
+        }),
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.dealBasePrice).toBe(15.98)
+    expect(result.childExtraTotal).toBe(0)
+    expect(result.total).toBe(15.98)
+  })
+
+  it("adds extras to fixed-price and included components", () => {
+    const result = validate({
+      deal: buildDeal({
+        components: [
+          {
+            ...pizzaComponent,
+            pricingMode: "fixed_price",
+            fixedPrice: 7.99,
+          },
+          {
+            ...breadComponent,
+            componentId: "soda",
+            label: "Choose your 2-liter",
+            allowedProductIds: ["soda-a"],
+          },
+        ],
+      }),
+      children: [
+        buildChild({ childExtraTotal: 2.5 }),
+        buildChild({
+          componentId: "soda",
+          childLineId: "child-soda",
+          productId: "soda-a",
+          productName: "Pepsi 2 Liter",
+          childExtraTotal: 3.49,
+        }),
+      ],
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.dealBasePrice).toBe(7.99)
+    expect(result.childExtraTotal).toBe(5.99)
+    expect(result.total).toBe(13.98)
   })
 
   it("uses modifierExtraTotal when childExtraTotal is not supplied", () => {
@@ -566,6 +708,54 @@ describe("validateAndPriceOrderableDeal", () => {
         deal: buildDeal({ dealBasePrice: -1 }),
       }),
       "invalid_base_price"
+    )
+  })
+
+  it("rejects normal-price components until runtime support exists", () => {
+    expectError(
+      validate({
+        deal: buildDeal({
+          components: [
+            {
+              ...pizzaComponent,
+              pricingMode: "normal_price",
+            },
+          ],
+        }),
+      }),
+      "unsupported_component_pricing_mode"
+    )
+  })
+
+  it("rejects fixed-price components with missing or negative fixed prices", () => {
+    expectError(
+      validate({
+        deal: buildDeal({
+          components: [
+            {
+              ...pizzaComponent,
+              pricingMode: "fixed_price",
+              fixedPrice: null,
+            },
+          ],
+        }),
+      }),
+      "invalid_component_fixed_price"
+    )
+
+    expectError(
+      validate({
+        deal: buildDeal({
+          components: [
+            {
+              ...pizzaComponent,
+              pricingMode: "fixed_price",
+              fixedPrice: -1,
+            },
+          ],
+        }),
+      }),
+      "invalid_component_fixed_price"
     )
   })
 

@@ -14,8 +14,12 @@ function formatMoney(value: number) {
 
 export function formatPublicSpecialDiscount(special: Pick<
   PublicSpecial,
-  "specialType" | "discountType" | "discountValue"
+  "specialType" | "discountType" | "discountValue" | "mixRule"
 >) {
+  if (special.specialType === "mix_and_match_fixed_unit_price") {
+    return "Mix & Match"
+  }
+
   if (special.specialType === "orderable_deal") {
     return `Deal ${formatMoney(special.discountValue)}`
   }
@@ -32,8 +36,23 @@ export function formatPublicSpecialDiscount(special: Pick<
 }
 
 export function getPublicSpecialEligibilitySummary(
-  special: Pick<PublicSpecial, "specialType" | "minOrderAmount">
+  special: Pick<PublicSpecial, "specialType" | "minOrderAmount" | "mixRule" | "mixProductCount">
 ) {
+  if (special.specialType === "mix_and_match_fixed_unit_price") {
+    const rule = special.mixRule
+    if (!rule) return "Choose eligible items for one fixed unit price."
+
+    const quantityText =
+      rule.maxQuantity === null
+        ? `Any ${rule.minQuantity}+`
+        : `Choose ${rule.minQuantity}-${rule.maxQuantity}`
+    const countText = special.mixProductCount
+      ? ` ${special.mixProductCount} eligible items.`
+      : ""
+
+    return `${quantityText} for ${formatMoney(rule.unitPrice)} each.${countText}`
+  }
+
   if (special.specialType === "cart_discount") {
     if (special.minOrderAmount && special.minOrderAmount > 0) {
       return `On orders of ${formatMoney(special.minOrderAmount)} or more.`

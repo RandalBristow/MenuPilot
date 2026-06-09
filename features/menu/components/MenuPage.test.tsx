@@ -209,4 +209,42 @@ describe("MenuPage", () => {
 
     expect(onBuildDeal).toHaveBeenCalledWith("deal-a")
   })
+
+  it("shows a build action for active Mix & Match deals", () => {
+    const onBuildDeal = vi.fn()
+
+    render(
+      <MenuPage
+        businessName="Pronto Demo Pizza & Carryout"
+        menu={menu}
+        activeSpecials={[
+          buildSpecial({
+            id: "mix-a",
+            name: "Any 2 Subs",
+            specialType: "mix_and_match_fixed_unit_price",
+            discountType: "fixed_price",
+            discountValue: 0,
+            mixRule: {
+              minQuantity: 2,
+              maxQuantity: null,
+              unitPrice: 7.99,
+              allowExtraItems: true,
+            },
+            mixProductCount: 5,
+          }),
+        ]}
+        onBuildDeal={onBuildDeal}
+      />
+    )
+
+    expect(screen.getByText("Any 2 Subs")).toBeInTheDocument()
+    expect(screen.getByText("Mix & Match")).toBeInTheDocument()
+    expect(
+      screen.getByText("Any 2+ for $7.99 each. 5 eligible items.")
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Build Mix & Match" }))
+
+    expect(onBuildDeal).toHaveBeenCalledWith("mix-a")
+  })
 })

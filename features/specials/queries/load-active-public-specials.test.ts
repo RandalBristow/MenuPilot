@@ -6,7 +6,12 @@ type MockSpecial = {
   business_id: string
   name: string
   customer_description: string | null
-  special_type: "line_discount" | "fixed_price_line" | "cart_discount"
+  special_type:
+    | "line_discount"
+    | "fixed_price_line"
+    | "cart_discount"
+    | "orderable_deal"
+    | "mix_and_match_fixed_unit_price"
   discount_type: "percentage" | "fixed_amount" | "fixed_price"
   discount_value: string
   min_order_amount: string | null
@@ -25,6 +30,21 @@ type MockSpecial = {
     end_time: string | null
     is_all_day: boolean
   }>
+  special_mix_match_rules:
+    | Array<{
+        min_quantity: number
+        max_quantity: number | null
+        unit_price: string
+        allow_extra_items: boolean
+      }>
+    | {
+        min_quantity: number
+        max_quantity: number | null
+        unit_price: string
+        allow_extra_items: boolean
+      }
+    | null
+  special_mix_match_products: Array<{ product_id: string }>
 }
 
 const supabaseMock = vi.hoisted(() => ({
@@ -70,6 +90,8 @@ function buildSpecial(overrides: Partial<MockSpecial> = {}): MockSpecial {
     special_products: [],
     special_menu_groups: [],
     special_availability_windows: [],
+    special_mix_match_rules: null,
+    special_mix_match_products: [],
     ...overrides,
   }
 }
@@ -175,6 +197,45 @@ describe("loadActivePublicSpecials", () => {
         isAllDay: false,
       },
     ])
+  })
+
+  it("maps public Mix & Match summary fields", async () => {
+    supabaseMock.specials = [
+      buildSpecial({
+        special_type: "mix_and_match_fixed_unit_price",
+        discount_type: "fixed_price",
+        discount_value: "0.00",
+        special_mix_match_rules: [
+          {
+            min_quantity: 2,
+            max_quantity: 4,
+            unit_price: "7.99",
+            allow_extra_items: true,
+          },
+        ],
+        special_mix_match_products: [
+          { product_id: "product-a" },
+          { product_id: "product-b" },
+        ],
+      }),
+    ]
+
+    const specials = await loadActivePublicSpecials({
+      businessId: "business-a",
+      currentTime: new Date("2026-06-01T16:30:00.000Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(specials[0]).toMatchObject({
+      specialType: "mix_and_match_fixed_unit_price",
+      mixRule: {
+        minQuantity: 2,
+        maxQuantity: 4,
+        unitPrice: 7.99,
+        allowExtraItems: true,
+      },
+      mixProductCount: 2,
+    })
   })
 
   it("filters specials outside the current local availability window", async () => {

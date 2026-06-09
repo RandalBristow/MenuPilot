@@ -20,10 +20,13 @@ type TestRawOrder = {
   order_items: Array<{
     id: string
     product_name_snapshot: string
+    parent_order_item_id?: string | null
+    relationship_type?: string | null
     variant_name_snapshot: string | null
     quantity: number
     unit_price: number | string
     line_subtotal: number | string
+    notes?: string | null
     sort_order: number
     order_item_modifiers: unknown[]
   }>
@@ -290,5 +293,80 @@ describe("staff order queries", () => {
       { column: "business_id", value: "business-a" },
       { column: "location_id", value: "location-a" },
     ])
+  })
+
+  it("maps deal component pricing metadata from item notes", async () => {
+    supabaseMock.orders = [
+      {
+        id: "order-c",
+        order_number: "MP-3",
+        customer_name: "Randy",
+        customer_phone: "555-0100",
+        fulfillment_type: "pickup",
+        order_status: "new",
+        payment_status: "unpaid",
+        subtotal: "15.98",
+        discount_total: "0",
+        total: "15.98",
+        created_at: "2026-06-05T12:00:00.000Z",
+        order_items: [
+          {
+            id: "parent-deal",
+            parent_order_item_id: null,
+            relationship_type: "deal",
+            product_name_snapshot: "Two Pizza Deal",
+            variant_name_snapshot: null,
+            quantity: 1,
+            unit_price: "15.98",
+            line_subtotal: "15.98",
+            notes: JSON.stringify({
+              specialType: "orderable_deal",
+            }),
+            sort_order: 1,
+            order_item_modifiers: [],
+          },
+          {
+            id: "child-pizza",
+            parent_order_item_id: "parent-deal",
+            relationship_type: "deal_component",
+            product_name_snapshot: "Build Your Own Pizza",
+            variant_name_snapshot: "Large",
+            quantity: 1,
+            unit_price: "0",
+            line_subtotal: "0",
+            notes: JSON.stringify({
+              componentLabel: "Pizza 1",
+              specialType: "deal_component",
+              componentPricingMode: "fixed_price",
+              componentFixedPrice: 7.99,
+              componentBasePrice: 7.99,
+              childExtraTotal: 0,
+            }),
+            sort_order: 2,
+            order_item_modifiers: [],
+          },
+        ],
+        order_discounts: [],
+      },
+    ]
+
+    const orders = await getRecentStaffOrdersForScope({
+      businessId: "business-a",
+      locationId: "location-a",
+    })
+
+    expect(orders[0].items[0]).toMatchObject({
+      productName: "Two Pizza Deal",
+      specialType: "orderable_deal",
+      children: [
+        {
+          componentLabel: "Pizza 1",
+          componentPricingMode: "fixed_price",
+          componentFixedPrice: 7.99,
+          componentBasePrice: 7.99,
+          childExtraTotal: 0,
+        },
+      ],
+    })
   })
 })

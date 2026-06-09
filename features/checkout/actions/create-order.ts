@@ -17,6 +17,7 @@ import {
 } from "@/features/checkout/utils/build-order-payload"
 import { loadCheckoutProductConfig } from "@/features/checkout/queries/load-checkout-product-config"
 import { loadActiveSpecialsForCheckout } from "@/features/specials/queries/load-active-specials-for-checkout"
+import { loadMixAndMatchDealsForCheckout } from "@/features/specials/queries/load-mix-and-match-deals-for-checkout"
 import { loadOrderableDealsForCheckout } from "@/features/specials/queries/load-orderable-deals-for-checkout"
 import {
   validateAndPriceCheckoutItems,
@@ -137,10 +138,19 @@ export async function createOrder(
     businessId: tenantContext.business.id,
     productIds,
   })
+  const dealCartItems = input.items.filter(isDealCartItem)
   const dealsById = await loadOrderableDealsForCheckout({
     businessId: tenantContext.business.id,
-    specialIds: input.items
-      .filter(isDealCartItem)
+    specialIds: dealCartItems
+      .filter((item) => item.specialType !== "mix_and_match_fixed_unit_price")
+      .map((item) => item.specialId),
+    currentTime,
+    timeZone: tenantContext.location.timezone,
+  })
+  const mixAndMatchDealsById = await loadMixAndMatchDealsForCheckout({
+    businessId: tenantContext.business.id,
+    specialIds: dealCartItems
+      .filter((item) => item.specialType === "mix_and_match_fixed_unit_price")
       .map((item) => item.specialId),
     currentTime,
     timeZone: tenantContext.location.timezone,
@@ -149,6 +159,7 @@ export async function createOrder(
     items: input.items,
     products: productConfigs,
     dealsById,
+    mixAndMatchDealsById,
     businessId: tenantContext.business.id,
     currentTime,
     timeZone: tenantContext.location.timezone,

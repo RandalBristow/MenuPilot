@@ -70,6 +70,12 @@ export type StaffOrderItem = {
   id: string
   parentOrderItemId: string | null
   relationshipType: string | null
+  specialType: string | null
+  componentLabel: string | null
+  componentPricingMode: string | null
+  componentFixedPrice: number | null
+  componentBasePrice: number | null
+  childExtraTotal: number | null
   productName: string
   variantName: string | null
   quantity: number

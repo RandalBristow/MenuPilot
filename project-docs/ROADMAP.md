@@ -17,6 +17,44 @@ Near-term sequence:
 7. Builder Layout Variants / Theming.
 8. Owner Copilot / AI.
 
+Current focus:
+
+- [~] Finish Specials/Deals regression and cart edit/reconfigure follow-up for orderable and Mix-and-Match deals.
+- [~] Finish Specials/Deals regression with real tenant data before expanding into more deal types.
+- [ ] Keep launch-critical restaurant operations visible in the backlog while Specials stabilizes.
+
+Engineering hardening to track:
+
+- [ ] Refactor large server actions that hand-parse `FormData`, such as `features/specials/actions/save-special.ts`, to schema validation with Zod or an equivalent after Specials/Mix-and-Match stabilizes.
+- [ ] Replace sequential checkout order creation with a Supabase RPC/Postgres transaction before real payments or production ordering.
+- [ ] Audit the resolved `lucide-react` version with `npm ls lucide-react`; package metadata appears to reference `^1.14.0`.
+- [ ] Improve Supabase module mocks and revisit Vitest parallelization. Serial tests with `fileParallelism: false` and `maxWorkers: 1` are acceptable for now.
+
+Launch-critical restaurant operations:
+
+- [ ] Add dietary/allergen flags for product safety and customer filtering.
+- [ ] Add quick 86 / temporarily sold out controls for staff-friendly temporary unavailability.
+- [ ] Add customer-facing order status page that exposes only safe order/status details.
+- [ ] Make staff order updates realtime before launch; staff should not depend on manual refresh.
+- [ ] Add staff-entered / phone orders.
+- [ ] Make customer/order notes prominent in staff order views.
+- [ ] Make checkout order creation transactional before payments/production.
+
+V1 customer experience:
+
+- [ ] Add customer accounts or lightweight phone/email lookup for order history and reorder.
+- [ ] Add public multi-location selection UX with address/distance/context.
+- [ ] Add PWA/installable app support.
+- [ ] Add nutritional information such as calories and optional macros.
+- [ ] Add catering inquiry / large-order request flow.
+
+Future monetization and marketing:
+
+- [ ] Add abandoned cart / incomplete checkout recovery after customer identity and notifications exist.
+- [ ] Add gift cards / store credit.
+- [ ] Add age verification flow if alcohol or regulated products are supported.
+- [ ] Add advanced customer marketing and notification tooling.
+
 ### 1. Product Entry Cleanup And Foundation
 
 Completed:
@@ -201,7 +239,7 @@ Schema foundation completed:
 - [ ] Rich cart specials preview is pending.
 - [ ] Coupon UI is pending.
 - [ ] BundleBuilder/ComboBuilder remains deferred.
-- [~] Mix-and-match fixed unit price deals have schema/type foundation and tenant-scoped admin editing; runtime/checkout/public behavior is pending.
+- [x] Mix-and-match fixed unit price deals have schema/type foundation, tenant-scoped admin editing, pure validation/pricing helper, public builder runtime, cart parent/child display, checkout validation, nested order snapshots, and staff nested display.
 
 Specials should eventually support:
 
@@ -238,7 +276,7 @@ MVP sequencing:
 8. Rich cart passive-special preview.
 9. Optional coupon code support.
 
-Do not build BundleBuilder/ComboBuilder or coupon UI as the first orderable deal behavior. Exact allowed product selection per component is the first orderable deal MVP. Optional component product variant restrictions are supported for cases such as "2 Liter only" or "Large pizza only"; optional component/product Modifier Group included-count overrides are supported for cases such as "Large 2-Topping Pizza." Category/subcategory eligibility rules, allowed/excluded modifier option rules, BOGO, coupons, free-item rewards, usage limits, exclusions, and optional component pricing tables remain deferred.
+Do not build BundleBuilder/ComboBuilder or coupon UI as the first orderable deal behavior. Exact allowed product selection per component is the first orderable deal MVP. Optional component product variant restrictions are supported for cases such as "2 Liter only" or "Large pizza only"; optional component/product Modifier Group included-count overrides are supported for cases such as "Large 2-Topping Pizza." Component pricing mode schema/admin/public-cart/checkout/order/staff support exists for ordered bundles such as two fixed-price pizzas plus an included/free 2-liter. `normal_price` component pricing remains deferred and rejected by checkout. Category/subcategory eligibility rules, allowed/excluded modifier option rules, BOGO, coupons, free-item rewards, usage limits, and exclusions remain deferred.
 
 Planned Specials / Deals backlog:
 
@@ -249,7 +287,8 @@ Planned Specials / Deals backlog:
 - [x] Recurring availability windows.
 - [x] Variant restrictions for orderable components.
 - [x] Modifier included-count overrides for orderable components.
-- [~] `mix_and_match_fixed_unit_price` schema/type foundation and tenant-scoped admin editing.
+- [x] Component pricing modes for orderable components: schema/type foundation, admin save/reload controls, public DealBuilder pricing, cart display, checkout/order snapshots, and staff display exist for included/free and fixed-price modes; `normal_price` remains deferred.
+- [x] `mix_and_match_fixed_unit_price` schema/type foundation, tenant-scoped admin editing, pure validation/pricing helper, public builder runtime, cart parent/child display, checkout validation, nested order snapshots, and staff nested display.
 - [ ] Category/subcategory component eligibility.
 - [ ] BOGO.
 - [ ] `free_item_with_purchase`.
@@ -261,7 +300,8 @@ Planned Specials / Deals backlog:
 
 Recommended next Specials build:
 
-- Build Mix-and-Match public runtime/cart/checkout behavior for `mix_and_match_fixed_unit_price` after admin records are manually verified.
+- Build cart edit/reconfigure behavior for orderable deals and Mix-and-Match deals after checkout/order/staff regression is manually verified.
+- Regression-test orderable deal component pricing modes through public build, checkout, order snapshots, and staff display.
 - Do not build BOGO, coupon UI, usage limits, free-item rewards, side components, or category/subcategory component eligibility until explicitly requested.
 
 ## Product Setup Warnings

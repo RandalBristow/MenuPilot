@@ -2,6 +2,7 @@ import type {
   SpecialAvailabilityWindow,
   SpecialType,
 } from "@/features/specials/types/special"
+import type { OrderableDealComponentPricingMode } from "@/features/specials/types/orderable-deal"
 import { getSpecialComputedStatus } from "@/features/specials/utils/special-schedule"
 
 export type OrderableDealPricingBehavior = "included_base"
@@ -14,6 +15,8 @@ export type OrderableDealComponent = {
   minQuantity: number
   maxQuantity: number
   pricingBehavior: OrderableDealPricingBehavior
+  pricingMode?: OrderableDealComponentPricingMode | null
+  fixedPrice?: number | null
   isRequired: boolean
   allowedProductIds: string[]
   allowedProductVariantOptions?: Array<{
@@ -37,6 +40,7 @@ export type OrderableDealCandidate = {
   endsAt?: string | Date | null
   availabilityWindows?: SpecialAvailabilityWindow[] | null
   dealBasePrice: number
+  useLegacyDealBasePrice?: boolean
   components: OrderableDealComponent[]
 }
 
@@ -72,7 +76,9 @@ export type OrderableDealValidationErrorCode =
   | "expired_deal"
   | "inactive_now"
   | "invalid_base_price"
+  | "invalid_component_fixed_price"
   | "invalid_component_quantity_rule"
+  | "unsupported_component_pricing_mode"
   | "unsupported_pricing_behavior"
   | "unknown_component"
   | "invalid_child_quantity"
@@ -99,6 +105,9 @@ export type OrderableDealPricedChild = {
   quantity: number
   configuredLineTotal: number | null
   basePrice: number | null
+  componentPricingMode: OrderableDealComponentPricingMode
+  componentFixedPrice: number | null
+  componentBasePrice: number
   childExtraTotal: number
   variantName: string | null
 }
@@ -112,6 +121,9 @@ export type OrderableDealPricedComponent = {
   maxQuantity: number
   selectedQuantity: number
   pricingBehavior: OrderableDealPricingBehavior
+  pricingMode: OrderableDealComponentPricingMode
+  fixedPrice: number | null
+  componentBaseTotal: number
   children: OrderableDealPricedChild[]
 }
 
@@ -121,7 +133,9 @@ export type ValidateAndPriceOrderableDealResult =
       businessId: string
       specialId: string
       dealName: string
+      legacyDealBasePrice: number
       dealBasePrice: number
+      componentBaseTotal: number
       childExtraTotal: number
       total: number
       components: OrderableDealPricedComponent[]
@@ -153,6 +167,25 @@ function getChildExtraTotal(child: OrderableDealSelectedChild) {
 
 function getComponentSelectedQuantity(children: OrderableDealSelectedChild[]) {
   return children.length
+}
+
+function getComponentPricingMode(component: OrderableDealComponent) {
+  return component.pricingMode ?? "included"
+}
+
+function getComponentBasePrice(
+  component: OrderableDealComponent,
+  child: OrderableDealSelectedChild
+) {
+  const pricingMode = getComponentPricingMode(component)
+
+  if (pricingMode === "included") return 0
+
+  if (pricingMode === "fixed_price") {
+    return (component.fixedPrice ?? 0) * child.quantity
+  }
+
+  return 0
 }
 
 function isValidComponentQuantityRule(component: OrderableDealComponent) {
@@ -293,6 +326,36 @@ export function validateAndPriceOrderableDeal({
         componentId: component.componentId,
       })
     }
+
+    const pricingMode = getComponentPricingMode(component)
+
+    if (pricingMode === "normal_price") {
+      errors.push({
+        code: "unsupported_component_pricing_mode",
+        message: `${component.label} uses normal product price pricing, which is not supported yet.`,
+        componentId: component.componentId,
+      })
+    } else if (pricingMode !== "included" && pricingMode !== "fixed_price") {
+      errors.push({
+        code: "unsupported_component_pricing_mode",
+        message: `${component.label} uses an unsupported component pricing mode.`,
+        componentId: component.componentId,
+      })
+    }
+
+    if (pricingMode === "fixed_price") {
+      if (
+        component.fixedPrice === null ||
+        component.fixedPrice === undefined ||
+        !isFiniteNonnegative(component.fixedPrice)
+      ) {
+        errors.push({
+          code: "invalid_component_fixed_price",
+          message: `${component.label} has an invalid fixed component price.`,
+          componentId: component.componentId,
+        })
+      }
+    }
   }
 
   for (const child of children) {
@@ -403,20 +466,36 @@ export function validateAndPriceOrderableDeal({
   const pricedComponents = sortedComponents.map((component) => {
     const componentChildren =
       childrenByComponentId.get(component.componentId) ?? []
-    const pricedChildren = componentChildren.map((child) => ({
-      componentId: child.componentId,
-      childLineId: child.childLineId,
-      productId: child.productId,
-      productName: child.productName,
-      quantity: child.quantity,
-      configuredLineTotal:
-        child.configuredLineTotal === undefined
-          ? null
-          : child.configuredLineTotal,
-      basePrice: child.basePrice === undefined ? null : child.basePrice,
-      childExtraTotal: toMoney(getChildExtraTotal(child)),
-      variantName: child.variantName ?? null,
-    }))
+    const pricingMode = getComponentPricingMode(component)
+    const fixedPrice =
+      component.fixedPrice === undefined ? null : component.fixedPrice
+    const pricedChildren = componentChildren.map((child) => {
+      const componentBasePrice = toMoney(getComponentBasePrice(component, child))
+
+      return {
+        componentId: child.componentId,
+        childLineId: child.childLineId,
+        productId: child.productId,
+        productName: child.productName,
+        quantity: child.quantity,
+        configuredLineTotal:
+          child.configuredLineTotal === undefined
+            ? null
+            : child.configuredLineTotal,
+        basePrice: child.basePrice === undefined ? null : child.basePrice,
+        componentPricingMode: pricingMode,
+        componentFixedPrice: fixedPrice,
+        componentBasePrice,
+        childExtraTotal: toMoney(getChildExtraTotal(child)),
+        variantName: child.variantName ?? null,
+      }
+    })
+    const componentBaseTotal = toMoney(
+      pricedChildren.reduce(
+        (sum, child) => sum + child.componentBasePrice,
+        0
+      )
+    )
 
     return {
       componentId: component.componentId,
@@ -427,9 +506,18 @@ export function validateAndPriceOrderableDeal({
       maxQuantity: component.maxQuantity,
       selectedQuantity: getComponentSelectedQuantity(componentChildren),
       pricingBehavior: component.pricingBehavior,
+      pricingMode,
+      fixedPrice,
+      componentBaseTotal,
       children: pricedChildren,
     }
   })
+  const componentBaseTotal = toMoney(
+    pricedComponents.reduce(
+      (sum, component) => sum + component.componentBaseTotal,
+      0
+    )
+  )
   const childExtraTotal = toMoney(
     pricedComponents.reduce(
       (sum, component) =>
@@ -441,7 +529,10 @@ export function validateAndPriceOrderableDeal({
       0
     )
   )
-  const dealBasePrice = toMoney(deal.dealBasePrice)
+  const legacyDealBasePrice = toMoney(deal.dealBasePrice)
+  const dealBasePrice = deal.useLegacyDealBasePrice
+    ? legacyDealBasePrice
+    : componentBaseTotal
   const total = toMoney(dealBasePrice + childExtraTotal)
 
   return {
@@ -449,7 +540,9 @@ export function validateAndPriceOrderableDeal({
     businessId,
     specialId: deal.specialId,
     dealName: deal.name,
+    legacyDealBasePrice,
     dealBasePrice,
+    componentBaseTotal,
     childExtraTotal,
     total,
     components: pricedComponents,

@@ -22,6 +22,8 @@ Pricing remains centralized through `priceConfiguredProduct` in active builders 
 
 Product Modifier Assignments warn when default selected modifier options exceed included selections for the assigned Modifier Group. The warning is informational only; defaults still consume included selections and pricing remains centralized in `priceConfiguredProduct`.
 
+Mix & Match specials can be built from the public menu, added to cart as one nested parent item with child selections, checked out through server-authoritative validation, persisted as nested parent/child order item snapshots, and displayed in staff orders.
+
 Pizza half-topping behavior is business-level configuration. Default behavior is
 left/right placement price weight `0.5`, whole placement weight `1.0`, and
 left/right included-slot weight `0.5`, with floor-to-cent rounding after
@@ -68,6 +70,8 @@ placement weight and multiplier are applied.
 - [ ] Specials staff display: no-discount order stays compact; discounted order shows subtotal, discount total, final total, and applied special name.
 - [ ] Orderable deal checkout: build active deal, checkout successfully, confirm parent/child staff display, and confirm passive discounts do not discount the deal item.
 - [ ] Orderable deal modifier override: configure a deal child with a component included-count override, confirm DealBuilder pricing and checkout server repricing match, and confirm the same product outside the deal keeps its normal included count.
+- [ ] Mix & Match cart-add: build an active Mix & Match deal, add default and customized pool products, confirm variant restrictions and Modifier Group included-count overrides are honored in ProductConfigurator, and confirm one nested parent Mix cart item is created.
+- [ ] Mix & Match checkout/order/staff: confirm checkout accepts a valid Mix cart item, rejects stale Mix totals, writes one parent row plus child rows, excludes passive discounts from Mix rows, and shows the nested Mix order in staff orders.
 
 ## Specials Readiness
 

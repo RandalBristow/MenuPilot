@@ -10,6 +10,7 @@ import {
   type SpecialDiscountType,
   type SpecialType,
 } from "@/features/specials/types/special"
+import type { OrderableDealComponentPricingMode } from "@/features/specials/types/orderable-deal"
 import { getSpecialAdminBaseHref } from "@/features/specials/utils/special-admin-routes"
 import { resolveSpecialAdminActionContext } from "@/features/specials/utils/special-admin-action-context"
 import { isAvailabilityWindowValid } from "@/features/specials/utils/special-schedule"
@@ -34,6 +35,8 @@ type DealComponentInput = {
   requiredQuantity: number
   minQuantity: number
   maxQuantity: number
+  pricingMode: Exclude<OrderableDealComponentPricingMode, "normal_price">
+  fixedPrice: number | null
   productIds: string[]
   productVariantRestrictions: Array<{
     productId: string
@@ -153,6 +156,22 @@ function parseDiscountType(
   }
 
   return discountType as SpecialDiscountType
+}
+
+function parseComponentPricingMode(
+  value: FormDataEntryValue | null
+): Exclude<OrderableDealComponentPricingMode, "normal_price"> {
+  const pricingMode = parseRequiredString(value, "Component pricing mode")
+
+  if (pricingMode === "included" || pricingMode === "fixed_price") {
+    return pricingMode
+  }
+
+  if (pricingMode === "normal_price") {
+    throw new Error("Normal product price component pricing is not available yet.")
+  }
+
+  throw new Error("Selected component pricing mode is invalid.")
 }
 
 function parseIdList(formData: FormData, field: string) {
@@ -405,6 +424,13 @@ function parseDealComponents(formData: FormData): DealComponentInput[] {
       formData.get(`componentMaxQuantity-${index}`),
       "Component maximum quantity"
     )
+    const pricingMode = parseComponentPricingMode(
+      formData.get(`componentPricingMode-${index}`)
+    )
+    const fixedPrice = parseOptionalNonnegativeNumber(
+      formData.get(`componentFixedPrice-${index}`),
+      "Component fixed price"
+    )
     const productIds = parseIdList(formData, `componentProductIds-${index}`)
     const uniqueProductIds = [...new Set(productIds)]
     const productVariantRestrictions = parseProductVariantRestrictions({
@@ -431,6 +457,10 @@ function parseDealComponents(formData: FormData): DealComponentInput[] {
       throw new Error(`${label} needs at least one allowed product.`)
     }
 
+    if (pricingMode === "fixed_price" && fixedPrice === null) {
+      throw new Error(`${label} needs a fixed component price.`)
+    }
+
     components.push({
       label,
       description: parseOptionalString(
@@ -440,6 +470,8 @@ function parseDealComponents(formData: FormData): DealComponentInput[] {
       requiredQuantity,
       minQuantity,
       maxQuantity,
+      pricingMode,
+      fixedPrice: pricingMode === "fixed_price" ? fixedPrice : null,
       productIds: uniqueProductIds,
       productVariantRestrictions,
       modifierGroupOverrides,
@@ -805,6 +837,8 @@ async function replaceDealComponents({
         min_quantity: component.minQuantity,
         max_quantity: component.maxQuantity,
         pricing_behavior: "included_base",
+        pricing_mode: component.pricingMode,
+        fixed_price: component.fixedPrice,
         is_required: true,
       })
       .select("id")

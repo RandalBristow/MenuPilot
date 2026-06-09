@@ -43,6 +43,7 @@ type RawOrderItem = {
   quantity: number
   unit_price: number | string
   line_subtotal: number | string
+  notes: string | null
   sort_order: number
   order_item_modifiers: RawOrderModifier[] | null
 }
@@ -81,6 +82,40 @@ function toNumber(value: number | string) {
   return Number(value)
 }
 
+function parseOrderItemNotes(value: string | null) {
+  if (!value) return {}
+
+  try {
+    const parsed = JSON.parse(value)
+
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as Record<string, unknown>
+    }
+  } catch {
+    return {}
+  }
+
+  return {}
+}
+
+function getStringMetadata(
+  notes: Record<string, unknown>,
+  key: string
+) {
+  const value = notes[key]
+
+  return typeof value === "string" ? value : null
+}
+
+function getNumberMetadata(
+  notes: Record<string, unknown>,
+  key: string
+) {
+  const value = notes[key]
+
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
 function mapOrder(order: RawOrder): StaffOrder {
   const items = [...(order.order_items ?? [])].sort(
     (first, second) => first.sort_order - second.sort_order
@@ -99,27 +134,37 @@ function mapOrder(order: RawOrder): StaffOrder {
     createdAt: discount.created_at,
   }))
 
-  const mappedItems: StaffOrderItem[] = items.map((item) => ({
-    id: item.id,
-    parentOrderItemId: item.parent_order_item_id,
-    relationshipType: item.relationship_type,
-    productName: item.product_name_snapshot,
-    variantName: item.variant_name_snapshot,
-    quantity: item.quantity,
-    unitPrice: toNumber(item.unit_price),
-    lineSubtotal: toNumber(item.line_subtotal),
-    discounts: discounts.filter((discount) => discount.orderItemId === item.id),
-    modifiers: (item.order_item_modifiers ?? []).map((modifier) => ({
-      id: modifier.id,
-      groupName: modifier.group_name_snapshot,
-      optionName: modifier.option_name_snapshot,
-      placement: modifier.placement,
-      multiplier: toNumber(modifier.multiplier),
-      priceDelta: toNumber(modifier.price_delta),
-      quantity: toNumber(modifier.quantity),
-    })),
-    children: [],
-  }))
+  const mappedItems: StaffOrderItem[] = items.map((item) => {
+    const notes = parseOrderItemNotes(item.notes)
+
+    return {
+      id: item.id,
+      parentOrderItemId: item.parent_order_item_id,
+      relationshipType: item.relationship_type,
+      specialType: getStringMetadata(notes, "specialType"),
+      componentLabel: getStringMetadata(notes, "componentLabel"),
+      componentPricingMode: getStringMetadata(notes, "componentPricingMode"),
+      componentFixedPrice: getNumberMetadata(notes, "componentFixedPrice"),
+      componentBasePrice: getNumberMetadata(notes, "componentBasePrice"),
+      childExtraTotal: getNumberMetadata(notes, "childExtraTotal"),
+      productName: item.product_name_snapshot,
+      variantName: item.variant_name_snapshot,
+      quantity: item.quantity,
+      unitPrice: toNumber(item.unit_price),
+      lineSubtotal: toNumber(item.line_subtotal),
+      discounts: discounts.filter((discount) => discount.orderItemId === item.id),
+      modifiers: (item.order_item_modifiers ?? []).map((modifier) => ({
+        id: modifier.id,
+        groupName: modifier.group_name_snapshot,
+        optionName: modifier.option_name_snapshot,
+        placement: modifier.placement,
+        multiplier: toNumber(modifier.multiplier),
+        priceDelta: toNumber(modifier.price_delta),
+        quantity: toNumber(modifier.quantity),
+      })),
+      children: [],
+    }
+  })
   const mappedItemsById = new Map(
     mappedItems.map((item) => [item.id, item])
   )
@@ -226,6 +271,7 @@ export async function getRecentStaffOrdersForScope({
         quantity,
         unit_price,
         line_subtotal,
+        notes,
         sort_order,
         order_item_modifiers (
           id,

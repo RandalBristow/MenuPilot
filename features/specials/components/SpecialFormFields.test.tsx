@@ -236,6 +236,8 @@ describe("SpecialFormFields", () => {
                 minQuantity: 1,
                 maxQuantity: 1,
                 pricingBehavior: "included_base",
+                pricingMode: "fixed_price",
+                fixedPrice: 7.99,
                 isRequired: true,
                 productIds: ["product-a"],
                 productVariantRestrictions: [
@@ -262,6 +264,8 @@ describe("SpecialFormFields", () => {
     expect(screen.getByDisplayValue("Choose a pizza")).toBeInTheDocument()
     openAccordion(/Deal components/)
     openAccordion(/^Component 1/)
+    expect(screen.getByDisplayValue("fixed_price")).toBeInTheDocument()
+    expect(screen.getByDisplayValue("7.99")).toBeInTheDocument()
     openSubcategory("Specialty")
     expect(getProductToggle(/Deluxe Pizza/)).toHaveAttribute(
       "aria-pressed",
@@ -271,6 +275,31 @@ describe("SpecialFormFields", () => {
     expect(screen.getByDisplayValue("2")).toBeInTheDocument()
     expect(screen.getByText("Deal modifier overrides")).toBeInTheDocument()
     expect(screen.getByText(/Product default: 0 included/)).toBeInTheDocument()
+  })
+
+  it("shows fixed price only for fixed-price orderable deal components", () => {
+    render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
+
+    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
+      target: { value: "orderable_deal" },
+    })
+    openAccordion(/Deal components/)
+    openAccordion(/^Component 1/)
+
+    expect(screen.getByText("Pricing mode")).toBeInTheDocument()
+    expect(screen.queryByText("Fixed price")).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole("combobox", { name: /pricing mode/i }), {
+      target: { value: "fixed_price" },
+    })
+
+    expect(screen.getByText("Fixed price")).toBeInTheDocument()
+    expect(
+      screen.getByText(/fixed price instead of the product's normal base price/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("option", { name: /normal product price/i })
+    ).not.toBeInTheDocument()
   })
 
   it("shows variant restriction controls for selected products", () => {
@@ -374,6 +403,9 @@ describe("SpecialFormFields", () => {
     expect(screen.getByText("Max qty optional")).toBeInTheDocument()
     expect(screen.getByText("Unit price")).toBeInTheDocument()
     expect(screen.getByText("Mix pool products")).toBeInTheDocument()
+    expect(
+      screen.getByText(/Free attached items, such as plus a free 2-liter/)
+    ).toBeInTheDocument()
   })
 
   it("renders existing mix and match pool restrictions and overrides", () => {
@@ -417,7 +449,7 @@ describe("SpecialFormFields", () => {
                 {
                   productId: "product-a",
                   modifierGroupId: "modifier-toppings",
-                  includedSelectionCount: 2,
+                  includedSelectionCount: 0,
                 },
               ],
             },
@@ -429,7 +461,7 @@ describe("SpecialFormFields", () => {
     openAccordion(/Mix & Match/)
     openSubcategory("Specialty")
 
-    expect(screen.getAllByDisplayValue("2").length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByDisplayValue("2")).toBeInTheDocument()
     expect(screen.getByDisplayValue("4")).toBeInTheDocument()
     expect(screen.getByDisplayValue("7.99")).toBeInTheDocument()
     expect(getProductToggle(/Deluxe Pizza/)).toHaveAttribute(
@@ -438,5 +470,6 @@ describe("SpecialFormFields", () => {
     )
     expect(screen.getByLabelText("14 inch")).toBeChecked()
     expect(screen.getByText("Deal modifier overrides")).toBeInTheDocument()
+    expect(screen.getByDisplayValue("0")).toBeInTheDocument()
   })
 })

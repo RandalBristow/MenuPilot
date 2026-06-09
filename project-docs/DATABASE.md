@@ -32,6 +32,7 @@ All schema changes must be made through files in `database/migrations/`.
 | `022_orderable_deal_variant_restrictions.sql` | Adds optional reusable variant option restrictions for orderable deal component products. |
 | `023_orderable_deal_modifier_overrides.sql` | Adds optional orderable deal component/product Modifier Group included-count overrides. |
 | `024_mix_and_match_specials.sql` | Adds schema/type foundation for Mix-and-Match fixed unit price specials, exact mix-pool product eligibility, variant restrictions, and Modifier Group included-count overrides. |
+| `025_orderable_deal_component_pricing_modes.sql` | Adds schema foundation for per-component orderable deal pricing modes and fixed component prices. |
 
 ## Core Tenant Tables
 
@@ -208,6 +209,7 @@ Passive special eligibility and orderable deal component choices are intentional
 - `special_component_products` defines which products a customer may choose for an orderable deal component.
 - `special_component_product_variant_options` defines optional variant allow-lists for a chosen component product. If no rows exist for a component product, every enabled variant for that product is allowed.
 - `special_component_modifier_group_overrides` defines optional included-selection overrides for a chosen component product and assigned Modifier Group. If no row exists, the product's normal included Modifier Group rule is used.
+- `special_components.pricing_mode` and `special_components.fixed_price` are the foundation for component-priced bundle deals. Supported modes are `included`, `fixed_price`, and `normal_price`; runtime/admin/checkout wiring is still pending.
 - Do not reuse passive eligibility rows as orderable deal component choices.
 
 Mix-and-Match fixed unit price specials are schema/type-supported only. Runtime/admin/checkout/public behavior is not built yet.
@@ -216,9 +218,9 @@ Mix-and-Match fixed unit price specials are schema/type-supported only. Runtime/
 - `special_mix_match_products` stores exact products eligible for the mix pool. Category/subcategory eligibility is not built yet.
 - `special_mix_match_product_variant_options` stores optional reusable variant allow-lists for a mix pool product. If no rows exist for a mix product, runtime should treat all enabled variants as allowed when Mix-and-Match runtime is built.
 - `special_mix_match_modifier_group_overrides` stores optional included-selection overrides for a mix pool product and assigned Modifier Group. If no row exists, runtime should use the product's normal included Modifier Group rule when Mix-and-Match runtime is built.
-- Hybrid deals such as "Any 2 for $7.99 each plus choose a 2-liter" should use the Mix-and-Match pool rule for the fixed-unit-price items and the existing orderable component model later for required attached side components.
+- Hybrid or ordered bundle deals such as "Two Large 2-Topping Pizzas for $7.99 each with a free 2-liter" should not place the soda in the flat Mix-and-Match pool. They should use `orderable_deal` components with component pricing modes once admin/runtime/checkout support is wired.
 
-For the first orderable deal MVP, `orderable_deal` uses `specials.discount_value` as the deal base/fixed price unless a later migration adds a clearer `deal_base_price` column. Runtime pricing is deal base price plus allowed child extras. DealBuilder filters child product variants when component restrictions exist, applies component/product modifier included-count overrides during child configuration, and checkout enforces the same variant restrictions and modifier included-count overrides server-side.
+For the first orderable deal MVP, `orderable_deal` uses `specials.discount_value` as the deal base/fixed price. Runtime pricing is currently deal base price plus allowed child extras. DealBuilder filters child product variants when component restrictions exist, applies component/product modifier included-count overrides during child configuration, and checkout enforces the same variant restrictions and modifier included-count overrides server-side. Component pricing modes are schema-supported but not wired into runtime yet.
 
 Special availability windows use `day_of_week` values `0` Sunday through `6` Saturday. All-day windows store null `start_time` and `end_time`; non-all-day windows require `start_time < end_time`. Overnight recurring windows are intentionally not supported in the MVP.
 

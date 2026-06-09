@@ -24,10 +24,17 @@ vi.mock(
   () => ({
     ProductConfigurator: ({
       allowedVariantOptionIds,
+      dealComponentPricingContext,
       modifierIncludedRuleOverrides,
       onConfiguredItem,
     }: {
       allowedVariantOptionIds?: string[] | null
+      dealComponentPricingContext?: {
+        pricingMode: string
+        fixedPrice: number | null
+        componentLabel: string
+        displayPricingContext: boolean
+      } | null
       modifierIncludedRuleOverrides?: Array<{
         modifierGroupId: string
         includedSelectionCount: number
@@ -36,6 +43,12 @@ vi.mock(
     }) => (
       <div>
         <div>Allowed variants: {allowedVariantOptionIds?.join(", ") ?? "all"}</div>
+        <div>
+          Deal pricing context:{" "}
+          {dealComponentPricingContext
+            ? `${dealComponentPricingContext.componentLabel}:${dealComponentPricingContext.pricingMode}:${dealComponentPricingContext.fixedPrice ?? "none"}`
+            : "none"}
+        </div>
         <div>
           Modifier overrides:{" "}
           {modifierIncludedRuleOverrides
@@ -123,6 +136,8 @@ const deal = {
       minQuantity: 1,
       maxQuantity: 1,
       pricingBehavior: "included_base" as const,
+      pricingMode: "fixed_price" as const,
+      fixedPrice: 24.99,
       isRequired: true,
       products: [
         {
@@ -268,6 +283,9 @@ describe("DealBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /customize/i }))
     expect(await screen.findByText("Allowed variants: large")).toBeInTheDocument()
     expect(
+      screen.getByText("Deal pricing context: Choose a pizza:fixed_price:24.99")
+    ).toBeInTheDocument()
+    expect(
       screen.getByText("Modifier overrides: toppings:2")
     ).toBeInTheDocument()
     fireEvent.click(await screen.findByText("Return configured child"))
@@ -295,10 +313,16 @@ describe("DealBuilder", () => {
       itemType: "deal",
       specialId: "deal-1",
       specialName: "Family Deal",
+      usesComponentPricing: true,
+      componentBaseTotal: 24.99,
+      dealBasePrice: 24.99,
       totalPrice: 26.99,
       components: [
         {
           componentId: "component-1",
+          pricingMode: "fixed_price",
+          fixedPrice: 24.99,
+          componentBaseTotal: 24.99,
           children: [
             {
               childLineId: "child-1",
@@ -306,6 +330,9 @@ describe("DealBuilder", () => {
               productName: "Cheese Pizza",
               variantId: "large",
               variantName: "Large",
+              componentPricingMode: "fixed_price",
+              componentFixedPrice: 24.99,
+              componentBasePrice: 24.99,
               childExtraTotal: 2,
             },
           ],
@@ -347,6 +374,7 @@ describe("DealBuilder", () => {
 
     expect(storedCart[0]).toMatchObject({
       cartItemId: "deal-cart-1",
+      dealBasePrice: 24.99,
       totalPrice: 24.99,
       components: [
         {
@@ -356,9 +384,116 @@ describe("DealBuilder", () => {
               childLineId: "child-1",
               productId: "product-1",
               variantId: "large",
+              componentPricingMode: "fixed_price",
+              componentBasePrice: 24.99,
               childExtraTotal: 0,
             },
           ],
+        },
+      ],
+    })
+  })
+
+  it("prices fixed components and included components in one deal", async () => {
+    loadPublicOrderableDealMock.mockResolvedValue({
+      ...deal,
+      components: [
+        {
+          ...deal.components[0],
+          id: "pizza-1",
+          label: "Choose your first pizza",
+          sortOrder: 1,
+          pricingMode: "fixed_price",
+          fixedPrice: 7.99,
+        },
+        {
+          ...deal.components[0],
+          id: "pizza-2",
+          label: "Choose your second pizza",
+          sortOrder: 2,
+          pricingMode: "fixed_price",
+          fixedPrice: 7.99,
+        },
+        {
+          ...deal.components[0],
+          id: "soda",
+          label: "Choose your 2-liter",
+          sortOrder: 3,
+          pricingMode: "included",
+          fixedPrice: null,
+        },
+      ],
+    })
+    getProductConfigMock.mockResolvedValue(defaultProductConfig)
+    vi.stubGlobal("crypto", {
+      randomUUID: vi
+        .fn()
+        .mockReturnValueOnce("child-1")
+        .mockReturnValueOnce("toast-1")
+        .mockReturnValueOnce("child-2")
+        .mockReturnValueOnce("toast-2")
+        .mockReturnValueOnce("child-3")
+        .mockReturnValueOnce("toast-3")
+        .mockReturnValueOnce("deal-cart-1"),
+    })
+
+    render(
+      <ThemedToastProvider>
+        <CartProvider>
+          <DealBuilder
+            open
+            onOpenChange={() => undefined}
+            businessSlug="demo"
+            specialId="deal-1"
+          />
+        </CartProvider>
+      </ThemedToastProvider>
+    )
+
+    expect(await screen.findByText("Family Deal")).toBeInTheDocument()
+    expect(screen.getAllByText("Fixed price: $7.99").length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+    await waitFor(() => {
+      expect(screen.getByText("Choose your second pizza")).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+    await waitFor(() => {
+      expect(screen.getByText("Choose your 2-liter")).toBeInTheDocument()
+    })
+    expect(screen.getAllByText("Included").length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+    })
+    expect(screen.getAllByText("$15.98").length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getAllByRole("button", { name: /add deal to cart/i })[0])
+
+    const storedCart = JSON.parse(
+      window.localStorage.getItem("menupilot-cart") ?? "[]"
+    ) as DealCartItem[]
+
+    expect(storedCart[0]).toMatchObject({
+      componentBaseTotal: 15.98,
+      childExtraTotal: 0,
+      totalPrice: 15.98,
+      components: [
+        {
+          componentId: "pizza-1",
+          pricingMode: "fixed_price",
+          componentBaseTotal: 7.99,
+        },
+        {
+          componentId: "pizza-2",
+          pricingMode: "fixed_price",
+          componentBaseTotal: 7.99,
+        },
+        {
+          componentId: "soda",
+          pricingMode: "included",
+          componentBaseTotal: 0,
         },
       ],
     })
@@ -386,7 +521,7 @@ describe("DealBuilder", () => {
     await waitFor(() => {
       expect(screen.getByText("Review your deal")).toBeInTheDocument()
     })
-    expect(screen.getAllByText("$39.99").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("$64.98").length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getAllByRole("button", { name: /add deal to cart/i })[0])
 
@@ -396,13 +531,15 @@ describe("DealBuilder", () => {
 
     expect(storedCart[0]).toMatchObject({
       childExtraTotal: 15,
-      totalPrice: 39.99,
+      totalPrice: 64.98,
       components: [
         {
+          componentBaseTotal: 49.98,
           children: [
             {
               quantity: 2,
               configuredLineTotal: 30,
+              componentBasePrice: 49.98,
               childExtraTotal: 15,
             },
           ],
@@ -539,7 +676,7 @@ describe("DealBuilder", () => {
     expect(screen.getByText("Family Deal updated")).toBeInTheDocument()
   })
 
-  it("does not double-charge extra child quantity when editing a deal", async () => {
+  it("rebuilds quantity-based component pricing when editing a deal", async () => {
     const editingDealItem: DealCartItem = {
       cartItemId: "existing-deal-cart-id",
       itemType: "deal",
@@ -604,13 +741,15 @@ describe("DealBuilder", () => {
     expect(storedCart[0]).toMatchObject({
       cartItemId: "existing-deal-cart-id",
       childExtraTotal: 15,
-      totalPrice: 39.99,
+      totalPrice: 64.98,
       components: [
         {
+          componentBaseTotal: 49.98,
           children: [
             {
               quantity: 2,
               configuredLineTotal: 30,
+              componentBasePrice: 49.98,
               childExtraTotal: 15,
             },
           ],

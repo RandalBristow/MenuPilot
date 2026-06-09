@@ -118,7 +118,26 @@ export function buildDealParentOrderItemInsertPayload({
     quantity: item.quantity,
     unit_price: item.unitPrice,
     line_subtotal: item.lineSubtotal,
-    notes: JSON.stringify({ specialId: item.specialId }),
+    notes: JSON.stringify({
+      specialId: item.specialId,
+      specialType: item.specialType,
+      dealName: item.specialName,
+      selectedQuantity: item.selectedQuantity ?? null,
+      mixUnitPrice: item.mixUnitPrice ?? null,
+      mixBaseTotal: item.mixBaseTotal ?? null,
+      usesComponentPricing: item.usesComponentPricing ?? false,
+      dealBasePrice: item.dealBasePrice,
+      componentBaseTotal: item.componentBaseTotal ?? null,
+      childExtraTotal: item.childExtraTotal,
+      total: item.lineSubtotal,
+      componentPricingSummaries: item.components.map((component) => ({
+        componentId: component.componentId,
+        label: component.label,
+        pricingMode: component.pricingMode,
+        fixedPrice: component.fixedPrice,
+        componentBaseTotal: component.componentBaseTotal,
+      })),
+    }),
   }
 }
 
@@ -148,6 +167,12 @@ export function buildDealChildOrderItemInsertPayload({
     notes: JSON.stringify({
       componentId: child.componentId,
       componentLabel: child.componentLabel,
+      specialType: "deal_component",
+      componentPricingMode: child.componentPricingMode ?? null,
+      componentFixedPrice: child.componentFixedPrice ?? null,
+      componentBasePrice: child.componentBasePrice ?? null,
+      childExtraTotal: child.childExtraTotal,
+      configuredLineTotal: child.configuredLineTotal,
     }),
   }
 }
