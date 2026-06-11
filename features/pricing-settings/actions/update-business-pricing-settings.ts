@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
+  type ServiceFeeType,
   type PizzaHalfToppingRoundingMode,
   mapBusinessPricingSettingsToRow,
   normalizeBusinessPricingSettings,
@@ -28,6 +29,24 @@ function getRequiredString(formData: FormData, key: string) {
   return value
 }
 
+function parseNonnegativeNumber(value: FormDataEntryValue | null, label: string) {
+  const parsed = Number(value ?? 0)
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${label} must be 0 or greater.`)
+  }
+
+  return parsed
+}
+
+function parseServiceFeeType(value: FormDataEntryValue | null): ServiceFeeType {
+  if (value === "fixed" || value === "percentage" || value === "none") {
+    return value
+  }
+
+  throw new Error("Service fee type is not valid.")
+}
+
 export async function updateBusinessPricingSettings(
   formData: FormData
 ): Promise<UpdateBusinessPricingSettingsResult> {
@@ -45,6 +64,16 @@ export async function updateBusinessPricingSettings(
       pizzaHalfToppingIncludedWeightEnabled:
         formData.get("pizzaHalfToppingIncludedWeightEnabled") === "true",
       pizzaHalfToppingRoundingMode: roundingMode,
+      salesTaxRatePercent: parseNonnegativeNumber(
+        formData.get("salesTaxRatePercent"),
+        "Sales tax rate"
+      ),
+      serviceFeeType: parseServiceFeeType(formData.get("serviceFeeType")),
+      serviceFeeValue: parseNonnegativeNumber(
+        formData.get("serviceFeeValue"),
+        "Service fee"
+      ),
+      tipsEnabled: formData.get("tipsEnabled") === "true",
     })
 
     const { error } = await supabaseAdmin

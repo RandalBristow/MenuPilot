@@ -17,7 +17,14 @@ export function getModifierGroupValidationMessage(
 
   if (
     group.is_required &&
-    group.modifier_options.length > 0 &&
+    group.min_required > 0 &&
+    group.modifier_options.length === 0
+  ) {
+    return "No options are currently available."
+  }
+
+  if (
+    group.is_required &&
     selectedCount < group.min_required
   ) {
     return `Please choose at least ${group.min_required}.`

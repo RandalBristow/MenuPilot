@@ -16,7 +16,7 @@ describe("getModifierGroupValidationMessage", () => {
     expect(message).toBe("Please choose at least 1.")
   })
 
-  it("does not block add-to-cart for required groups with zero enabled options", () => {
+  it("blocks required groups with zero available options", () => {
     const message = getModifierGroupValidationMessage(
       {
         is_required: true,
@@ -27,7 +27,7 @@ describe("getModifierGroupValidationMessage", () => {
       []
     )
 
-    expect(message).toBeNull()
+    expect(message).toBe("No options are currently available.")
   })
 
   it("keeps max validation unchanged", () => {

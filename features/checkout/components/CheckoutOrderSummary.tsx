@@ -1,4 +1,8 @@
 import { ThemedCard } from "@/components/themed/ThemedCard"
+import {
+  calculateTipFromPercent,
+  type CheckoutTotals,
+} from "@/features/checkout/utils/calculate-checkout-totals"
 import type {
   CartItem,
   CartModifier,
@@ -6,10 +10,15 @@ import type {
   DealCartItem,
 } from "@/features/cart/types/cart"
 import { isDealCartItem } from "@/features/cart/utils/cart-items"
+import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings"
 
 type Props = {
   items: CartItem[]
   subtotal: number
+  totals: CheckoutTotals
+  pricingSettings: BusinessPricingSettings
+  tipAmount: number
+  onTipAmountChange: (amount: number) => void
 }
 
 type ModifierGroup = {
@@ -152,7 +161,74 @@ function DealSummaryItem({ item }: { item: DealCartItem }) {
   )
 }
 
-export function CheckoutOrderSummary({ items, subtotal }: Props) {
+function formatMoney(value: number) {
+  return `$${value.toFixed(2)}`
+}
+
+function TipSelector({
+  totals,
+  tipAmount,
+  onTipAmountChange,
+}: {
+  totals: CheckoutTotals
+  tipAmount: number
+  onTipAmountChange: (amount: number) => void
+}) {
+  const presets = [10, 15, 20]
+
+  return (
+    <div className="space-y-2 border-t pt-4">
+      <div>
+        <p className="text-sm font-semibold">Tip</p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          Tip is calculated from the subtotal before tax and fees.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <button
+          type="button"
+          onClick={() => onTipAmountChange(0)}
+          className="h-10 rounded-md border bg-background px-3 text-sm font-medium data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground"
+          data-selected={tipAmount === 0}
+        >
+          No tip
+        </button>
+        {presets.map((preset) => {
+          const amount = calculateTipFromPercent({
+            basis: totals.discountedSubtotal,
+            percent: preset,
+          })
+
+          return (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => onTipAmountChange(amount)}
+              className="h-10 rounded-md border bg-background px-3 text-sm font-medium data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground"
+              data-selected={tipAmount === amount}
+            >
+              {preset}%
+            </button>
+          )
+        })}
+      </div>
+      {tipAmount > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Selected tip: {formatMoney(tipAmount)}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+export function CheckoutOrderSummary({
+  items,
+  subtotal,
+  totals,
+  pricingSettings,
+  tipAmount,
+  onTipAmountChange,
+}: Props) {
   return (
     <ThemedCard className="p-4 sm:p-6 lg:sticky lg:top-6">
       <div className="space-y-4">
@@ -174,14 +250,50 @@ export function CheckoutOrderSummary({ items, subtotal }: Props) {
         </div>
 
         <div className="border-t pt-4">
-          <div className="flex items-center justify-between text-base font-semibold">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Subtotal</span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>{formatMoney(subtotal)}</span>
+          </div>
+          {totals.discountTotal > 0 ? (
+            <div className="mt-2 flex items-center justify-between text-sm text-success">
+              <span>Discounts</span>
+              <span>-{formatMoney(totals.discountTotal)}</span>
+            </div>
+          ) : null}
+          {totals.serviceFeeTotal > 0 ? (
+            <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Service fee</span>
+              <span>{formatMoney(totals.serviceFeeTotal)}</span>
+            </div>
+          ) : null}
+          {totals.taxTotal > 0 ? (
+            <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Tax</span>
+              <span>{formatMoney(totals.taxTotal)}</span>
+            </div>
+          ) : null}
+          {totals.tipTotal > 0 ? (
+            <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Tip</span>
+              <span>{formatMoney(totals.tipTotal)}</span>
+            </div>
+          ) : null}
+          <div className="mt-3 flex items-center justify-between border-t pt-3 text-base font-semibold">
+            <span>Total</span>
+            <span>{formatMoney(totals.total)}</span>
           </div>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
             Eligible specials are calculated when you place the order.
           </p>
         </div>
+
+        {pricingSettings.tipsEnabled ? (
+          <TipSelector
+            totals={totals}
+            tipAmount={tipAmount}
+            onTipAmountChange={onTipAmountChange}
+          />
+        ) : null}
       </div>
     </ThemedCard>
   )

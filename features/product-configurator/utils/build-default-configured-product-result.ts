@@ -120,11 +120,15 @@ export function buildDefaultConfiguredProductResult({
   businessSlug,
   allowedVariantOptionIds = null,
   modifierIncludedRuleOverrides = null,
+  requireExplicitRequiredModifierDefaults = false,
+  requireSatisfiedIncludedModifierGroups = false,
 }: {
   product: ProductConfig
   businessSlug?: string | null
   allowedVariantOptionIds?: string[] | null
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
+  requireExplicitRequiredModifierDefaults?: boolean
+  requireSatisfiedIncludedModifierGroups?: boolean
 }): ConfiguredProductResult | null {
   const enabledVariants = filterEnabledProductVariants(product.variants).filter(
     (variant) =>
@@ -143,14 +147,17 @@ export function buildDefaultConfiguredProductResult({
     selectedVariantId: selectedVariant?.id,
     modifierIncludedRuleOverrides,
   })
+  const defaultSelectedModifiers = getInitialSelectedModifiersFromDefaults({
+    defaults: product.product_default_modifier_options,
+    modifierGroups,
+  })
   const selectedModifiers = removeUnavailableSelectedModifiers({
-    selectedModifiers: fillRequiredModifierDefaults({
-      modifierGroups,
-      selectedModifiers: getInitialSelectedModifiersFromDefaults({
-        defaults: product.product_default_modifier_options,
-        modifierGroups,
-      }),
-    }),
+    selectedModifiers: requireExplicitRequiredModifierDefaults
+      ? defaultSelectedModifiers
+      : fillRequiredModifierDefaults({
+          modifierGroups,
+          selectedModifiers: defaultSelectedModifiers,
+        }),
     modifierGroups,
   })
   const hasMissingRequiredModifiers = modifierGroups.some((group) =>
@@ -172,6 +179,17 @@ export function buildDefaultConfiguredProductResult({
     productDefaultModifierOptions: product.product_default_modifier_options,
     quantity: 1,
   })
+
+  const hasUnsatisfiedIncludedAllowance =
+    requireSatisfiedIncludedModifierGroups &&
+    Object.values(pricing.modifierGroups).some(
+      (group) =>
+        group.includedQuantity > 0 &&
+        group.selectedUnits < group.includedQuantity
+    )
+
+  if (hasUnsatisfiedIncludedAllowance) return null
+
   const modifierExtraTotal = Object.values(pricing.pricedSelectedModifiers).reduce(
     (sum, modifier) => sum + modifier.priceDelta,
     0

@@ -250,7 +250,7 @@ describe("filterModifierOptionsByVariant", () => {
     })
   })
 
-  it("does not block required group validation when no options are available", () => {
+  it("blocks required group validation when no options are available", () => {
     const emptyRequiredGroup = filterForVariant("size-12", [
       {
         variant_group_option_id: "size-12",
@@ -268,7 +268,9 @@ describe("filterModifierOptionsByVariant", () => {
       },
     ])
 
-    expect(getModifierGroupValidationMessage(emptyRequiredGroup, [])).toBeNull()
+    expect(getModifierGroupValidationMessage(emptyRequiredGroup, [])).toBe(
+      "No options are currently available."
+    )
   })
 
   it("still requires a selection when a required group has available options", () => {

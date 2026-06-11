@@ -123,6 +123,80 @@ describe("mapPublicOrderableDeal", () => {
     })
   })
 
+  it("removes active temporarily sold-out component products", () => {
+    const deal = mapPublicOrderableDeal({
+      rawDeal: {
+        ...activeRawDeal,
+        special_components: [
+          {
+            ...activeRawDeal.special_components[0],
+            special_component_products: [
+              {
+                ...activeRawDeal.special_components[0]
+                  .special_component_products[0],
+                products: {
+                  ...activeRawDeal.special_components[0]
+                    .special_component_products[0].products,
+                  product_operational_availability: [
+                    {
+                      id: "availability-1",
+                      location_id: null,
+                      is_86d: true,
+                      reason: "Sold out",
+                      expires_at: null,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      businessId: "business-1",
+      currentTime: new Date("2026-06-06T12:00:00Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(deal?.components[0]?.products).toHaveLength(0)
+  })
+
+  it("keeps component products when a temporary sold-out override expired", () => {
+    const deal = mapPublicOrderableDeal({
+      rawDeal: {
+        ...activeRawDeal,
+        special_components: [
+          {
+            ...activeRawDeal.special_components[0],
+            special_component_products: [
+              {
+                ...activeRawDeal.special_components[0]
+                  .special_component_products[0],
+                products: {
+                  ...activeRawDeal.special_components[0]
+                    .special_component_products[0].products,
+                  product_operational_availability: [
+                    {
+                      id: "availability-1",
+                      location_id: null,
+                      is_86d: true,
+                      reason: null,
+                      expires_at: "2026-06-06T11:00:00Z",
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      businessId: "business-1",
+      currentTime: new Date("2026-06-06T12:00:00Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(deal?.components[0]?.products).toHaveLength(1)
+  })
+
   it("rejects wrong-business deals", () => {
     expect(
       mapPublicOrderableDeal({

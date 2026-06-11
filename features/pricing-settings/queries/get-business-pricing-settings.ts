@@ -14,7 +14,11 @@ export async function getBusinessPricingSettings(
       `
       pizza_half_topping_pricing_enabled,
       pizza_half_topping_included_weight_enabled,
-      pizza_half_topping_rounding_mode
+      pizza_half_topping_rounding_mode,
+      sales_tax_rate_percent,
+      service_fee_type,
+      service_fee_value,
+      tips_enabled
     `
     )
     .eq("business_id", businessId)

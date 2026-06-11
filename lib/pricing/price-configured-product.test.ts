@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { DEFAULT_BUSINESS_PRICING_SETTINGS } from "./business-pricing-settings"
 import { priceConfiguredProduct } from "./price-configured-product"
 
 const toppingsGroup = {
@@ -302,6 +303,7 @@ describe("priceConfiguredProduct", () => {
       productBasePrice: 10,
       builderTemplate: "pizza",
       pricingSettings: {
+        ...DEFAULT_BUSINESS_PRICING_SETTINGS,
         pizzaHalfToppingPricingEnabled: true,
         pizzaHalfToppingIncludedWeightEnabled: false,
         pizzaHalfToppingRoundingMode: "floor_to_cent",

@@ -5,6 +5,10 @@ import type { CheckoutProductConfig } from "@/features/checkout/utils/validate-a
 import type { SpecialCandidate } from "@/features/specials/types/special"
 import type { MixAndMatchDealCandidate } from "@/features/specials/utils/validate-and-price-mix-and-match-deal"
 import type { OrderableDealCandidate } from "@/features/specials/utils/validate-and-price-orderable-deal"
+import {
+  DEFAULT_BUSINESS_PRICING_SETTINGS,
+  type BusinessPricingSettings,
+} from "@/lib/pricing/business-pricing-settings"
 import { createOrder } from "./create-order"
 
 const resolverMock = vi.hoisted(() => ({
@@ -39,6 +43,19 @@ const mixDealsMock = vi.hoisted(() => ({
   calls: [] as unknown[],
 }))
 
+const pricingSettingsMock = vi.hoisted(() => ({
+  settings: {
+    pizzaHalfToppingPricingEnabled: true,
+    pizzaHalfToppingIncludedWeightEnabled: true,
+    pizzaHalfToppingRoundingMode: "floor_to_cent" as const,
+    salesTaxRatePercent: 0,
+    serviceFeeType: "none" as const,
+    serviceFeeValue: 0,
+    tipsEnabled: false,
+  } as BusinessPricingSettings,
+  calls: [] as unknown[],
+}))
+
 const supabaseMock = vi.hoisted(() => ({
   inserts: [] as { table: string; payload: unknown }[],
   orderItemIds: ["order-item-a"] as string[],
@@ -55,6 +72,13 @@ vi.mock("@/features/checkout/queries/load-checkout-product-config", () => ({
   loadCheckoutProductConfig: (input: unknown) => {
     checkoutProductMock.calls.push(input)
     return Promise.resolve(checkoutProductMock.products)
+  },
+}))
+
+vi.mock("@/features/pricing-settings/queries/get-business-pricing-settings", () => ({
+  getBusinessPricingSettings: (businessId: string) => {
+    pricingSettingsMock.calls.push(businessId)
+    return Promise.resolve(pricingSettingsMock.settings)
   },
 }))
 
@@ -478,6 +502,8 @@ describe("createOrder tenant checkout", () => {
     dealsMock.calls = []
     mixDealsMock.dealsById = new Map()
     mixDealsMock.calls = []
+    pricingSettingsMock.settings = DEFAULT_BUSINESS_PRICING_SETTINGS
+    pricingSettingsMock.calls = []
     supabaseMock.inserts = []
     supabaseMock.orderItemIds = ["order-item-a"]
   })
@@ -574,6 +600,9 @@ describe("createOrder tenant checkout", () => {
       table: "orders",
       payload: {
         discount_total: 0,
+        tax_total: 0,
+        tip_total: 0,
+        charge_total: 0,
         total: 12,
       },
     })
@@ -595,6 +624,52 @@ describe("createOrder tenant checkout", () => {
         total: 9,
       },
     })
+  })
+
+  it("calculates tax after passive discounts and stores checkout total snapshots", async () => {
+    pricingSettingsMock.settings = {
+      ...DEFAULT_BUSINESS_PRICING_SETTINGS,
+      salesTaxRatePercent: 10,
+      serviceFeeType: "fixed",
+      serviceFeeValue: 2,
+      tipsEnabled: true,
+    }
+    specialsMock.specials = [cartDiscount({ discountValue: 5 })]
+
+    await createOrder(buildInput({ tipAmount: 1 }))
+
+    expect(pricingSettingsMock.calls[0]).toBe("business-a")
+    expect(supabaseMock.inserts[0]).toMatchObject({
+      table: "orders",
+      payload: {
+        subtotal: 12,
+        discount_total: 5,
+        charge_total: 2,
+        tax_total: 0.7,
+        tip_total: 1,
+        total: 10.7,
+        tax_rate_percent_snapshot: 10,
+        service_fee_type_snapshot: "fixed",
+        service_fee_value_snapshot: 2,
+        tip_basis_snapshot: "discounted_subtotal",
+      },
+    })
+  })
+
+  it("rejects negative tip amounts before inserting an order", async () => {
+    const result = await createOrder(buildInput({ tipAmount: -1 }))
+
+    expect(result.ok).toBe(false)
+    expect(result.ok ? "" : result.error).toMatch(/tip amount/i)
+    expect(supabaseMock.inserts).toHaveLength(0)
+  })
+
+  it("rejects tips when checkout tips are disabled", async () => {
+    const result = await createOrder(buildInput({ tipAmount: 1 }))
+
+    expect(result.ok).toBe(false)
+    expect(result.ok ? "" : result.error).toMatch(/tips are not enabled/i)
+    expect(supabaseMock.inserts).toHaveLength(0)
   })
 
   it("applies a fixed-price line special and writes discount total", async () => {

@@ -69,7 +69,11 @@ export function MenuClient({
       setOpen(true)
     } catch (error) {
       console.error("Failed to load product config:", error)
-      setLoadError("Could not load this item. Please try again.")
+      setLoadError(
+        error instanceof Error && error.message.includes("currently sold out")
+          ? error.message
+          : "Could not load this item. Please try again."
+      )
     } finally {
       setLoadingProductId(null)
     }
@@ -93,6 +97,7 @@ export function MenuClient({
 
       <MenuPage
         businessName={businessName}
+        businessSlug={businessSlug}
         menu={menu}
         activeSpecials={activeSpecials}
         onCustomize={handleCustomize}

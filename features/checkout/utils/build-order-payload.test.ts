@@ -78,6 +78,44 @@ describe("checkout order payload helpers", () => {
     expect(payload.total).toBe(33.98)
   })
 
+  it("builds order totals with tax, service fee, tip, and config snapshots", () => {
+    const payload = buildOrderInsertPayload({
+      businessId: "business-1",
+      locationId: "location-1",
+      orderNumber: "MP-123",
+      customerName: "Randy",
+      customerPhone: "555-0100",
+      fulfillmentType: "pickup",
+      items: [cartItem],
+      totals: {
+        subtotal: 38.98,
+        discountTotal: 5,
+        discountedSubtotal: 33.98,
+        serviceFeeTotal: 1.5,
+        taxTotal: 2.46,
+        tipTotal: 4,
+        total: 41.94,
+        taxRatePercentSnapshot: 7.25,
+        serviceFeeTypeSnapshot: "fixed",
+        serviceFeeValueSnapshot: 1.5,
+        tipBasisSnapshot: "discounted_subtotal",
+      },
+    })
+
+    expect(payload).toMatchObject({
+      subtotal: 38.98,
+      discount_total: 5,
+      charge_total: 1.5,
+      tax_total: 2.46,
+      tip_total: 4,
+      total: 41.94,
+      tax_rate_percent_snapshot: 7.25,
+      service_fee_type_snapshot: "fixed",
+      service_fee_value_snapshot: 1.5,
+      tip_basis_snapshot: "discounted_subtotal",
+    })
+  })
+
   it("uses validated priced values instead of client-submitted cart prices", () => {
     const validationResult = validateAndPriceCart({
       items: [

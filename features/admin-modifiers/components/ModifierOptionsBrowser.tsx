@@ -5,6 +5,8 @@ import { Plus } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
+import { setModifierOptionOperationalAvailability } from "@/features/availability/actions/set-modifier-option-operational-availability"
+import { OperationalAvailabilityToggle } from "@/features/availability/components/OperationalAvailabilityToggle"
 import type { DeleteModifierOptionResult } from "@/features/admin-modifiers/actions/delete-modifier-option"
 import { DeleteModifierOptionButton } from "@/features/admin-modifiers/components/DeleteModifierOptionButton"
 import { ModifierOptionFormDialog } from "@/features/admin-modifiers/components/ModifierOptionFormDialog"
@@ -212,19 +214,43 @@ export function ModifierOptionsBrowser({
                 statusIcon={
                   <CompactRecordStatusIcon enabled={option.is_enabled} />
                 }
-                description={formatPriceDelta(option.price_delta)}
+                description={
+                  option.operationalAvailability?.is86d
+                    ? `Temporarily sold out${
+                        option.operationalAvailability.reason
+                          ? `: ${option.operationalAvailability.reason}`
+                          : ""
+                      }`
+                    : formatPriceDelta(option.price_delta)
+                }
+                metadata={
+                  option.operationalAvailability?.is86d
+                    ? formatPriceDelta(option.price_delta)
+                    : null
+                }
                 rightAction={
-                  <DeleteModifierOptionButton
-                    businessSlug={businessSlug}
-                    optionId={option.id}
-                    optionName={option.name}
-                    modifierGroupId={selectedGroup.id}
-                    onResult={(result) =>
-                      setDeleteResult(
-                        result.status === "deleted" ? null : result
-                      )
-                    }
-                  />
+                  <>
+                    <OperationalAvailabilityToggle
+                      action={setModifierOptionOperationalAvailability}
+                      itemIdField="optionId"
+                      itemId={option.id}
+                      itemName={option.name}
+                      businessSlug={businessSlug}
+                      modifierGroupId={selectedGroup.id}
+                      is86d={Boolean(option.operationalAvailability?.is86d)}
+                    />
+                    <DeleteModifierOptionButton
+                      businessSlug={businessSlug}
+                      optionId={option.id}
+                      optionName={option.name}
+                      modifierGroupId={selectedGroup.id}
+                      onResult={(result) =>
+                        setDeleteResult(
+                          result.status === "deleted" ? null : result
+                        )
+                      }
+                    />
+                  </>
                 }
               />
             </ThemedCard>

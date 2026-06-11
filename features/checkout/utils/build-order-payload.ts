@@ -8,6 +8,7 @@ import type {
   ValidatedPricedDealItem,
 } from "@/features/checkout/utils/validate-and-price-checkout-items"
 import type { AppliedSpecialDiscountSnapshot } from "@/features/specials/utils/apply-specials-to-priced-cart"
+import type { CheckoutTotals } from "@/features/checkout/utils/calculate-checkout-totals"
 
 export type BuildOrderPayloadInput = {
   businessId: string
@@ -20,6 +21,7 @@ export type BuildOrderPayloadInput = {
   specialInstructions?: string
   items: ValidatedPricedCheckoutItem[]
   discountTotal?: number
+  totals?: CheckoutTotals
   total?: number
 }
 
@@ -47,10 +49,11 @@ export function buildOrderInsertPayload({
   specialInstructions,
   items,
   discountTotal = 0,
+  totals,
   total,
 }: BuildOrderPayloadInput) {
   const subtotal = getOrderSubtotal(items)
-  const resolvedDiscountTotal = Math.max(0, discountTotal)
+  const resolvedDiscountTotal = totals?.discountTotal ?? Math.max(0, discountTotal)
 
   return {
     business_id: businessId,
@@ -62,13 +65,17 @@ export function buildOrderInsertPayload({
     fulfillment_type: fulfillmentType,
     order_status: "new",
     payment_status: "unpaid",
-    subtotal,
+    subtotal: totals?.subtotal ?? subtotal,
     discount_total: resolvedDiscountTotal,
-    tax_total: 0,
-    tip_total: 0,
-    charge_total: 0,
+    tax_total: totals?.taxTotal ?? 0,
+    tip_total: totals?.tipTotal ?? 0,
+    charge_total: totals?.serviceFeeTotal ?? 0,
     delivery_fee: 0,
-    total: total ?? Math.max(0, subtotal - resolvedDiscountTotal),
+    total: totals?.total ?? total ?? Math.max(0, subtotal - resolvedDiscountTotal),
+    tax_rate_percent_snapshot: totals?.taxRatePercentSnapshot ?? 0,
+    service_fee_type_snapshot: totals?.serviceFeeTypeSnapshot ?? "none",
+    service_fee_value_snapshot: totals?.serviceFeeValueSnapshot ?? 0,
+    tip_basis_snapshot: totals?.tipBasisSnapshot ?? "discounted_subtotal",
     special_instructions: specialInstructions?.trim() || null,
   }
 }

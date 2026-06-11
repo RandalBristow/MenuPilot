@@ -16,6 +16,7 @@ import {
   getPassiveSpecialEligibleItems,
 } from "@/features/checkout/utils/build-order-payload"
 import { loadCheckoutProductConfig } from "@/features/checkout/queries/load-checkout-product-config"
+import { getBusinessPricingSettings } from "@/features/pricing-settings/queries/get-business-pricing-settings"
 import { loadActiveSpecialsForCheckout } from "@/features/specials/queries/load-active-specials-for-checkout"
 import { loadMixAndMatchDealsForCheckout } from "@/features/specials/queries/load-mix-and-match-deals-for-checkout"
 import { loadOrderableDealsForCheckout } from "@/features/specials/queries/load-orderable-deals-for-checkout"
@@ -31,6 +32,10 @@ import {
   validateCartTenantContext,
 } from "@/features/checkout/utils/checkout-tenant-context"
 import { resolveCheckoutTenantContext } from "@/features/checkout/utils/resolve-checkout-tenant-context"
+import {
+  calculateCheckoutTotals,
+  type CheckoutTotals,
+} from "@/features/checkout/utils/calculate-checkout-totals"
 
 type CreateOrderInput = {
   customerName: string
@@ -41,6 +46,7 @@ type CreateOrderInput = {
   items: CartItem[]
   businessSlug?: string | null
   locationSlug?: string | null
+  tipAmount?: number
 }
 
 export type CreateOrderResult =
@@ -48,6 +54,7 @@ export type CreateOrderResult =
       ok: true
       orderId: string
       orderNumber: string
+      totals: CheckoutTotals
     }
   | {
       ok: false
@@ -59,10 +66,6 @@ function generateOrderNumber() {
   const random = Math.floor(100 + Math.random() * 900)
 
   return `MP-${now}${random}`
-}
-
-function roundCurrency(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100
 }
 
 function isValidatedDealItem(
@@ -123,6 +126,14 @@ export async function createOrder(
     ])
   }
 
+  const requestedTipAmount = Number(input.tipAmount ?? 0)
+
+  if (!Number.isFinite(requestedTipAmount) || requestedTipAmount < 0) {
+    return buildCheckoutValidationFailure([
+      { message: "Tip amount must be 0 or greater." },
+    ])
+  }
+
   const productIds = input.items.flatMap((item) => {
     if (isConfiguredCartItem(item)) return [item.productId]
     if (isDealCartItem(item)) {
@@ -138,6 +149,15 @@ export async function createOrder(
     businessId: tenantContext.business.id,
     productIds,
   })
+  const pricingSettings = await getBusinessPricingSettings(
+    tenantContext.business.id
+  )
+
+  if (!pricingSettings.tipsEnabled && requestedTipAmount > 0) {
+    return buildCheckoutValidationFailure([
+      { message: "Tips are not enabled for this checkout." },
+    ])
+  }
   const dealCartItems = input.items.filter(isDealCartItem)
   const dealsById = await loadOrderableDealsForCheckout({
     businessId: tenantContext.business.id,
@@ -191,9 +211,12 @@ export async function createOrder(
     })),
     specials: activeSpecials,
   })
-  const orderTotal = roundCurrency(
-    Math.max(0, validationResult.cart.subtotal - specialsPricing.discountTotal)
-  )
+  const checkoutTotals = calculateCheckoutTotals({
+    subtotal: validationResult.cart.subtotal,
+    discountTotal: specialsPricing.discountTotal,
+    tipTotal: pricingSettings.tipsEnabled ? requestedTipAmount : 0,
+    settings: pricingSettings,
+  })
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from("orders")
@@ -209,7 +232,7 @@ export async function createOrder(
         specialInstructions: input.specialInstructions,
         items: validatedItems,
         discountTotal: specialsPricing.discountTotal,
-        total: orderTotal,
+        totals: checkoutTotals,
       })
     )
     .select("id, order_number")
@@ -349,5 +372,6 @@ export async function createOrder(
     ok: true,
     orderId: order.id,
     orderNumber: order.order_number,
+    totals: checkoutTotals,
   }
 }

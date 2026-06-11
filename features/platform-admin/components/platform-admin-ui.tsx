@@ -404,12 +404,10 @@ export function PlatformBusinessDetailPage({
           <ThemedCard className="p-4">
             <div className="space-y-3">
               <div>
-                <h2 className="text-base font-semibold">
-                  Pizza Pricing Settings
-                </h2>
+                <h2 className="text-base font-semibold">Pricing Settings</h2>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Business-level rules for pizza half-topping pricing and
-                  included topping slot counting.
+                  Business-level rules for pizza half toppings, checkout tax,
+                  service fees, and tips.
                 </p>
               </div>
 

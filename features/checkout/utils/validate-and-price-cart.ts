@@ -33,6 +33,7 @@ export type CheckoutProductConfig = {
   builderTemplate?: string | null
   pricingSettings?: BusinessPricingSettings | null
   isEnabled: boolean
+  isSoldOut?: boolean
   basePrice: number
   variants?: CheckoutEffectiveVariant[]
   modifierGroups?: CheckoutModifierGroupConfig[]
@@ -60,6 +61,7 @@ export type CheckoutModifierOptionConfig = {
   name: string
   priceDelta: number
   isEnabled: boolean
+  isSoldOut?: boolean
   optionGroup?: CheckoutModifierOptionGroupConfig | null
 }
 
@@ -142,6 +144,7 @@ export type CheckoutValidationErrorCode =
   | "empty_cart"
   | "missing_product"
   | "disabled_product"
+  | "sold_out_product"
   | "invalid_quantity"
   | "missing_variant"
   | "invalid_variant"
@@ -150,6 +153,7 @@ export type CheckoutValidationErrorCode =
   | "disabled_modifier_group"
   | "invalid_modifier_option"
   | "disabled_modifier_option"
+  | "sold_out_modifier_option"
   | "unavailable_modifier_option"
   | "missing_required_modifier"
   | "too_many_modifiers"
@@ -536,6 +540,18 @@ function validateModifiers({
       continue
     }
 
+    if (configuredOption.isSoldOut) {
+      errors.push(
+        buildModifierError({
+          code: "sold_out_modifier_option",
+          message: `${configuredOption.name} is currently sold out.`,
+          item,
+          product,
+        })
+      )
+      continue
+    }
+
     const effectiveOption = getEffectiveModifierOption({
       option: configuredOption,
       modifierGroupId: configuredGroup.id,
@@ -639,11 +655,19 @@ function validateModifiers({
       (modifier) => modifier.groupId === group.id
     ).length
 
-    if (
-      group.isRequired &&
-      availableOptions.length > 0 &&
-      selectedCount < group.minRequired
-    ) {
+    if (group.isRequired && group.minRequired > 0 && availableOptions.length === 0) {
+      errors.push(
+        buildModifierError({
+          code: "missing_required_modifier",
+          message: `${group.name} has no available options right now.`,
+          item,
+          product,
+        })
+      )
+      continue
+    }
+
+    if (group.isRequired && selectedCount < group.minRequired) {
       errors.push(
         buildModifierError({
           code: "missing_required_modifier",
@@ -756,8 +780,10 @@ export function validateAndPriceCart({
 
     if (!product.isEnabled) {
       errors.push({
-        code: "disabled_product",
-        message: `${product.name} is no longer available.`,
+        code: product.isSoldOut ? "sold_out_product" : "disabled_product",
+        message: product.isSoldOut
+          ? `${product.name} is currently sold out.`
+          : `${product.name} is no longer available.`,
         cartItemId: item.cartItemId,
         productId: item.productId,
       })

@@ -128,7 +128,7 @@ describe("ProductConfigurator", () => {
     ])
   })
 
-  it("shows fixed deal component price in return mode instead of normal product price", () => {
+  it("hides normal variant price for fixed deal component return mode", () => {
     render(
       <CartProvider>
         <ProductConfigurator
@@ -169,10 +169,11 @@ describe("ProductConfigurator", () => {
     expect(
       screen.getByRole("button", { name: /add to special\s*fixed deal price\s*\$7\.99/i })
     ).toBeInTheDocument()
-    expect(screen.getByText("Normally $17.99")).toBeInTheDocument()
+    expect(screen.queryByText("$17.99")).not.toBeInTheDocument()
+    expect(screen.queryByText("Normally $17.99")).not.toBeInTheDocument()
   })
 
-  it("shows included deal component price in return mode instead of normal product price", () => {
+  it("hides normal variant price for included deal component return mode", () => {
     render(
       <CartProvider>
         <ProductConfigurator
@@ -213,7 +214,8 @@ describe("ProductConfigurator", () => {
     expect(
       screen.getByRole("button", { name: /add to special\s*included in deal\s*\$0\.00/i })
     ).toBeInTheDocument()
-    expect(screen.getByText("Normally $3.49")).toBeInTheDocument()
+    expect(screen.queryByText("$3.49")).not.toBeInTheDocument()
+    expect(screen.queryByText("Normally $3.49")).not.toBeInTheDocument()
   })
 
   it("keeps normal product configurator pricing outside deal return mode", () => {
@@ -248,6 +250,7 @@ describe("ProductConfigurator", () => {
     expect(
       screen.getByRole("button", { name: /add to cart\s*\$17\.99/i })
     ).toBeInTheDocument()
+    expect(screen.getAllByText("$17.99").length).toBeGreaterThan(0)
     expect(screen.queryByText("Normally $17.99")).not.toBeInTheDocument()
   })
 
@@ -274,6 +277,7 @@ describe("ProductConfigurator", () => {
     expect(
       screen.getByRole("button", { name: /add to special\s*fixed deal price\s*\$7\.99/i })
     ).toBeInTheDocument()
+    expect(screen.getByText("+$2.00")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: /pepperoni/i }))
 
@@ -305,6 +309,7 @@ describe("ProductConfigurator", () => {
     expect(
       screen.getByRole("button", { name: /add to special\s*included in deal\s*\$0\.00/i })
     ).toBeInTheDocument()
+    expect(screen.getByText("+$2.00")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: /pepperoni/i }))
 

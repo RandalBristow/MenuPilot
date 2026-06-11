@@ -22,6 +22,10 @@ describe("normalizeBusinessPricingSettings", () => {
       pizzaHalfToppingPricingEnabled: false,
       pizzaHalfToppingIncludedWeightEnabled: true,
       pizzaHalfToppingRoundingMode: "floor_to_cent",
+      salesTaxRatePercent: 0,
+      serviceFeeType: "none",
+      serviceFeeValue: 0,
+      tipsEnabled: false,
     })
   })
 

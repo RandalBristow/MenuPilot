@@ -5,6 +5,10 @@ import type {
 } from "@/features/specials/utils/validate-and-price-mix-and-match-deal"
 import { getSpecialComputedStatus } from "@/features/specials/utils/special-schedule"
 import type { SpecialAvailabilityWindow } from "@/features/specials/types/special"
+import {
+  resolveOperationalAvailabilityForRecords,
+  type RawOperationalAvailabilityRecord,
+} from "@/features/availability/utils/operational-availability-records"
 
 type RawAvailabilityWindow = {
   id: string
@@ -25,8 +29,18 @@ type RawMixProduct = {
   product_id?: string
   sort_order: number
   products:
-    | { id: string; business_id: string; is_enabled: boolean }
-    | { id: string; business_id: string; is_enabled: boolean }[]
+    | {
+        id: string
+        business_id: string
+        is_enabled: boolean
+        product_operational_availability?: RawOperationalAvailabilityRecord[] | null
+      }
+    | {
+        id: string
+        business_id: string
+        is_enabled: boolean
+        product_operational_availability?: RawOperationalAvailabilityRecord[] | null
+      }[]
     | null
   special_mix_match_product_variant_options:
     | Array<{
@@ -96,7 +110,13 @@ function mapAvailabilityWindows(
   }))
 }
 
-function mapPoolProducts(rawDeal: RawMixDeal): MixAndMatchPoolProduct[] {
+function mapPoolProducts({
+  rawDeal,
+  currentTime,
+}: {
+  rawDeal: RawMixDeal
+  currentTime: Date
+}): MixAndMatchPoolProduct[] {
   return (rawDeal.special_mix_match_products ?? [])
     .map((row): MappedPoolProduct | null => {
       const product = firstRecord(row.products)
@@ -104,7 +124,19 @@ function mapPoolProducts(rawDeal: RawMixDeal): MixAndMatchPoolProduct[] {
       if (
         !product ||
         product.business_id !== rawDeal.business_id ||
-        !product.is_enabled
+        !resolveOperationalAvailabilityForRecords({
+          isPermanentlyEnabled: product.is_enabled,
+          records: (product.product_operational_availability ?? []).map(
+            (record) => ({
+              id: record.id,
+              locationId: record.location_id ?? null,
+              is86d: record.is_86d,
+              reason: record.reason,
+              expiresAt: record.expires_at,
+            })
+          ),
+          currentTime,
+        }).isOperationallyAvailable
       ) {
         return null
       }
@@ -178,7 +210,7 @@ export function mapCheckoutMixAndMatchDeal({
       unitPrice: toNumber(rule.unit_price),
       allowExtraItems: rule.allow_extra_items,
     },
-    poolProducts: mapPoolProducts(rawDeal),
+    poolProducts: mapPoolProducts({ rawDeal, currentTime }),
   }
 }
 
@@ -233,7 +265,14 @@ export async function loadMixAndMatchDealsForCheckout({
         products (
           id,
           business_id,
-          is_enabled
+          is_enabled,
+          product_operational_availability (
+            id,
+            location_id,
+            is_86d,
+            reason,
+            expires_at
+          )
         )
       )
     `

@@ -228,6 +228,93 @@ const requiredModifierProductConfig = {
   ],
 }
 
+const requiredModifierProductConfigWithDefault = {
+  ...requiredModifierProductConfig,
+  product_default_modifier_options: [
+    {
+      modifier_option_id: "thin-crust",
+      placement: "whole",
+      multiplier: 1,
+      is_enabled: true,
+      sort_order: 1,
+    },
+  ],
+}
+
+function buildIncludedToppingProductConfig(defaultOptionIds: string[]) {
+  return {
+    ...defaultProductConfig,
+    product_modifier_groups: [
+      {
+        id: "product-group-toppings",
+        is_enabled: true,
+        sort_order: 1,
+        modifier_groups: {
+          id: "toppings",
+          name: "Pizza Toppings",
+          selection_type: "multiple",
+          is_required: false,
+          min_required: 0,
+          max_allowed: null,
+          is_enabled: true,
+          supports_placement: true,
+          supports_multiplier: true,
+          min_multiplier: 1,
+          max_multiplier: 2,
+          multiplier_step: 1,
+          modifier_options: [
+            {
+              id: "pepperoni",
+              name: "Pepperoni",
+              price_delta: 0,
+              is_enabled: true,
+              sort_order: 1,
+              modifier_option_group_id: "option-group-meats",
+              modifier_option_groups: {
+                id: "option-group-meats",
+                name: "Meats",
+                description: null,
+                is_enabled: true,
+                sort_order: 1,
+              },
+            },
+            {
+              id: "mushrooms",
+              name: "Mushrooms",
+              price_delta: 0,
+              is_enabled: true,
+              sort_order: 2,
+              modifier_option_group_id: "option-group-veggies",
+              modifier_option_groups: {
+                id: "option-group-veggies",
+                name: "Veggies",
+                description: null,
+                is_enabled: true,
+                sort_order: 2,
+              },
+            },
+          ],
+        },
+      },
+    ],
+    product_included_modifier_groups: [
+      {
+        modifier_group_id: "toppings",
+        included_quantity: 2,
+        is_swappable: true,
+        charge_for_extra: true,
+      },
+    ],
+    product_default_modifier_options: defaultOptionIds.map((optionId, index) => ({
+      modifier_option_id: optionId,
+      placement: "whole",
+      multiplier: 1,
+      is_enabled: true,
+      sort_order: index + 1,
+    })),
+  }
+}
+
 function SeedDealOnMount({ item }: { item: DealCartItem }) {
   const { addDealItem } = useCart()
   const hasSeededRef = useRef(false)
@@ -548,8 +635,35 @@ describe("DealBuilder", () => {
     })
   })
 
-  it("uses first required modifier options when adding a deal child without customization", async () => {
+  it("opens the configurator when required modifier defaults are missing", async () => {
     getProductConfigMock.mockResolvedValue(requiredModifierProductConfig)
+
+    render(
+      <ThemedToastProvider>
+        <CartProvider>
+          <DealBuilder
+            open
+            onOpenChange={() => undefined}
+            businessSlug="demo"
+            specialId="deal-1"
+          />
+        </CartProvider>
+      </ThemedToastProvider>
+    )
+
+    expect(await screen.findByText("Family Deal")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+
+    expect(await screen.findByText("Allowed variants: large")).toBeInTheDocument()
+    expect(
+      screen.getByText("Deal pricing context: Choose a pizza:fixed_price:24.99")
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Review your deal")).not.toBeInTheDocument()
+  })
+
+  it("quick-adds a deal child when required modifier defaults satisfy validation", async () => {
+    getProductConfigMock.mockResolvedValue(requiredModifierProductConfigWithDefault)
 
     render(
       <ThemedToastProvider>
@@ -593,6 +707,85 @@ describe("DealBuilder", () => {
         optionName: "Thin",
       })
     )
+  })
+
+  it("opens the configurator when a deal quick-add has unused included selections", async () => {
+    getProductConfigMock.mockResolvedValue(buildIncludedToppingProductConfig([]))
+
+    render(
+      <ThemedToastProvider>
+        <CartProvider>
+          <DealBuilder
+            open
+            onOpenChange={() => undefined}
+            businessSlug="demo"
+            specialId="deal-1"
+          />
+        </CartProvider>
+      </ThemedToastProvider>
+    )
+
+    expect(await screen.findByText("Family Deal")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+
+    expect(await screen.findByText("Allowed variants: large")).toBeInTheDocument()
+    expect(screen.queryByText("Review your deal")).not.toBeInTheDocument()
+  })
+
+  it("opens the configurator when a deal quick-add only partially uses included selections", async () => {
+    getProductConfigMock.mockResolvedValue(
+      buildIncludedToppingProductConfig(["pepperoni"])
+    )
+
+    render(
+      <ThemedToastProvider>
+        <CartProvider>
+          <DealBuilder
+            open
+            onOpenChange={() => undefined}
+            businessSlug="demo"
+            specialId="deal-1"
+          />
+        </CartProvider>
+      </ThemedToastProvider>
+    )
+
+    expect(await screen.findByText("Family Deal")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+
+    expect(await screen.findByText("Allowed variants: large")).toBeInTheDocument()
+    expect(screen.queryByText("Review your deal")).not.toBeInTheDocument()
+  })
+
+  it("quick-adds a deal child when defaults use all included selections", async () => {
+    getProductConfigMock.mockResolvedValue(
+      buildIncludedToppingProductConfig(["pepperoni", "mushrooms"])
+    )
+
+    render(
+      <ThemedToastProvider>
+        <CartProvider>
+          <DealBuilder
+            open
+            onOpenChange={() => undefined}
+            businessSlug="demo"
+            specialId="deal-1"
+          />
+        </CartProvider>
+      </ThemedToastProvider>
+    )
+
+    expect(await screen.findByText("Family Deal")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/Allowed variants:/)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Cheese Pizza - Large/).length).toBeGreaterThan(0)
   })
 
   it("loads an existing deal cart item and updates it instead of adding another item", async () => {

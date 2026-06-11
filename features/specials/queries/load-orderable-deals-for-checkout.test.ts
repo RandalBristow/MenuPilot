@@ -103,4 +103,42 @@ describe("mapCheckoutOrderableDeal", () => {
       fixedPrice: null,
     })
   })
+
+  it("excludes temporarily sold-out component products from checkout eligibility", () => {
+    const deal = mapCheckoutOrderableDeal({
+      rawDeal: {
+        ...rawDeal,
+        special_components: [
+          {
+            ...rawDeal.special_components[0],
+            special_component_products: [
+              {
+                ...rawDeal.special_components[0]
+                  .special_component_products[0],
+                products: {
+                  ...rawDeal.special_components[0]
+                    .special_component_products[0].products,
+                  product_operational_availability: [
+                    {
+                      id: "availability-1",
+                      location_id: null,
+                      is_86d: true,
+                      reason: "Sold out",
+                      expires_at: null,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      businessId: "business-1",
+      currentTime: new Date("2026-06-06T12:00:00Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(deal?.components[0]?.allowedProductIds).toEqual([])
+    expect(deal?.components[0]?.allowedProductVariantOptions).toEqual([])
+  })
 })

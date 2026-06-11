@@ -401,6 +401,8 @@ export function DealBuilder({
         allowedVariantOptionIds: product?.allowedVariantOptionIds ?? null,
         modifierIncludedRuleOverrides:
           product?.modifierGroupOverrides ?? null,
+        requireExplicitRequiredModifierDefaults: true,
+        requireSatisfiedIncludedModifierGroups: true,
       })
 
       if (!result) {

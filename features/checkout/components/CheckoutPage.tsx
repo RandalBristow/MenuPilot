@@ -4,10 +4,18 @@ import { useState } from "react";
 import { useCart } from "@/features/cart/context/CartProvider";
 import { getCartSubtotal } from "@/features/cart/utils/cart-items";
 import { createOrder } from "@/features/checkout/actions/create-order";
+import {
+  calculateCheckoutTotals,
+  type CheckoutTotals,
+} from "@/features/checkout/utils/calculate-checkout-totals";
 import { CheckoutForm } from "./CheckoutForm";
 import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
 import { ThemedButton } from "@/components/themed/ThemedButton";
 import Link from "next/link";
+import {
+  DEFAULT_BUSINESS_PRICING_SETTINGS,
+  type BusinessPricingSettings,
+} from "@/lib/pricing/business-pricing-settings";
 
 type CheckoutPageProps = {
   businessSlug?: string | null
@@ -15,6 +23,7 @@ type CheckoutPageProps = {
   locationName?: string | null
   menuHref?: string
   orderBlockedReason?: string | null
+  pricingSettings?: BusinessPricingSettings
 }
 
 export function CheckoutPage({
@@ -23,13 +32,27 @@ export function CheckoutPage({
   locationName = null,
   menuHref = "/menu",
   orderBlockedReason = null,
+  pricingSettings = DEFAULT_BUSINESS_PRICING_SETTINGS,
 }: CheckoutPageProps) {
   const { items, clearCart } = useCart();
   const effectiveOrderBlockedReason = orderBlockedReason;
+  const subtotal = getCartSubtotal(items);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [confirmationTotals, setConfirmationTotals] =
+    useState<CheckoutTotals | null>(null);
+  const estimatedTotals = calculateCheckoutTotals({
+    subtotal,
+    settings: pricingSettings,
+    tipTotal: pricingSettings.tipsEnabled ? tipAmount : 0,
+  });
+  const statusHref =
+    businessSlug && orderNumber
+      ? `/businesses/${encodeURIComponent(businessSlug)}/orders/${encodeURIComponent(orderNumber)}`
+      : null
 
   async function handleSubmit(formData: {
     customerName: string;
@@ -46,6 +69,7 @@ export function CheckoutPage({
         ...formData,
         items,
         businessSlug,
+        tipAmount,
       });
 
       if (!result.ok) {
@@ -55,6 +79,7 @@ export function CheckoutPage({
 
       clearCart();
       setOrderNumber(result.orderNumber);
+      setConfirmationTotals(result.totals ?? estimatedTotals);
     } catch (error) {
       console.error(error);
       setSubmitError(
@@ -72,10 +97,49 @@ export function CheckoutPage({
           <h1 className="text-3xl font-bold">Order placed!</h1>
           <p className="mt-3 text-muted-foreground">Your order number is:</p>
           <p className="mt-4 text-2xl font-bold">{orderNumber}</p>
+          {confirmationTotals ? (
+            <div className="mx-auto mt-5 max-w-xs space-y-2 rounded-lg border p-3 text-sm">
+              {confirmationTotals.discountTotal > 0 ? (
+                <div className="flex justify-between gap-4 text-muted-foreground">
+                  <span>Discounts</span>
+                  <span>-${confirmationTotals.discountTotal.toFixed(2)}</span>
+                </div>
+              ) : null}
+              {confirmationTotals.serviceFeeTotal > 0 ? (
+                <div className="flex justify-between gap-4 text-muted-foreground">
+                  <span>Service fee</span>
+                  <span>${confirmationTotals.serviceFeeTotal.toFixed(2)}</span>
+                </div>
+              ) : null}
+              {confirmationTotals.taxTotal > 0 ? (
+                <div className="flex justify-between gap-4 text-muted-foreground">
+                  <span>Tax</span>
+                  <span>${confirmationTotals.taxTotal.toFixed(2)}</span>
+                </div>
+              ) : null}
+              {confirmationTotals.tipTotal > 0 ? (
+                <div className="flex justify-between gap-4 text-muted-foreground">
+                  <span>Tip</span>
+                  <span>${confirmationTotals.tipTotal.toFixed(2)}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4 border-t pt-2 font-semibold">
+                <span>Total</span>
+                <span>${confirmationTotals.total.toFixed(2)}</span>
+              </div>
+            </div>
+          ) : null}
 
-          <ThemedButton asChild className="mt-6">
-            <Link href={menuHref}>Back to Menu</Link>
-          </ThemedButton>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            {statusHref ? (
+              <ThemedButton asChild>
+                <Link href={statusHref}>View order status</Link>
+              </ThemedButton>
+            ) : null}
+            <ThemedButton asChild variant="outline">
+              <Link href={menuHref}>Back to Menu</Link>
+            </ThemedButton>
+          </div>
         </div>
       </main>
     );
@@ -135,7 +199,11 @@ export function CheckoutPage({
 
           <CheckoutOrderSummary
             items={items}
-            subtotal={getCartSubtotal(items)}
+            subtotal={subtotal}
+            totals={estimatedTotals}
+            pricingSettings={pricingSettings}
+            tipAmount={tipAmount}
+            onTipAmountChange={setTipAmount}
           />
         </div>
       </div>

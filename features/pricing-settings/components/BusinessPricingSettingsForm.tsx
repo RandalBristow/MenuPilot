@@ -54,6 +54,7 @@ export function BusinessPricingSettingsForm({
   const isSubmittingRef = useRef(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [serviceFeeType, setServiceFeeType] = useState(settings.serviceFeeType)
 
   async function handleSubmit(formData: FormData) {
     if (isSubmittingRef.current) return
@@ -118,6 +119,63 @@ export function BusinessPricingSettingsForm({
         Pizza half-topping charges use floor-to-cent rounding after placement
         weight and multiplier are applied.
       </p>
+
+      <div className="grid gap-3 border-t pt-3 sm:grid-cols-2">
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">Sales tax rate %</span>
+          <input
+            name="salesTaxRatePercent"
+            type="number"
+            min="0"
+            step="0.0001"
+            defaultValue={settings.salesTaxRatePercent}
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          />
+        </label>
+
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">Service fee type</span>
+          <select
+            name="serviceFeeType"
+            value={serviceFeeType}
+            onChange={(event) =>
+              setServiceFeeType(
+                event.target.value as typeof settings.serviceFeeType
+              )
+            }
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="none">No service fee</option>
+            <option value="fixed">Fixed amount</option>
+            <option value="percentage">Percentage</option>
+          </select>
+        </label>
+
+        {serviceFeeType !== "none" ? (
+          <label className="space-y-1 text-sm sm:col-span-2">
+            <span className="font-medium">
+              Service fee {serviceFeeType === "percentage" ? "%" : "amount"}
+            </span>
+            <input
+              name="serviceFeeValue"
+              type="number"
+              min="0"
+              step={serviceFeeType === "percentage" ? "0.0001" : "0.01"}
+              defaultValue={settings.serviceFeeValue}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            />
+          </label>
+        ) : (
+          <input type="hidden" name="serviceFeeValue" value="0" />
+        )}
+      </div>
+
+      <CheckboxSetting
+        name="tipsEnabled"
+        label="Enable checkout tips"
+        description="Checkout shows no tip plus 10%, 15%, and 20% preset tip options."
+        checked={settings.tipsEnabled}
+      />
 
       <div className="flex justify-end">
         <ThemedButton

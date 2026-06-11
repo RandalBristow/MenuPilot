@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
-import { applyMenuBusinessScope, isSetupBusiness } from "./get-menu"
+import {
+  applyMenuBusinessScope,
+  applyMenuOperationalAvailability,
+  isSetupBusiness,
+} from "./get-menu"
 
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {},
@@ -114,5 +118,79 @@ describe("menu tenant scoping", () => {
   it("identifies setup businesses for public preview messaging", () => {
     expect(isSetupBusiness({ status: "setup" })).toBe(true)
     expect(isSetupBusiness({ status: "active" })).toBe(false)
+  })
+
+  it("removes active temporarily sold-out products from public menu results", () => {
+    const menu = {
+      id: "menu-a",
+      menu_groups: [
+        {
+          id: "group-a",
+          product_groups: [
+            {
+              id: "product-group-a",
+              products: businessAProduct,
+            },
+          ],
+        },
+      ],
+    }
+
+    const result = applyMenuOperationalAvailability({
+      menu,
+      productAvailabilityRecords: new Map([
+        [
+          "product-a",
+          [
+            {
+              locationId: null,
+              is86d: true,
+              reason: "Out of dough",
+              expiresAt: null,
+            },
+          ],
+        ],
+      ]),
+      currentTime: new Date("2026-06-10T12:00:00Z"),
+    })
+
+    expect(result.menu_groups[0]?.product_groups).toHaveLength(0)
+  })
+
+  it("keeps products visible after a temporary sold-out override expires", () => {
+    const menu = {
+      id: "menu-a",
+      menu_groups: [
+        {
+          id: "group-a",
+          product_groups: [
+            {
+              id: "product-group-a",
+              products: businessAProduct,
+            },
+          ],
+        },
+      ],
+    }
+
+    const result = applyMenuOperationalAvailability({
+      menu,
+      productAvailabilityRecords: new Map([
+        [
+          "product-a",
+          [
+            {
+              locationId: null,
+              is86d: true,
+              reason: null,
+              expiresAt: "2026-06-10T11:00:00Z",
+            },
+          ],
+        ],
+      ]),
+      currentTime: new Date("2026-06-10T12:00:00Z"),
+    })
+
+    expect(result.menu_groups[0]?.product_groups).toHaveLength(1)
   })
 })

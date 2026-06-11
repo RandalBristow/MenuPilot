@@ -3,6 +3,7 @@ import type {
   ModifierCategory,
   RawModifierGroup,
 } from "@/features/admin-modifiers/components/ModifiersCategoryBrowser"
+import { resolveOperationalAvailability } from "@/features/availability/utils/resolve-operational-availability"
 import {
   type ModifierAdminBusinessContextInput,
   resolveModifierAdminBusinessContext,
@@ -15,6 +16,14 @@ type RawModifierCategory = {
   sort_order: number
   is_enabled: boolean
   modifier_groups: RawModifierGroup[] | null
+}
+
+type RawModifierOptionOperationalAvailability = {
+  id: string
+  location_id: string | null
+  is_86d: boolean
+  reason: string | null
+  expires_at: string | null
 }
 
 function sortBySortOrder<T extends { sort_order: number; name: string }>(
@@ -42,7 +51,33 @@ function mapCategory(category: RawModifierCategory) {
         modifier_option_groups: sortBySortOrder(
           group.modifier_option_groups ?? []
         ),
-        modifier_options: sortBySortOrder(group.modifier_options ?? []),
+        modifier_options: sortBySortOrder(group.modifier_options ?? []).map(
+          (option) => {
+            const optionWithAvailability = option as typeof option & {
+              modifier_option_operational_availability?:
+                | RawModifierOptionOperationalAvailability[]
+                | null
+            }
+
+            return {
+              ...option,
+              operationalAvailability: resolveOperationalAvailability({
+                isPermanentlyEnabled: option.is_enabled,
+                currentTime: new Date(),
+                overrides: (
+                  optionWithAvailability.modifier_option_operational_availability ??
+                  []
+                ).map((override) => ({
+                  id: override.id,
+                  locationId: override.location_id,
+                  is86d: override.is_86d,
+                  reason: override.reason,
+                  expiresAt: override.expires_at,
+                })),
+              }),
+            }
+          }
+        ),
       })
     ),
   }
@@ -88,7 +123,14 @@ export async function getModifierAdminData(
           price_delta,
           modifier_option_group_id,
           sort_order,
-          is_enabled
+          is_enabled,
+          modifier_option_operational_availability (
+            id,
+            location_id,
+            is_86d,
+            reason,
+            expires_at
+          )
         )
       )
     `

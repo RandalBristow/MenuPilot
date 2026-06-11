@@ -35,6 +35,20 @@ export function formatPublicSpecialDiscount(special: Pick<
   return `${formatMoney(special.discountValue)} off`
 }
 
+export function getPublicSpecialTypeLabel(
+  special: Pick<PublicSpecial, "specialType">
+) {
+  if (special.specialType === "orderable_deal") return "Deal"
+  if (special.specialType === "mix_and_match_fixed_unit_price") {
+    return "Mix & Match"
+  }
+  if (special.specialType === "cart_discount") return "Cart discount"
+  if (special.specialType === "line_discount") return "Line discount"
+  if (special.specialType === "fixed_price_line") return "Fixed-price item"
+
+  return "Discount"
+}
+
 export function getPublicSpecialEligibilitySummary(
   special: Pick<PublicSpecial, "specialType" | "minOrderAmount" | "mixRule" | "mixProductCount">
 ) {
@@ -70,6 +84,28 @@ export function getPublicSpecialEligibilitySummary(
   }
 
   return "Applies to eligible menu items."
+}
+
+export function isPublicBuildableSpecial(
+  special: Pick<PublicSpecial, "specialType">
+) {
+  return (
+    special.specialType === "orderable_deal" ||
+    special.specialType === "mix_and_match_fixed_unit_price"
+  )
+}
+
+export function getPublicSpecialCallout(
+  special: Pick<
+    PublicSpecial,
+    "specialType" | "minOrderAmount" | "mixRule" | "mixProductCount"
+  >
+) {
+  if (isPublicBuildableSpecial(special)) {
+    return getPublicSpecialEligibilitySummary(special)
+  }
+
+  return "Applied automatically at checkout."
 }
 
 function hasLineEligibilityRows(special: PublicSpecial) {

@@ -1,6 +1,6 @@
 # MenuPilot Roadmap
 
-_Last updated: 2026-06-08_
+_Last updated: 2026-06-11_
 
 This document records the current agreed order of work and future architecture decisions so they are not re-decided during later implementation.
 
@@ -33,12 +33,13 @@ Engineering hardening to track:
 Launch-critical restaurant operations:
 
 - [ ] Add dietary/allergen flags for product safety and customer filtering.
-- [ ] Add quick 86 / temporarily sold out controls for staff-friendly temporary unavailability.
-- [ ] Add customer-facing order status page that exposes only safe order/status details.
+- [~] Add quick 86 / temporarily sold out controls for staff-friendly temporary unavailability. Schema, resolver, tenant admin business-wide product/Modifier Option toggles, public menu/builder filtering, DealBuilder/Mix choice filtering, and checkout rejection exist; staff/location-specific workflows remain.
+- [x] Add customer-facing order status page that exposes only safe order/status details. Realtime/SMS/account lookup remain deferred.
 - [ ] Make staff order updates realtime before launch; staff should not depend on manual refresh.
 - [ ] Add staff-entered / phone orders.
 - [ ] Make customer/order notes prominent in staff order views.
 - [ ] Make checkout order creation transactional before payments/production.
+- [x] Add basic business-level checkout tax, service fee, and tip totals with order snapshots. Advanced jurisdictions, per-location rules, configurable tip presets, custom tips, and payments remain deferred.
 
 V1 customer experience:
 
@@ -147,9 +148,13 @@ Schema foundation completed:
 - [x] Tenant-scoped reusable Admin Modifier Library routes/actions exist for Modifier Categories, Modifier Groups, Modifier Option Groups/Lists, Modifier Options, safe deletes, option moves, and modifier option overrides reached from modifier detail pages.
 - [x] Tenant-scoped Admin Media route/actions exist for media reads, uploads, URL imports, metadata edits, and selected-business storage paths.
 - [x] Tenant-scoped public menu route exists at `/businesses/[businessSlug]/menu`; legacy `/menu` remains pointed at `pronto-demo`.
+- [x] Tenant-scoped public Specials & Deals route exists at `/businesses/[businessSlug]/specials`; menu pages link to it from the header and Current Specials preview.
 - [x] Business-scoped checkout route exists at `/businesses/[businessSlug]/checkout`; legacy `/checkout` remains pointed at Pronto Demo/main-street.
+- [x] Customer-facing order status route exists at `/businesses/[businessSlug]/orders/[orderNumber]`; tenant checkout confirmation links to it after successful order creation.
 - [x] Location-scoped staff order route exists at `/businesses/[businessSlug]/locations/[locationSlug]/orders`; legacy `/staff/orders` remains pointed at Pronto Demo/main-street.
-- [x] Business-level pizza half-topping pricing settings exist and are editable from Platform Admin business detail and the tenant admin shell.
+- [x] Business-level pizza half-topping pricing settings and basic checkout tax/service/tip settings exist and are editable from Platform Admin business detail and the tenant admin shell.
+- [x] Quick 86 / temporarily sold out foundation exists for products and Modifier Options. Temporary operational overrides are stored separately from permanent enable/disable and can be toggled business-wide from tenant Product Admin and Modifier Library rows.
+- [x] Quick 86 public runtime enforcement exists for active business-wide overrides. Public menus hide sold-out products, builders block/filter sold-out products/options, orderable deal and Mix choice loaders exclude sold-out products, and checkout rejects stale sold-out products/options server-side.
 
 MVP should support:
 
@@ -181,7 +186,8 @@ Platform Admin business context/switcher direction:
 - Product Admin routes under `/businesses/[businessSlug]/admin/products...` support product-owned reads/writes, including core products, category/subcategory, reusable variants, product variant assignments/overrides, product Modifier Group assignments, included/default modifiers, and variant-specific modifier availability/price rules.
 - Admin Modifier Library routes under `/businesses/[businessSlug]/admin/modifiers...` support business-scoped reusable modifier reads/writes. Legacy `/admin/modifiers...` remains demo-scoped.
 - Admin Media route `/businesses/[businessSlug]/admin/media` supports business-scoped media reads/writes/uploads/imports. Legacy `/admin/media` remains demo-scoped.
-- Public menu route `/businesses/[businessSlug]/menu` supports business-scoped menu reads and product configurator loading. Legacy `/menu` remains demo-scoped for compatibility.
+- Public menu route `/businesses/[businessSlug]/menu` supports business-scoped menu reads, product configurator loading, and a link to the selected business's Specials & Deals page. Legacy `/menu` remains demo-scoped for compatibility.
+- Public Specials & Deals route `/businesses/[businessSlug]/specials` supports business-scoped active passive specials, orderable deal build actions, and Mix & Match build actions.
 - Checkout route `/businesses/[businessSlug]/checkout` resolves the business and deterministic default location, blocks setup/inactive/non-orderable contexts, rejects cross-tenant carts, and preserves legacy `/checkout` for demo compatibility.
 - Platform Admin business detail controls activation: businesses support `setup`, `active`, `paused`, and `archived`; locations support the same status values plus enabled, accepting orders, pickup, and delivery flags. Checkout requires active/orderable business and location state.
 - Fresh businesses need a business-level `Main Menu` row before product categories can be created. Platform Admin creates it during onboarding, and the category/subcategory save path repairs existing fresh tenants that are missing it.
@@ -225,7 +231,7 @@ Schema foundation completed:
 - [x] Checkout integration applies Specials after configured-product pricing and writes `order_discounts` snapshots.
 - [x] Staff/order display shows subtotal, discount total, final total, and applied discount snapshots when discounts exist.
 - [x] Tenant-scoped Specials Admin UI exists for create/edit, enable/disable, eligibility, date ranges, recurring windows, and expired-special reuse.
-- [x] Public menu specials display exists for active Current Specials and eligible product badges.
+- [x] Public menu specials display exists for active Current Specials, eligible product badges, and a View all specials link.
 - [x] Orderable deal schema/type foundation exists for future `orderable_deal` Specials, deal components, and exact selectable component products.
 - [x] Pure orderable deal validation/pricing helper exists for already-priced proposed deal selections.
 - [x] Cart type/context/display support exists for nested orderable deal parent items with component child product snapshots.
@@ -240,6 +246,7 @@ Schema foundation completed:
 - [ ] Coupon UI is pending.
 - [ ] BundleBuilder/ComboBuilder remains deferred.
 - [x] Mix-and-match fixed unit price deals have schema/type foundation, tenant-scoped admin editing, pure validation/pricing helper, public builder runtime, cart parent/child display, checkout validation, nested order snapshots, and staff nested display.
+- [x] Tenant-scoped public Specials & Deals page exists for active passive specials, orderable deals, and Mix & Match deals.
 
 Specials should eventually support:
 
@@ -272,7 +279,7 @@ MVP sequencing:
 4. [x] Checkout validation/order snapshot support for orderable deals.
 5. [x] Staff display for nested deal items.
 6. [x] Specials Admin component UI.
-7. Public menu orderable deal cards/polish.
+7. [x] Public menu/orderable deal cards and tenant-scoped Specials & Deals page.
 8. Rich cart passive-special preview.
 9. Optional coupon code support.
 
@@ -295,7 +302,7 @@ Planned Specials / Deals backlog:
 - [ ] `discounted_add_on`.
 - [ ] `coupon_code`.
 - [ ] Usage limits: one per order, limited total redemptions, location-specific, fulfillment-specific carryout/delivery.
-- [ ] Tax/discount ordering.
+- [x] Basic checkout tax/discount ordering: passive discounts apply before tax; service fee and tip are composed after discounted subtotal. Complex tax jurisdiction behavior remains deferred.
 - [ ] Customer/account-specific promos.
 
 Recommended next Specials build:
@@ -303,6 +310,12 @@ Recommended next Specials build:
 - Build cart edit/reconfigure behavior for orderable deals and Mix-and-Match deals after checkout/order/staff regression is manually verified.
 - Regression-test orderable deal component pricing modes through public build, checkout, order snapshots, and staff display.
 - Do not build BOGO, coupon UI, usage limits, free-item rewards, side components, or category/subcategory component eligibility until explicitly requested.
+
+Recommended next operational availability build:
+
+- Add staff/location-friendly controls and location-scoped runtime enforcement. Location-specific overrides should take precedence over business-wide overrides.
+- Add optional realtime/customer refresh behavior after runtime enforcement and staff controls are stable.
+- Keep Quick 86 separate from permanent admin enable/disable.
 
 ## Product Setup Warnings
 

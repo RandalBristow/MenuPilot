@@ -9,6 +9,9 @@ import { CompactRecordRow } from "@/components/themed/CompactRecordRow"
 import { CompactRecordStatusIcon } from "@/components/themed/CompactRecordStatusIcon"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
+import { setProductOperationalAvailability } from "@/features/availability/actions/set-product-operational-availability"
+import { OperationalAvailabilityToggle } from "@/features/availability/components/OperationalAvailabilityToggle"
+import type { OperationalAvailabilityResolution } from "@/features/availability/types/operational-availability"
 import { DuplicateProductDialog } from "@/features/admin-products/components/DuplicateProductDialog"
 import {
   getProductAdminHref,
@@ -26,6 +29,7 @@ export type AdminProduct = {
   builder_template: string
   has_variants: boolean
   is_enabled: boolean
+  operationalAvailability?: OperationalAvailabilityResolution | null
 }
 
 export type AdminProductGroup = {
@@ -194,9 +198,33 @@ export function AdminProductsBrowser({
                                   enabled={product.is_enabled}
                                 />
                               }
-                              description={product.description}
+                              description={
+                                product.operationalAvailability?.is86d
+                                  ? `Temporarily sold out${
+                                      product.operationalAvailability.reason
+                                        ? `: ${product.operationalAvailability.reason}`
+                                        : ""
+                                    }`
+                                  : product.description
+                              }
+                              metadata={
+                                product.operationalAvailability?.is86d &&
+                                product.description
+                                  ? product.description
+                                  : null
+                              }
                               rightAction={
                                 <>
+                                  <OperationalAvailabilityToggle
+                                    action={setProductOperationalAvailability}
+                                    itemIdField="productId"
+                                    itemId={product.id}
+                                    itemName={product.name}
+                                    businessSlug={businessSlug}
+                                    is86d={Boolean(
+                                      product.operationalAvailability?.is86d
+                                    )}
+                                  />
                                   <ThemedButton
                                     type="button"
                                     size="sm"

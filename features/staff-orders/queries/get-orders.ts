@@ -72,6 +72,9 @@ type RawOrder = {
   payment_status: string
   subtotal: number | string
   discount_total: number | string
+  tax_total: number | string
+  tip_total: number | string
+  charge_total: number | string
   total: number | string
   created_at: string
   order_items: RawOrderItem[] | null
@@ -186,6 +189,9 @@ function mapOrder(order: RawOrder): StaffOrder {
     paymentStatus: order.payment_status,
     subtotal: toNumber(order.subtotal),
     discountTotal: toNumber(order.discount_total),
+    serviceFeeTotal: toNumber(order.charge_total),
+    taxTotal: toNumber(order.tax_total),
+    tipTotal: toNumber(order.tip_total),
     total: toNumber(order.total),
     createdAt: order.created_at,
     items: mappedItems.filter((item) => item.parentOrderItemId == null),
@@ -247,6 +253,9 @@ export async function getRecentStaffOrdersForScope({
       payment_status,
       subtotal,
       discount_total,
+      tax_total,
+      tip_total,
+      charge_total,
       total,
       created_at,
       order_discounts (

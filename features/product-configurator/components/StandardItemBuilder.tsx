@@ -509,7 +509,7 @@ export function StandardItemBuilder({
                     <span className="font-medium">{variant.name}</span>
                     <span className="text-sm font-semibold">
                       {dealComponentPricingContext?.displayPricingContext
-                        ? `Normally $${Number(variant.base_price).toFixed(2)}`
+                        ? ""
                         : `$${Number(variant.base_price).toFixed(2)}`}
                     </span>
                   </button>

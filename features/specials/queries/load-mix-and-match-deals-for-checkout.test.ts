@@ -76,4 +76,34 @@ describe("mapCheckoutMixAndMatchDeal", () => {
       ],
     })
   })
+
+  it("excludes temporarily sold-out pool products from checkout eligibility", () => {
+    const deal = mapCheckoutMixAndMatchDeal({
+      rawDeal: {
+        ...rawDeal,
+        special_mix_match_products: [
+          {
+            ...rawDeal.special_mix_match_products[0],
+            products: {
+              ...rawDeal.special_mix_match_products[0].products,
+              product_operational_availability: [
+                {
+                  id: "availability-1",
+                  location_id: null,
+                  is_86d: true,
+                  reason: "Sold out",
+                  expires_at: null,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      businessId: "business-1",
+      currentTime: new Date("2026-06-08T12:00:00.000Z"),
+      timeZone: "America/New_York",
+    })
+
+    expect(deal?.poolProducts).toEqual([])
+  })
 })

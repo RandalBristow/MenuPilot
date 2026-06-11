@@ -20,7 +20,9 @@ All normal product types use this path:
 
 Pricing remains centralized through `priceConfiguredProduct` in active builders and checkout validation. Legacy `/checkout` and `/staff/orders` remain Pronto Demo/main-street; scoped `/businesses/[businessSlug]/checkout` validates business/location orderability and rejects cross-tenant carts, and scoped staff orders filter by selected business/location. Platform Admin activation controls manage the business/location status and ordering flags that checkout uses. Staff order display now reads Specials discount snapshots and shows subtotal/discount/total only when discounts exist. Orderable Specials deals can checkout through parent/child order item snapshots; passive specials do not apply to deal items in MVP. Deal component modifier included-count overrides apply only to the child product inside that deal component and do not change normal product setup.
 
-Product Modifier Assignments warn when default selected modifier options exceed included selections for the assigned Modifier Group. The warning is informational only; defaults still consume included selections and pricing remains centralized in `priceConfiguredProduct`.
+Product Modifier Assignments warn when default selected modifier options exceed included selections for the assigned Modifier Group. The warning is informational only; defaults still consume included selections and pricing remains centralized in `priceConfiguredProduct`. Customer builders hydrate valid product defaults as selected state. DealBuilder quick Add to Deal uses those real defaults only; it opens the configurator when required defaults are missing or included allowances remain under-selected.
+
+Quick 86 / temporarily sold out has schema, shared resolution, tenant admin business-wide product/Modifier Option toggles, public menu hiding, builder filtering, DealBuilder/Mix child choice filtering, and checkout rejection for active business-wide overrides. Staff/location workflows and realtime customer refresh remain deferred.
 
 Mix & Match specials can be built from the public menu, added to cart as one nested parent item with child selections, checked out through server-authoritative validation, persisted as nested parent/child order item snapshots, and displayed in staff orders.
 
@@ -66,6 +68,9 @@ placement weight and multiplier are applied.
 - [ ] Combo/future product: opens unsupported message and does not allow add to cart.
 - [ ] Platform activation: setup/paused business or location blocks scoped checkout; active business plus active/enabled/accepting/pickup location allows scoped checkout with a valid cart.
 - [ ] Default modifier warning: 5 default toppings with 0 included selections shows a warning; setting included selections to 5 removes it.
+- [ ] Product defaults in builders: crust/sauce/required defaults are preselected and satisfy required validation when valid.
+- [ ] Quick 86 runtime: temporarily sold-out products/options are hidden or clearly blocked in menu/builders and rejected by checkout.
+- [ ] Deal quick add defaults: Add to Deal quick-adds only when real defaults satisfy required groups and included allowances; Build Your Own with 2 included toppings and 0 or 1 defaults opens the configurator first.
 - [ ] Public specials display: active specials appear in Current Specials, eligible line/fixed-price products show a badge, and disabled/expired/future/inactive-now specials stay hidden.
 - [ ] Specials staff display: no-discount order stays compact; discounted order shows subtotal, discount total, final total, and applied special name.
 - [ ] Orderable deal checkout: build active deal, checkout successfully, confirm parent/child staff display, and confirm passive discounts do not discount the deal item.

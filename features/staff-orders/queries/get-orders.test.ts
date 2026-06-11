@@ -15,6 +15,9 @@ type TestRawOrder = {
   payment_status: string
   subtotal: number | string
   discount_total: number | string
+  tax_total: number | string
+  tip_total: number | string
+  charge_total: number | string
   total: number | string
   created_at: string
   order_items: Array<{
@@ -57,6 +60,9 @@ function buildDefaultOrders(): TestRawOrder[] {
       payment_status: "unpaid",
       subtotal: "12.50",
       discount_total: "0",
+      tax_total: "0",
+      tip_total: "0",
+      charge_total: "0",
       total: "12.50",
       created_at: "2026-06-05T12:00:00.000Z",
       order_items: [],
@@ -201,6 +207,9 @@ describe("staff order queries", () => {
       orderNumber: "MP-1",
       subtotal: 12.5,
       discountTotal: 0,
+      serviceFeeTotal: 0,
+      taxTotal: 0,
+      tipTotal: 0,
       total: 12.5,
       discounts: [],
       orderLevelDiscounts: [],
@@ -223,6 +232,9 @@ describe("staff order queries", () => {
         payment_status: "unpaid",
         subtotal: "29.98",
         discount_total: "5.00",
+        tax_total: "1.50",
+        tip_total: "2.00",
+        charge_total: "1.00",
         total: "24.98",
         created_at: "2026-06-05T12:00:00.000Z",
         order_items: [
@@ -263,6 +275,9 @@ describe("staff order queries", () => {
     expect(orders[0]).toMatchObject({
       subtotal: 29.98,
       discountTotal: 5,
+      serviceFeeTotal: 1,
+      taxTotal: 1.5,
+      tipTotal: 2,
       total: 24.98,
       discounts: [
         {
@@ -307,6 +322,9 @@ describe("staff order queries", () => {
         payment_status: "unpaid",
         subtotal: "15.98",
         discount_total: "0",
+        tax_total: "0",
+        tip_total: "0",
+        charge_total: "0",
         total: "15.98",
         created_at: "2026-06-05T12:00:00.000Z",
         order_items: [

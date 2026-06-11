@@ -127,6 +127,7 @@ describe("MenuPage", () => {
     render(
       <MenuPage
         businessName="Pronto Demo Pizza & Carryout"
+        businessSlug="pronto-demo"
         menu={menu}
         activeSpecials={[
           buildSpecial({
@@ -141,10 +142,32 @@ describe("MenuPage", () => {
 
     expect(screen.getByText("Current Specials")).toBeInTheDocument()
     expect(screen.getByText("Family Night")).toBeInTheDocument()
-    expect(screen.getByText("$5.00 off")).toBeInTheDocument()
+    expect(screen.getByText("Cart discount")).toBeInTheDocument()
     expect(
       screen.getByText("Save on selected pizzas.")
     ).toBeInTheDocument()
+    expect(
+      screen.getByText("Applied automatically at checkout.")
+    ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "View all specials" }))
+      .toHaveAttribute("href", "/businesses/pronto-demo/specials")
+  })
+
+  it("shows a tenant Specials header link and Platform Admin footer link", () => {
+    render(
+      <MenuPage
+        businessName="Pronto Demo Pizza & Carryout"
+        businessSlug="pronto-demo"
+        menu={menu}
+      />
+    )
+
+    expect(screen.getByRole("link", { name: "Specials" })).toHaveAttribute(
+      "href",
+      "/businesses/pronto-demo/specials"
+    )
+    expect(screen.getByRole("link", { name: "Platform Admin" }))
+      .toHaveAttribute("href", "/platform")
   })
 
   it("shows product badges for eligible line specials", () => {
@@ -203,7 +226,7 @@ describe("MenuPage", () => {
     )
 
     expect(screen.getByText("Family Deal")).toBeInTheDocument()
-    expect(screen.getByText("Deal $24.99")).toBeInTheDocument()
+    expect(screen.getByText("Deal")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Build Deal" }))
 

@@ -276,9 +276,13 @@ function StaffOrderChildItem({ item }: { item: StaffOrderItem }) {
 }
 
 function OrderTotals({ order }: { order: StaffOrder }) {
-  const hasDiscount = order.discountTotal > 0
+  const hasAdjustment =
+    order.discountTotal > 0 ||
+    order.serviceFeeTotal > 0 ||
+    order.taxTotal > 0 ||
+    order.tipTotal > 0
 
-  if (!hasDiscount) return null
+  if (!hasAdjustment) return null
 
   return (
     <div className="flex justify-end text-sm">
@@ -287,10 +291,30 @@ function OrderTotals({ order }: { order: StaffOrder }) {
           <span>Subtotal</span>
           <span>{formatMoney(order.subtotal)}</span>
         </div>
-        <div className="flex items-center justify-between gap-6 text-success">
-          <span>Discounts</span>
-          <span>-{formatMoney(order.discountTotal)}</span>
-        </div>
+        {order.discountTotal > 0 ? (
+          <div className="flex items-center justify-between gap-6 text-success">
+            <span>Discounts</span>
+            <span>-{formatMoney(order.discountTotal)}</span>
+          </div>
+        ) : null}
+        {order.serviceFeeTotal > 0 ? (
+          <div className="flex items-center justify-between gap-6 text-muted-foreground">
+            <span>Service fee</span>
+            <span>{formatMoney(order.serviceFeeTotal)}</span>
+          </div>
+        ) : null}
+        {order.taxTotal > 0 ? (
+          <div className="flex items-center justify-between gap-6 text-muted-foreground">
+            <span>Tax</span>
+            <span>{formatMoney(order.taxTotal)}</span>
+          </div>
+        ) : null}
+        {order.tipTotal > 0 ? (
+          <div className="flex items-center justify-between gap-6 text-muted-foreground">
+            <span>Tip</span>
+            <span>{formatMoney(order.tipTotal)}</span>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-6 border-t pt-1 font-semibold">
           <span>Total</span>
           <span>{formatMoney(order.total)}</span>

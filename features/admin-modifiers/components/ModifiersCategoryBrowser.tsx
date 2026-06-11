@@ -17,6 +17,7 @@ import {
 } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
+import type { OperationalAvailabilityResolution } from "@/features/availability/types/operational-availability"
 
 export type RawModifierOptionGroup = {
   id: string
@@ -33,6 +34,7 @@ export type RawModifierOption = {
   modifier_option_group_id: string | null
   sort_order: number
   is_enabled: boolean
+  operationalAvailability?: OperationalAvailabilityResolution | null
 }
 
 export type RawModifierGroup = {

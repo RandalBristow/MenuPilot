@@ -1,6 +1,10 @@
 import { supabase } from "@/lib/supabase/client"
 import type { PublicMixAndMatchDeal } from "@/features/specials/types/mix-and-match-deal"
 import { isSpecialCurrentlyEligible } from "@/features/specials/utils/special-schedule"
+import {
+  resolveOperationalAvailabilityForRecords,
+  type RawOperationalAvailabilityRecord,
+} from "@/features/availability/utils/operational-availability-records"
 
 type RawMixProduct = {
   id: string
@@ -11,6 +15,7 @@ type RawMixProduct = {
   builder_template: string | null
   has_variants: boolean
   is_enabled: boolean
+  product_operational_availability?: RawOperationalAvailabilityRecord[] | null
   image_media_id?: string | null
   media_assets?:
     | {
@@ -207,7 +212,19 @@ export function mapPublicMixAndMatchDeal({
         } =>
           row.product !== null &&
           row.product.business_id === rawDeal.business_id &&
-          row.product.is_enabled
+          resolveOperationalAvailabilityForRecords({
+            isPermanentlyEnabled: row.product.is_enabled,
+            records: (row.product.product_operational_availability ?? []).map(
+              (record) => ({
+                id: record.id,
+                locationId: record.location_id ?? null,
+                is86d: record.is_86d,
+                reason: record.reason,
+                expiresAt: record.expires_at,
+              })
+            ),
+            currentTime,
+          }).isOperationallyAvailable
       )
       .sort(
         (first, second) =>
@@ -294,6 +311,13 @@ export async function loadPublicMixAndMatchDeal({
           is_enabled,
           business_id,
           image_media_id,
+          product_operational_availability (
+            id,
+            location_id,
+            is_86d,
+            reason,
+            expires_at
+          ),
           media_assets (
             id,
             public_url,

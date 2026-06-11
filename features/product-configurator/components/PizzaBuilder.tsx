@@ -583,7 +583,7 @@ export function PizzaBuilder({
 
                       <span className="text-sm font-semibold">
                         {dealComponentPricingContext?.displayPricingContext
-                          ? `Normally $${Number(variant.base_price).toFixed(2)}`
+                          ? ""
                           : `$${Number(variant.base_price).toFixed(2)}`}
                       </span>
                     </Label>

@@ -4,6 +4,10 @@ import type {
   PublicOrderableDeal,
 } from "@/features/specials/types/orderable-deal"
 import { isSpecialCurrentlyEligible } from "@/features/specials/utils/special-schedule"
+import {
+  resolveOperationalAvailabilityForRecords,
+  type RawOperationalAvailabilityRecord,
+} from "@/features/availability/utils/operational-availability-records"
 
 type RawDealProduct = {
   id: string
@@ -14,6 +18,7 @@ type RawDealProduct = {
   has_variants: boolean
   is_enabled: boolean
   business_id: string
+  product_operational_availability?: RawOperationalAvailabilityRecord[] | null
   image_media_id?: string | null
   media_assets?:
     | {
@@ -225,7 +230,19 @@ export function mapPublicOrderableDeal({
             } =>
               row.product !== null &&
               row.product.business_id === rawDeal.business_id &&
-              row.product.is_enabled
+              resolveOperationalAvailabilityForRecords({
+                isPermanentlyEnabled: row.product.is_enabled,
+                records: (
+                  row.product.product_operational_availability ?? []
+                ).map((record) => ({
+                  id: record.id,
+                  locationId: record.location_id ?? null,
+                  is86d: record.is_86d,
+                  reason: record.reason,
+                  expiresAt: record.expires_at,
+                })),
+                currentTime,
+              }).isOperationallyAvailable
           )
           .sort(
             (first, second) =>
@@ -319,6 +336,13 @@ export async function loadPublicOrderableDeal({
             is_enabled,
             business_id,
             image_media_id,
+            product_operational_availability (
+              id,
+              location_id,
+              is_86d,
+              reason,
+              expires_at
+            ),
             media_assets (
               id,
               public_url,

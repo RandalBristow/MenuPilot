@@ -1,6 +1,6 @@
 # Routes
 
-_Last updated: 2026-06-06_
+_Last updated: 2026-06-10_
 
 Status values:
 
@@ -17,13 +17,15 @@ Status values:
 | `/menu` | current | Legacy customer-facing menu and product configuration entry point for the seeded `pronto-demo` business. |
 | `/businesses/[businessSlug]` | current | Tenant-scoped storefront landing page for a business. Links to the scoped menu, shows storefront/orderability status, and only shows checkout when the default location is orderable. |
 | `/businesses/[businessSlug]/menu` | current | Tenant-scoped public menu route. Active businesses show normally; setup businesses show preview messaging with customer ordering actions disabled. |
+| `/businesses/[businessSlug]/specials` | current | Tenant-scoped public Specials & Deals page. Shows active passive specials, orderable deals, and Mix & Match deals for the selected business; buildable deals open the public builders, while passive specials note that checkout applies them automatically. |
+| `/businesses/[businessSlug]/orders/[orderNumber]` | current | Customer-facing order status page for a placed order. Looks up by business slug and order number, shows safe order/status/summary details, and does not expose internal IDs, payment data, or private lookup fields. |
 
 ## Checkout
 
 | Route | Status | Purpose |
 | --- | --- | --- |
 | `/checkout` | current | Legacy pickup checkout flow for Pronto Demo/main-street. |
-| `/businesses/[businessSlug]/checkout` | current | Tenant-scoped checkout using the selected business and deterministic default location. Blocks setup/inactive/non-orderable contexts and rejects cross-tenant carts. |
+| `/businesses/[businessSlug]/checkout` | current | Tenant-scoped checkout using the selected business and deterministic default location. Blocks setup/inactive/non-orderable contexts, rejects cross-tenant carts, and links successful orders to the scoped customer order status route. |
 
 ## Staff Orders
 

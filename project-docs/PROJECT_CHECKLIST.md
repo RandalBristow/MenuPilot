@@ -1,6 +1,6 @@
 # MenuPilot Completion Checklist
 
-_Last updated: 2026-06-08_
+_Last updated: 2026-06-11_
 
 This file is the step-by-step project itinerary. The project is considered complete when every required checklist item is complete or intentionally deferred with a documented reason.
 
@@ -42,21 +42,25 @@ Completed:
 - [x] Product setup warning for defaults exceeding included selections
 - [x] Tenant onboarding regression checklist
 - [x] Tenant-scoped Specials Admin for passive specials and orderable deals
-- [x] Public active-specials display and orderable deal build actions
+- [x] Public active-specials display, full Specials & Deals page, and orderable/Mix deal build actions
 - [x] Checkout passive Specials discounts and orderable deal validation/order snapshots
 - [x] Staff discount snapshots and nested orderable deal display
 - [x] Orderable deal component variant restrictions
 - [x] Orderable deal component Modifier Group included-count overrides
 - [x] Orderable deal component pricing mode checkout/order/staff support
+- [x] Product default modifiers hydrate into customer builders and DealBuilder quick-add rules
 - [x] Mix-and-Match fixed unit price schema/type foundation
 - [x] Mix-and-Match tenant-scoped admin editing
 - [x] Mix-and-Match public runtime and cart-add support
+- [x] Quick 86 public menu/builder/checkout enforcement for business-wide product and Modifier Option overrides
+- [x] Customer-facing order status route with safe order/status lookup and checkout confirmation link
+- [x] Basic business-level checkout tax, service fee, and tip totals with order snapshots
 
 Next focus:
 - [~] Run Product Entry Regression Matrix
 - [~] Run `TENANT_ONBOARDING_REGRESSION.md`
 - [~] Manually verify Specials Admin, public deal building, checkout, and staff display with a real tenant
-- [ ] Build Mix-and-Match checkout/order/staff support for `mix_and_match_fixed_unit_price`
+- [x] Build Mix-and-Match checkout/order/staff support for `mix_and_match_fixed_unit_price`
 - [ ] Decide whether to retire/redirect legacy seeded demo routes before clean database rebuild
 - [ ] Do not wipe/rebuild the development database until tenant onboarding regression passes or exceptions are documented
 
@@ -378,12 +382,12 @@ For each feature:
 
 ## 4.2 Taxes, fees, tips
 
-- [ ] Create `tax_rates`
-- [ ] Create `fees`
-- [ ] Create `tip_settings`
+- [D] Create separate `tax_rates` table; basic business-level sales tax is currently stored in `business_pricing_settings`
+- [D] Create separate `fees` table; basic service fee type/value is currently stored in `business_pricing_settings`
+- [D] Create separate `tip_settings` table; basic tips-enabled flag is currently stored in `business_pricing_settings`
 - [ ] Add per-location support
-- [ ] Add enabled flags
-- [ ] Add calculation utility stubs
+- [x] Add enabled flags for basic tips and service fee mode
+- [x] Add calculation utility stubs
 
 ## 4.3 Specials
 
@@ -742,7 +746,7 @@ For each feature:
 - [ ] Add dietary/allergen flags such as vegetarian, vegan, gluten-free, contains nuts, contains dairy, contains shellfish, and spicy
 - [ ] Add nutritional information such as calories and optional macros
 - [ ] Add age verification flag for regulated products if those are ever supported
-- [ ] Add quick 86 / temporarily sold out state separate from permanent admin enable/disable
+- [x] Add quick 86 / temporarily sold out state separate from permanent admin enable/disable
 - [x] Assign product to groups
 - [x] Set primary group
 
@@ -847,8 +851,11 @@ For each feature:
 - [ ] Set included quantity
 - [ ] Set swappable yes/no
 - [ ] Set charge for extras yes/no
-- [ ] Warn when default selected modifier count exceeds included selections for the same Modifier Group
-- [ ] Warning example: `Meat Pizza has 5 default Pizza Toppings, but only 0 included selections. Default toppings beyond included count will be charged.`
+- [x] Warn when default selected modifier count exceeds included selections for the same Modifier Group
+- [x] Warning example: `Meat Pizza has 5 default Pizza Toppings, but only 0 included selections. Default toppings beyond included count will be charged.`
+- [x] Hydrate valid product default modifier options into customer builders
+- [x] Treat defaults as selected modifiers for required validation and included-credit pricing
+- [x] Require configurator review before DealBuilder quick-add when included allowances are under-selected
 - [ ] Support variant-specific included rules
 - [ ] Test pepperoni remove/re-add no charge
 - [ ] Test pepperoni swapped for sausage no charge
@@ -900,7 +907,7 @@ For each feature:
 - [ ] Resolve available modifier groups
 - [ ] Resolve available modifier options by selected variant
 - [ ] Resolve dependency-based options
-- [ ] Resolve default selections
+- [x] Resolve default selections
 - [x] Resolve included credits
 - [ ] Resolve modifier price
 - [ ] Resolve placement rules
@@ -956,6 +963,7 @@ For each feature:
 - [ ] Render hero section
 - [ ] Render featured items
 - [ ] Render specials preview
+- [x] Render tenant-scoped public Specials & Deals page
 - [ ] Render location selector
 - [ ] Render Google review section if configured
 - [ ] Render map section if configured
@@ -964,6 +972,7 @@ For each feature:
 ## 17.3 Menu page
 
 - [x] Add menu route at `/menu`
+- [x] Add tenant-scoped Specials & Deals route at `/businesses/[businessSlug]/specials`
 - [x] Render menu groups
 - [x] Render nested categories/subcategories
 - [x] Render product cards
@@ -974,7 +983,7 @@ For each feature:
 - [x] Add category navigation
 - [x] Add mobile-friendly category tabs
 - [ ] Show dietary/allergen flags and customer filtering when product data supports them
-- [ ] Hide or clearly mark quick-86 / temporarily sold out products
+- [x] Hide quick-86 / temporarily sold out products from public menus while active
 
 ## 17.4 Product configurator UI
 
@@ -1013,7 +1022,7 @@ For each feature:
 - [x] Recalculate totals
 - [x] Persist cart locally
 - [x] Clear cart after successful order
-- [ ] Prevent checkout with unavailable items
+- [x] Prevent checkout with unavailable items
 - [x] Show cart summary bar
 - [x] Show cart drawer/page
 - [x] Show item configuration summary
@@ -1118,7 +1127,7 @@ For each feature:
 - [x] Show confirmation page
 - [ ] Wrap full order creation in one Supabase RPC/Postgres transaction before real payments/production
 - [ ] Build staff-entered / phone order creation flow scoped to business/location
-- [ ] Build customer-facing order status route with safe lookup and limited order details
+- [x] Build customer-facing order status route with safe lookup and limited order details
 
 ---
 
@@ -1148,7 +1157,7 @@ For each feature:
 - [x] Show applied discount snapshots
 - [x] Show nested orderable deal children
 - [ ] Prominently show customer/order notes and special instructions
-- [ ] Add quick 86 / temporarily sold out operational toggles for products/options/modifiers
+- [~] Add quick 86 / temporarily sold out operational toggles for products/options/modifiers. Tenant admin business-wide product and Modifier Option toggles exist; public menu/builder/checkout enforcement exists; staff/location controls remain.
 - [ ] Support staff-entered / phone orders from the staff/admin order flow
 - [ ] Cancel order with reason
 - [ ] Print kitchen ticket optional
@@ -1306,6 +1315,8 @@ For each feature:
 - [x] Edit orderable deal component product Modifier Group included-count overrides
 - [x] Edit orderable deal component pricing modes and fixed prices
 - [x] Public DealBuilder/cart display honors orderable deal component pricing modes
+- [x] DealBuilder quick-add uses real defaults and opens the configurator for missing required defaults or under-selected included allowances
+- [x] Public Specials & Deals page shows passive specials, orderable deals, and Mix & Match deals
 
 ## 26.2 Special templates
 
@@ -1313,7 +1324,7 @@ For each feature:
 - [x] Simple line discount special
 - [x] Cart discount special
 - [x] Orderable deal with fixed/base price and required components
-- [~] Mix-and-match fixed unit price deal schema/type/admin/public cart-add foundation
+- [x] Mix-and-match fixed unit price deal schema/type/admin/public cart-add/checkout/order/staff foundation
 - [D] Bundle special beyond current orderable deal components
 - [D] Combo special beyond current orderable deal components
 - [ ] BOGO special
@@ -1361,21 +1372,21 @@ For each feature:
 
 # 28. Taxes, Fees, Tips
 
-- [ ] Build tax settings page
-- [ ] Add tax rate
-- [ ] Edit tax rate
-- [ ] Enable/disable tax rate
-- [ ] Apply tax to food
+- [x] Build basic business pricing settings controls for tax, service fee, and tips
+- [x] Add business-level tax rate
+- [x] Edit business-level tax rate
+- [D] Enable/disable tax rate separately; `0` rate is the current disabled state
+- [x] Apply tax to discounted checkout subtotal
 - [ ] Apply tax to delivery if configured
-- [ ] Build fees settings page
-- [ ] Add flat fee
-- [ ] Add percentage fee
+- [x] Build basic service fee settings controls
+- [x] Add flat fee
+- [x] Add percentage fee
 - [ ] Configure pickup/delivery/all applicability
-- [ ] Build tip settings page
-- [ ] Toggle tips
-- [ ] Set suggested percentages
+- [x] Build basic tip settings controls
+- [x] Toggle tips
+- [D] Set suggested percentages; checkout currently uses fixed 10%, 15%, and 20% presets
 - [ ] Allow custom tip
-- [ ] Test checkout totals
+- [x] Test checkout totals
 
 ---
 
@@ -1515,7 +1526,7 @@ For each feature:
 - [ ] Test related add-on removal
 - [ ] Test prep-time calculation
 - [ ] Test delivery radius logic
-- [ ] Test tax/fee/tip totals
+- [x] Test tax/fee/tip totals
 
 ## 36.2 Integration tests
 
@@ -1585,7 +1596,7 @@ The MVP is complete when:
 - [x] Customer can configure item
 - [x] Customer can add to cart
 - [x] Customer can checkout for pickup
-- [ ] Customer can check safe public order status after ordering
+- [x] Customer can check safe public order status after ordering
 - [ ] Customer can pay with Stripe
 - [x] Order appears in staff dashboard
 - [x] Staff can update order status
@@ -1613,7 +1624,7 @@ V1 is complete when:
 - [ ] Theme editor works at basic level
 - [ ] Google map/review sections work
 - [ ] Admin reports exist
-- [ ] Taxes/fees/tips are configurable
+- [~] Taxes/fees/tips are configurable at the basic business level; per-location rules, configurable presets, and custom tip remain pending
 - [ ] Notifications send order confirmations
 - [ ] Customer order history/reorder works
 - [ ] PWA installable experience works
@@ -1732,7 +1743,7 @@ The full platform is complete when:
 - [ ] Add max orders per time slot
 - [ ] Add rush-mode prep time controls
 - [ ] Add temporary pause ordering controls
-- [ ] Add quick 86 / temporarily sold out workflows with clear temporary behavior and optional reset strategy
+- [~] Add quick 86 / temporarily sold out workflows with clear temporary behavior and optional reset strategy. Schema supports optional expiration and future location scope; UI currently exposes manual business-wide toggle/clear, and public menu/builder/checkout paths enforce active business-wide overrides.
 
 ## 41.8 Accessibility and QA
 

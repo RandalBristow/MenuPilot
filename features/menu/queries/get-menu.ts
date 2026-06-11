@@ -4,9 +4,15 @@ import {
   type ProductWithVariantSources,
 } from "@/features/product-configurator/utils/apply-effective-product-variants"
 import { loadActivePublicSpecials } from "@/features/specials/queries/load-active-public-specials"
+import {
+  groupProductOperationalAvailabilityRecords,
+  resolveOperationalAvailabilityForRecords,
+  type RawOperationalAvailabilityRecord,
+} from "@/features/availability/utils/operational-availability-records"
+import type { OperationalAvailabilityOverride } from "@/features/availability/types/operational-availability"
 
 type ProductGroupWithProduct = {
-  products: ProductWithVariantSources | ProductWithVariantSources[] | null
+  products: ProductWithBusinessScope | ProductWithBusinessScope[] | null
 }
 
 type MenuWithProductGroups = {
@@ -23,6 +29,8 @@ type MenuBusiness = {
 }
 
 type ProductWithBusinessScope = ProductWithVariantSources & {
+  id: string
+  is_enabled: boolean
   business_id?: string | null
   media_assets?:
     | {
@@ -62,7 +70,7 @@ function clearCrossTenantMedia<T extends ProductWithBusinessScope>(
 }
 
 function productBelongsToBusiness(
-  product: ProductWithVariantSources | null,
+  product: ProductWithBusinessScope | null,
   businessId: string
 ) {
   if (!product) return false
@@ -74,6 +82,73 @@ function productBelongsToBusiness(
 
 function isNonNull<T>(value: T | null): value is T {
   return value !== null
+}
+
+function collectMenuProductIds(menu: MenuWithProductGroups) {
+  return [
+    ...new Set(
+      (menu.menu_groups ?? []).flatMap((menuGroup) =>
+        (menuGroup.product_groups ?? []).flatMap((productGroup) => {
+          const products = productGroup.products
+
+          if (Array.isArray(products)) {
+            return products.map((product) => product.id)
+          }
+
+          return products ? [products.id] : []
+        })
+      )
+    ),
+  ]
+}
+
+export function applyMenuOperationalAvailability<T extends MenuWithProductGroups>({
+  menu,
+  productAvailabilityRecords,
+  currentTime,
+}: {
+  menu: T
+  productAvailabilityRecords: Map<string, OperationalAvailabilityOverride[]>
+  currentTime: Date
+}) {
+  return {
+    ...menu,
+    menu_groups: (menu.menu_groups ?? []).map((menuGroup) => ({
+      ...menuGroup,
+      product_groups: (menuGroup.product_groups ?? [])
+        .map((productGroup) => {
+          const products = productGroup.products
+
+          if (Array.isArray(products)) {
+            const availableProducts = products.filter((product) =>
+              resolveOperationalAvailabilityForRecords({
+                isPermanentlyEnabled: product.is_enabled,
+                records: productAvailabilityRecords.get(product.id),
+                currentTime,
+              }).isOperationallyAvailable
+            )
+
+            return {
+              ...productGroup,
+              products: availableProducts,
+            }
+          }
+
+          if (!products) return productGroup
+
+          const availability = resolveOperationalAvailabilityForRecords({
+            isPermanentlyEnabled: products.is_enabled,
+            records: productAvailabilityRecords.get(products.id),
+            currentTime,
+          })
+
+          if (!availability.isOperationallyAvailable) return null
+
+          return productGroup
+        })
+        .filter(isNonNull),
+    })),
+  }
 }
 
 export function applyMenuBusinessScope<T extends MenuWithProductGroups>(
@@ -142,6 +217,7 @@ export function isSetupBusiness(business: Pick<MenuBusiness, "status">) {
 }
 
 export async function getMenuByBusinessSlug(businessSlug: string) {
+  const currentTime = new Date()
   const { data: business, error: businessError } = await supabase
     .from("businesses")
     .select("id, name, slug, status")
@@ -237,17 +313,46 @@ export async function getMenuByBusinessSlug(businessSlug: string) {
     throw new Error(`Failed to load menu location: ${locationError.message}`)
   }
 
+  const scopedMenus = (menus ?? []).map((menu) =>
+    applyMenuBusinessScope(menu, business.id)
+  )
+  const productIds = scopedMenus.flatMap(collectMenuProductIds)
+  const { data: productAvailability, error: availabilityError } =
+    productIds.length > 0
+      ? await supabase
+          .from("product_operational_availability")
+          .select("id, product_id, location_id, is_86d, reason, expires_at")
+          .eq("business_id", business.id)
+          .in("product_id", productIds)
+      : { data: [], error: null }
+
+  if (availabilityError) {
+    throw new Error(
+      `Failed to load product availability: ${availabilityError.message}`
+    )
+  }
+
+  const productAvailabilityRecords = groupProductOperationalAvailabilityRecords(
+    productAvailability as RawOperationalAvailabilityRecord[]
+  )
+
   const activeSpecials = await loadActivePublicSpecials({
     businessId: business.id,
-    currentTime: new Date(),
+    currentTime,
     timeZone: locations?.[0]?.timezone ?? "America/New_York",
   })
 
   return {
     business: business as MenuBusiness,
     activeSpecials,
-    menus: (menus ?? [])
-      .map((menu) => applyMenuBusinessScope(menu, business.id))
+    menus: scopedMenus
+      .map((menu) =>
+        applyMenuOperationalAvailability({
+          menu,
+          productAvailabilityRecords,
+          currentTime,
+        })
+      )
       .map(applyEffectiveVariantsToMenu),
   }
 }

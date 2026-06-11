@@ -1,6 +1,6 @@
 # Tenant Onboarding Regression
 
-_Last updated: 2026-06-08_
+_Last updated: 2026-06-11_
 
 This checklist proves a brand-new business can be created, configured, activated, ordered from, and viewed in staff orders without relying on the seeded `pronto-demo` / `main-street` tenant.
 
@@ -57,8 +57,9 @@ Expected result:
 - [ ] Confirm Modifier links stay under `/businesses/[businessSlug]/admin/modifiers...`.
 - [ ] Confirm Specials link stays under `/businesses/[businessSlug]/admin/specials...`.
 - [ ] Confirm Media link stays under `/businesses/[businessSlug]/admin/media`.
-- [ ] Confirm Pizza Pricing Settings show half-topping pricing and half included-slot counting enabled by default.
-- [ ] Save Pizza Pricing Settings and confirm a themed toast appears.
+- [ ] Confirm Pricing Settings show half-topping pricing and half included-slot counting enabled by default.
+- [ ] Confirm Pricing Settings show sales tax `0`, no service fee, and tips disabled by default.
+- [ ] Save Pricing Settings and confirm a themed toast appears.
 - [ ] Confirm Locations / Orders link points to `/businesses/[businessSlug]/locations/[locationSlug]/orders` when the location exists.
 
 Expected result:
@@ -108,6 +109,7 @@ Using `/businesses/[businessSlug]/admin/products...`:
 - [ ] Duplicate the product.
 - [ ] Confirm duplicated product is disabled by default.
 - [ ] Enable and disable a product.
+- [ ] Mark a product temporarily sold out from the product list, confirm the row shows sold-out state, then make it available again.
 - [ ] Confirm product list shows only products for the selected business.
 - [ ] Confirm Pronto/demo products do not appear in the selected business product list.
 - [ ] Confirm legacy `/admin/products...` still works for Pronto demo compatibility.
@@ -145,6 +147,7 @@ Using `/businesses/[businessSlug]/admin/modifiers...`:
 - [ ] Confirm selecting a top-level Modifier Category shows child subgroups or a clear empty state with footer Back/Add actions.
 - [ ] Create a Modifier Option Group/List.
 - [ ] Create Modifier Options.
+- [ ] Mark a Modifier Option temporarily sold out from the option list, confirm the row shows sold-out state, then make it available again.
 - [ ] Verify Modifier Option sort order is scoped within the current Modifier Option Group/List.
 - [ ] Move an option between option groups inside the same Modifier Group.
 - [ ] Safe-delete an unused option.
@@ -223,7 +226,7 @@ Using `/businesses/[businessSlug]/admin/specials`:
 - [ ] Confirm the admin setup for "Two Large 2-Topping Pizzas for $7.99 each with a free 2-liter" uses three orderable deal components: Pizza 1 fixed price 7.99, Pizza 2 fixed price 7.99, and Soda included/free. Do not put the soda into a flat Mix & Match pool.
 - [ ] Edit the orderable deal and confirm saved components and product choices reload correctly.
 - [ ] Confirm the public menu shows a Build Deal action for the active orderable deal.
-- [ ] Build the component-priced deal, confirm the builder cycles Pizza 1 -> Pizza 2 -> Soda, confirm pizza components show fixed `$7.99`, confirm the soda shows included/free, confirm child customization sticky totals show fixed/included component pricing plus extras instead of the normal product base price, confirm restricted products only show allowed variants, confirm the component modifier included-count override affects only the deal child pricing, and add one nested deal item to cart.
+- [ ] Build the component-priced deal, confirm the builder cycles Pizza 1 -> Pizza 2 -> Soda, confirm pizza components show fixed `$7.99`, confirm the soda shows included/free, confirm child customization sticky totals show fixed/included component pricing plus extras instead of the normal product base price, confirm normal base/variant prices such as `Normally $17.99` are hidden in fixed/included component selectors, confirm modifier/option upcharges remain visible, confirm restricted products only show allowed variants, confirm the component modifier included-count override affects only the deal child pricing, and add one nested deal item to cart.
 - [ ] Confirm the cart shows nested children with fixed/included component pricing and that two fixed `$7.99` pizzas plus an included/free soda totals `$15.98` before extras.
 - [ ] Submit checkout with the component-priced orderable deal and confirm checkout succeeds at `$15.98` before extras.
 - [ ] Submit checkout with a legacy/base-price orderable deal cart item that does not use component pricing modes.
@@ -277,11 +280,19 @@ Using `/businesses/[businessSlug]/menu` and `/businesses/[businessSlug]/checkout
 - [ ] Confirm scoped checkout blocks stale or cross-tenant cart items.
 - [ ] Submit a pickup order.
 - [ ] Confirm order succeeds.
-- [D] Future quick 86 / temporarily sold out products/options should be unavailable in menu and rejected by checkout.
+- [ ] Mark a product temporarily sold out, confirm the public menu hides it, then confirm a stale cart/checkout attempt rejects it.
+- [ ] Mark a Modifier Option temporarily sold out, confirm builders hide or block it, then confirm a stale cart/checkout attempt rejects it.
 - [ ] Confirm order uses selected `business_id`.
 - [ ] Confirm order uses selected `location_id`.
 - [ ] Confirm server-side pricing is authoritative by checking totals against the configured product rules.
+- [ ] Set a business-level tax rate, place an order with a passive discount, and confirm tax is calculated after the discount.
+- [ ] Set a fixed or percentage service fee and confirm checkout, confirmation, order status, and staff orders show the fee.
+- [ ] Enable tips, select a suggested tip, and confirm checkout, confirmation, order status, and staff orders show the tip.
+- [ ] Disable tips and confirm checkout does not accept a tip amount.
 - [ ] Confirm cart clears after successful order.
+- [ ] Confirm checkout confirmation links to `/businesses/[businessSlug]/orders/[orderNumber]`.
+- [ ] Open the order status link and confirm it shows safe status, restaurant, order summary, discounts, service fee, tax, tip, nested deal/Mix children, and totals without internal IDs or private payment/customer lookup data.
+- [ ] Visit the same order number under a different business slug and confirm the friendly not-found state appears.
 
 Expected result:
 
@@ -300,7 +311,7 @@ Using `/businesses/[businessSlug]/locations/[locationSlug]/orders`:
 - [ ] Mark preparing.
 - [ ] Mark ready.
 - [ ] Mark completed.
-- [D] Future customer-facing order status page should reflect staff status changes without exposing private order data.
+- [ ] Refresh the customer-facing order status page after staff status changes and confirm it reflects the saved staff status without exposing private order data.
 - [D] Future staff-entered / phone orders should create tenant/location-scoped orders that appear only in this staff route.
 - [D] Future realtime staff orders should show new/status-changed orders without manual refresh.
 - [D] Future staff order detail should make customer/order notes and special instructions prominent.
@@ -345,9 +356,12 @@ Expected result:
 | Media | Implemented, needs manual verification | `/businesses/[businessSlug]/admin/media`; media action tests; selected-business storage paths. | Upload/import media and confirm selected business ownership/path. |
 | Specials | Implemented orderable-deal and Mix & Match MVPs need manual verification | `/businesses/[businessSlug]/admin/specials...`; specials action/query/status tests; checkout loader schedule tests; orderable deal component editing tests; Mix & Match admin/runtime/checkout tests. | Create active, disabled, expired, lunch-window, orderable deal, and Mix & Match admin records; confirm checkout/staff behavior for supported passive/orderable/Mix deal flows; confirm Mix & Match can add to cart, checkout, persist nested order rows, and display in staff orders. |
 | Public menu | Implemented, needs manual verification | `/businesses/[businessSlug]/menu`; scoped menu query tests. | Confirm setup preview, active menu, and no Pronto products. |
-| Checkout | Implemented, needs manual verification | `/businesses/[businessSlug]/checkout`; checkout tenant context/order action tests. | Submit real order from scoped cart and confirm business/location IDs. |
+| Checkout | Implemented, needs manual verification | `/businesses/[businessSlug]/checkout`; checkout tenant context/order action tests. | Submit real order from scoped cart, confirm business/location IDs, and confirm the confirmation page links to the customer order status route. |
+| Customer order status | Implemented, needs manual verification | `/businesses/[businessSlug]/orders/[orderNumber]`; `features/order-status` query/component/label tests. | Confirm a placed order shows safe status/summary details, wrong business slug shows friendly not-found, and staff status changes appear after refresh. |
 | Staff orders | Implemented, needs manual verification | `/businesses/[businessSlug]/locations/[locationSlug]/orders`; scoped staff query/action tests. | Confirm order appears and status updates remain scoped. |
 | Activation controls | Implemented, needs manual verification | Platform business detail controls; activation action tests; checkout orderability tests. | Activate/pause business/location and confirm checkout blocks/unblocks. |
+| Quick 86 / operational availability | Business-wide product/option runtime implemented, staff/location pending | `026_operational_availability.sql`; `features/availability`; tenant Product Admin and Modifier Library business-wide toggles; public menu/builder/deal/mix/checkout enforcement. | Verify tenant admin toggles write/read sold-out state, public menu hides sold-out products, builders hide/block sold-out options, checkout rejects stale sold-out cart data, and staff/location controls remain deferred. |
+| Taxes, fees, tips | Basic business-level implementation needs manual verification | `027_checkout_tax_fee_tip_settings.sql`; `business_pricing_settings`; checkout total utility/action/component tests; order status and staff display tests. | Configure tax/service/tips, submit a discounted order, and confirm checkout, confirmation, order status, and staff orders show the same server-calculated totals. |
 | Defaults/included warning | Implemented, needs manual verification | `getDefaultModifierIncludedSelectionWarnings`; Product Modifier Assignments UI/test. | 5 defaults + 0 included warning appears; included 5 removes it. |
 | Legacy demo compatibility | Implemented, intentionally retained | Legacy constants/fallbacks exist in menu, checkout, staff, product/modifier/media admin context helpers. | Confirm legacy routes still work and new tenant changes do not mutate Pronto data. |
 | Auth/role protection | Deferred intentionally | Docs mark Platform/Admin/Staff auth protection as deferred. | Do not expose Platform Admin publicly until auth is built. |

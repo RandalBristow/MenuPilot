@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import type { PublicSpecial } from "@/features/specials/types/public-special"
 import {
+  getPublicSpecialCallout,
+  getPublicSpecialTypeLabel,
   getPublicProductSpecialBadge,
   isProductEligibleForPublicSpecial,
 } from "./public-special-display"
@@ -91,5 +93,39 @@ describe("public special display helpers", () => {
     })
 
     expect(badge).toBe("20% off")
+  })
+
+  it("labels public special types for cards", () => {
+    expect(
+      getPublicSpecialTypeLabel(
+        buildSpecial({ specialType: "cart_discount" })
+      )
+    ).toBe("Cart discount")
+    expect(
+      getPublicSpecialTypeLabel(
+        buildSpecial({ specialType: "line_discount" })
+      )
+    ).toBe("Line discount")
+    expect(
+      getPublicSpecialTypeLabel(
+        buildSpecial({ specialType: "fixed_price_line" })
+      )
+    ).toBe("Fixed-price item")
+    expect(
+      getPublicSpecialTypeLabel(
+        buildSpecial({ specialType: "orderable_deal" })
+      )
+    ).toBe("Deal")
+    expect(
+      getPublicSpecialTypeLabel(
+        buildSpecial({ specialType: "mix_and_match_fixed_unit_price" })
+      )
+    ).toBe("Mix & Match")
+  })
+
+  it("uses checkout callout copy for passive specials", () => {
+    expect(getPublicSpecialCallout(buildSpecial())).toBe(
+      "Applied automatically at checkout."
+    )
   })
 })

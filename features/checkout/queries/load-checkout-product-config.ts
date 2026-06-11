@@ -1,6 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { getBusinessPricingSettings } from "@/features/pricing-settings/queries/get-business-pricing-settings"
 import { resolveVariantsForProduct } from "@/features/product-configurator/utils/apply-effective-product-variants"
+import type { OperationalAvailabilityOverride } from "@/features/availability/types/operational-availability"
+import {
+  groupModifierOptionOperationalAvailabilityRecords,
+  groupProductOperationalAvailabilityRecords,
+  resolveOperationalAvailabilityForRecords,
+  type RawOperationalAvailabilityRecord,
+} from "@/features/availability/utils/operational-availability-records"
 import type {
   CheckoutModifierGroupConfig,
   CheckoutModifierOptionConfig,
@@ -163,9 +170,16 @@ function sortBySortOrder<T extends { sort_order: number; name?: string }>(
 }
 
 function mapModifierOption(
-  option: RawModifierOption
+  option: RawModifierOption,
+  modifierOptionRecords: Map<string, OperationalAvailabilityOverride[]>,
+  currentTime: Date
 ): CheckoutModifierOptionConfig {
   const optionGroup = getFirstRelation(option.modifier_option_groups)
+  const availability = resolveOperationalAvailabilityForRecords({
+    isPermanentlyEnabled: option.is_enabled,
+    records: modifierOptionRecords.get(option.id),
+    currentTime,
+  })
   const mappedOptionGroup: CheckoutModifierOptionGroupConfig | null = optionGroup
     ? {
         id: optionGroup.id,
@@ -178,13 +192,16 @@ function mapModifierOption(
     id: option.id,
     name: option.name,
     priceDelta: toNumber(option.price_delta),
-    isEnabled: option.is_enabled,
+    isEnabled: availability.isOperationallyAvailable,
+    isSoldOut: availability.is86d,
     optionGroup: mappedOptionGroup,
   }
 }
 
 function mapModifierGroups(
-  product: RawCheckoutProduct
+  product: RawCheckoutProduct,
+  modifierOptionRecords: Map<string, OperationalAvailabilityOverride[]>,
+  currentTime: Date
 ): CheckoutModifierGroupConfig[] {
   const includedByModifierGroupId = new Map(
     (product.product_included_modifier_groups ?? []).map((includedGroup) => [
@@ -218,7 +235,8 @@ function mapModifierGroups(
         includedQuantity: includedGroup?.included_quantity,
         chargeForExtra: includedGroup?.charge_for_extra,
         options: sortBySortOrder(group.modifier_options ?? []).map(
-          mapModifierOption
+          (option) =>
+            mapModifierOption(option, modifierOptionRecords, currentTime)
         ),
       })
 
@@ -228,8 +246,16 @@ function mapModifierGroups(
 
 function mapProduct(
   product: RawCheckoutProduct,
-  pricingSettings: CheckoutProductConfig["pricingSettings"]
+  pricingSettings: CheckoutProductConfig["pricingSettings"],
+  productRecords: Map<string, OperationalAvailabilityOverride[]>,
+  modifierOptionRecords: Map<string, OperationalAvailabilityOverride[]>,
+  currentTime: Date
 ): CheckoutProductConfig {
+  const productAvailability = resolveOperationalAvailabilityForRecords({
+    isPermanentlyEnabled: product.is_enabled,
+    records: productRecords.get(product.id),
+    currentTime,
+  })
   const effectiveVariants = resolveVariantsForProduct(product).map(
     (variant) => ({
       id: variant.id,
@@ -244,10 +270,15 @@ function mapProduct(
     name: product.name,
     builderTemplate: product.builder_template,
     pricingSettings,
-    isEnabled: product.is_enabled,
+    isEnabled: productAvailability.isOperationallyAvailable,
+    isSoldOut: productAvailability.is86d,
     basePrice: toNumber(product.base_price),
     variants: effectiveVariants,
-    modifierGroups: mapModifierGroups(product),
+    modifierGroups: mapModifierGroups(
+      product,
+      modifierOptionRecords,
+      currentTime
+    ),
     productDefaultModifierOptions: (
       product.product_default_modifier_options ?? []
     ).map((defaultOption) => ({
@@ -401,7 +432,64 @@ export async function loadCheckoutProductConfig({
     throw new Error(`Could not load checkout product config: ${error.message}`)
   }
 
-  return ((data ?? []) as RawCheckoutProduct[]).map((product) =>
-    mapProduct(product, pricingSettings)
+  const products = (data ?? []) as RawCheckoutProduct[]
+  const modifierOptionIds = [
+    ...new Set(
+      products.flatMap((product) =>
+        (product.product_modifier_groups ?? []).flatMap((assignment) => {
+          const group = getFirstRelation(assignment.modifier_groups)
+
+          return (group?.modifier_options ?? []).map((option) => option.id)
+        })
+      )
+    ),
+  ]
+  const { data: productAvailability, error: productAvailabilityError } =
+    await supabaseAdmin
+      .from("product_operational_availability")
+      .select("id, product_id, location_id, is_86d, reason, expires_at")
+      .eq("business_id", businessId)
+      .in("product_id", uniqueProductIds)
+
+  if (productAvailabilityError) {
+    throw new Error(
+      `Could not load product availability: ${productAvailabilityError.message}`
+    )
+  }
+
+  const { data: modifierAvailability, error: modifierAvailabilityError } =
+    modifierOptionIds.length > 0
+      ? await supabaseAdmin
+          .from("modifier_option_operational_availability")
+          .select(
+            "id, modifier_option_id, location_id, is_86d, reason, expires_at"
+          )
+          .eq("business_id", businessId)
+          .in("modifier_option_id", modifierOptionIds)
+      : { data: [], error: null }
+
+  if (modifierAvailabilityError) {
+    throw new Error(
+      `Could not load modifier availability: ${modifierAvailabilityError.message}`
+    )
+  }
+
+  const currentTime = new Date()
+  const productRecords = groupProductOperationalAvailabilityRecords(
+    productAvailability as RawOperationalAvailabilityRecord[]
+  )
+  const modifierOptionRecords =
+    groupModifierOptionOperationalAvailabilityRecords(
+      modifierAvailability as RawOperationalAvailabilityRecord[]
+    )
+
+  return products.map((product) =>
+    mapProduct(
+      product,
+      pricingSettings,
+      productRecords,
+      modifierOptionRecords,
+      currentTime
+    )
   )
 }

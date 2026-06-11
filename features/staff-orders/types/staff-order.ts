@@ -110,6 +110,9 @@ export type StaffOrder = {
   paymentStatus: string
   subtotal: number
   discountTotal: number
+  serviceFeeTotal: number
+  taxTotal: number
+  tipTotal: number
   total: number
   createdAt: string
   items: StaffOrderItem[]

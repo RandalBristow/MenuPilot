@@ -1,6 +1,6 @@
 # Database
 
-_Last updated: 2026-06-08_
+_Last updated: 2026-06-11_
 
 All schema changes must be made through files in `database/migrations/`.
 
@@ -33,6 +33,8 @@ All schema changes must be made through files in `database/migrations/`.
 | `023_orderable_deal_modifier_overrides.sql` | Adds optional orderable deal component/product Modifier Group included-count overrides. |
 | `024_mix_and_match_specials.sql` | Adds schema/type foundation for Mix-and-Match fixed unit price specials, exact mix-pool product eligibility, variant restrictions, and Modifier Group included-count overrides. |
 | `025_orderable_deal_component_pricing_modes.sql` | Adds schema foundation for per-component orderable deal pricing modes and fixed component prices. |
+| `026_operational_availability.sql` | Adds business/location-scoped temporary 86 / operational availability override tables for products and Modifier Options. |
+| `027_checkout_tax_fee_tip_settings.sql` | Adds basic checkout tax, service fee, and tip settings plus order snapshot columns for applied tax/fee/tip configuration. |
 
 ## Core Tenant Tables
 
@@ -72,6 +74,9 @@ Business pricing settings:
 - `pizza_half_topping_pricing_enabled` defaults to `true`; left/right pizza toppings charge half the effective modifier price.
 - `pizza_half_topping_included_weight_enabled` defaults to `true`; left/right pizza toppings consume 0.5 included selections.
 - `pizza_half_topping_rounding_mode` defaults to `floor_to_cent`; pricing floors after placement weight and multiplier are applied.
+- `sales_tax_rate_percent` stores the basic business-level checkout sales tax rate.
+- `service_fee_type` stores `none`, `fixed`, or `percentage`; `service_fee_value` stores the configured amount/rate.
+- `tips_enabled` controls whether checkout may accept customer tips. Current checkout UI uses fixed 10%, 15%, and 20% suggested buttons from the discounted subtotal.
 - Existing businesses without a row use the same defaults through the shared pricing settings normalizer.
 
 ## Menu And Product Tables
@@ -139,6 +144,18 @@ Existing foundation tables:
 
 Some of these foundation tables exist before their full admin UI is built.
 
+## Operational Availability
+
+Temporary sold-out / quick 86 state is separate from permanent admin enable/disable.
+
+- `product_operational_availability` stores temporary product availability overrides.
+- `modifier_option_operational_availability` stores temporary Modifier Option availability overrides.
+- Overrides are business-owned and may optionally be scoped to a location for future location/staff workflows.
+- `is_86d = true` means temporarily unavailable while the override is active.
+- `expires_at` is optional. Null means active until manually cleared; expired rows should be ignored by resolvers.
+
+The first admin slice exposes business-wide product and Modifier Option toggles from tenant-scoped Product Admin and Modifier Library pages. Public menu filtering, builders, checkout validation, and staff/location-specific bulk controls are deferred runtime wiring and should use the shared operational availability resolver when implemented.
+
 ## Orders, Charges, And Payments
 
 - `orders`
@@ -153,9 +170,22 @@ Checkout currently validates/reprices cart contents server-side, then creates un
 
 `orders.discount_total` stores the total applied discount amount. `order_discounts` stores applied discount snapshots for future Specials Engine integration. A null `order_item_id` means the discount was applied at the order level; a non-null `order_item_id` means the discount was applied to a specific order item.
 
+Checkout total composition is server-authoritative:
+
+1. configured item/deal subtotal
+2. passive Specials discount total
+3. discounted taxable subtotal
+4. service fee
+5. tax
+6. tip
+7. final total
+
+Basic tax/fee/tip support is business-level for now. Tax is calculated after discounts on the discounted subtotal. Service fees support none/fixed/percentage and are calculated after discounts. Tips are calculated/accepted only when enabled and use the discounted subtotal before tax/fees as the current basis. Existing `orders.tax_total`, `orders.tip_total`, and `orders.charge_total` store applied amounts; `orders.tax_rate_percent_snapshot`, `orders.service_fee_type_snapshot`, `orders.service_fee_value_snapshot`, and `orders.tip_basis_snapshot` store the checkout configuration used for that order.
+
 Known order-system gaps:
 - Order creation should be moved to a transaction/RPC-style pattern.
 - Auth/role enforcement needs to be applied to staff/admin access.
+- Advanced tax jurisdictions, per-location fee/tip settings, configurable suggested tip percentages, custom tip entry, delivery fee taxability, and payment processing remain deferred.
 
 ## Content And Theme Foundation
 

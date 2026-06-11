@@ -4,6 +4,7 @@ import {
   AdminProductsBrowser,
   type AdminMenuGroup,
 } from "@/features/admin-products/components/AdminProductsBrowser"
+import { resolveOperationalAvailability } from "@/features/availability/utils/resolve-operational-availability"
 import {
   type ProductAdminBusinessContextInput,
   resolveProductAdminBusinessContext,
@@ -22,6 +23,7 @@ type RawProductGroup = {
         builder_template: string
         has_variants: boolean
         is_enabled: boolean
+        product_operational_availability?: RawOperationalAvailability[] | null
       }
     | {
         id: string
@@ -32,8 +34,17 @@ type RawProductGroup = {
         builder_template: string
         has_variants: boolean
         is_enabled: boolean
+        product_operational_availability?: RawOperationalAvailability[] | null
       }[]
     | null
+}
+
+type RawOperationalAvailability = {
+  id: string
+  location_id: string | null
+  is_86d: boolean
+  reason: string | null
+  expires_at: string | null
 }
 
 type RawMenuGroup = {
@@ -62,11 +73,31 @@ function mapProductGroup(productGroup: RawProductGroup) {
   const product = Array.isArray(productGroup.products)
     ? productGroup.products[0]
     : productGroup.products
+  const operationalAvailability = product
+    ? resolveOperationalAvailability({
+        isPermanentlyEnabled: product.is_enabled,
+        currentTime: new Date(),
+        overrides: (product.product_operational_availability ?? []).map(
+          (override) => ({
+            id: override.id,
+            locationId: override.location_id,
+            is86d: override.is_86d,
+            reason: override.reason,
+            expiresAt: override.expires_at,
+          })
+        ),
+      })
+    : null
 
   return {
     id: productGroup.id,
     sort_order: productGroup.sort_order,
-    product,
+    product: product
+      ? {
+          ...product,
+          operationalAvailability,
+        }
+      : null,
   }
 }
 
@@ -109,7 +140,14 @@ export async function getAdminProductsPageData(
           base_price,
           builder_template,
           has_variants,
-          is_enabled
+          is_enabled,
+          product_operational_availability (
+            id,
+            location_id,
+            is_86d,
+            reason,
+            expires_at
+          )
         )
       )
     `

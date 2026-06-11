@@ -31,6 +31,9 @@ function buildOrder(overrides: Partial<StaffOrder> = {}): StaffOrder {
     paymentStatus: "unpaid",
     subtotal: 29.98,
     discountTotal: 0,
+    serviceFeeTotal: 0,
+    taxTotal: 0,
+    tipTotal: 0,
     total: 29.98,
     createdAt: "2026-06-05T12:00:00.000Z",
     discounts: [],
@@ -124,6 +127,24 @@ describe("StaffOrdersPage discount display", () => {
     expect(screen.getByText("Discounts")).toBeInTheDocument()
     expect(screen.getAllByText("-$5.00").length).toBeGreaterThan(0)
     expect(screen.getAllByText("$24.98").length).toBeGreaterThan(0)
+  })
+
+  it("renders service fee, tax, and tip rows when present", async () => {
+    ordersMock.orders = [
+      buildOrder({
+        serviceFeeTotal: 1,
+        taxTotal: 2,
+        tipTotal: 3,
+        total: 35.98,
+      }),
+    ]
+
+    render(await StaffOrdersPage())
+
+    expect(screen.getByText("Service fee")).toBeInTheDocument()
+    expect(screen.getByText("Tax")).toBeInTheDocument()
+    expect(screen.getByText("Tip")).toBeInTheDocument()
+    expect(screen.getAllByText("$35.98").length).toBeGreaterThan(0)
   })
 
   it("renders line-level discount under the affected item", async () => {

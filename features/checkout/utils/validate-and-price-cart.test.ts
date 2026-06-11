@@ -4,6 +4,7 @@ import {
   type CheckoutProductConfig,
   type CheckoutSubmittedCartItem,
 } from "./validate-and-price-cart"
+import { DEFAULT_BUSINESS_PRICING_SETTINGS } from "@/lib/pricing/business-pricing-settings"
 import { priceConfiguredProduct } from "@/lib/pricing/price-configured-product"
 
 const enabledProduct = {
@@ -185,6 +186,29 @@ describe("validateAndPriceCart", () => {
         code: "disabled_product",
         cartItemId: "cart-1",
         productId: "product-wings",
+      },
+    ])
+  })
+
+  it("rejects a temporarily sold-out product with a useful message", () => {
+    const result = validateAndPriceCart({
+      items: [buildCartItem()],
+      products: [
+        {
+          ...enabledProduct,
+          isEnabled: false,
+          isSoldOut: true,
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toEqual([
+      {
+        code: "sold_out_product",
+        message: "Build Your Own Pizza is currently sold out.",
+        cartItemId: "cart-1",
+        productId: "product-pizza",
       },
     ])
   })
@@ -676,6 +700,39 @@ describe("validateAndPriceCart", () => {
     ])
   })
 
+  it("rejects a temporarily sold-out modifier option with a useful message", () => {
+    const result = validateAndPriceCart({
+      items: [buildCartItem({ modifiers: [buildModifier()] })],
+      products: [
+        {
+          ...productWithModifiers,
+          modifierGroups: [
+            {
+              ...productWithModifiers.modifierGroups[0],
+              options: [
+                {
+                  ...productWithModifiers.modifierGroups[0].options[0],
+                  isEnabled: false,
+                  isSoldOut: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toEqual([
+      {
+        code: "sold_out_modifier_option",
+        message: "Pepperoni is currently sold out.",
+        cartItemId: "cart-1",
+        productId: "product-pizza",
+      },
+    ])
+  })
+
   it("rejects stale-cart Thin crust when globally disabled", () => {
     const result = validateAndPriceCart({
       items: [
@@ -1058,7 +1115,7 @@ describe("validateAndPriceCart", () => {
     ])
   })
 
-  it("does not block required groups with zero available options", () => {
+  it("blocks required groups with zero available options", () => {
     const result = validateAndPriceCart({
       items: [buildCartItem()],
       products: [
@@ -1081,7 +1138,15 @@ describe("validateAndPriceCart", () => {
       ],
     })
 
-    expect(result.ok).toBe(true)
+    expect(result.ok).toBe(false)
+    expect(result.errors).toEqual([
+      {
+        code: "missing_required_modifier",
+        message: "Pizza Toppings has no available options right now.",
+        cartItemId: "cart-1",
+        productId: "product-pizza",
+      },
+    ])
   })
 
   it("enforces max allowed modifier selections", () => {
@@ -1203,6 +1268,7 @@ describe("validateAndPriceCart", () => {
           ...productWithModifiers,
           builderTemplate: "pizza",
           pricingSettings: {
+            ...DEFAULT_BUSINESS_PRICING_SETTINGS,
             pizzaHalfToppingPricingEnabled: true,
             pizzaHalfToppingIncludedWeightEnabled: true,
             pizzaHalfToppingRoundingMode: "floor_to_cent",
