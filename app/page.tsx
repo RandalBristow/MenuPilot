@@ -172,14 +172,23 @@ export default function HomePage() {
           <div className="flex flex-col gap-2 sm:items-end">
             <p>Website, menu, ordering, and operations in one place.</p>
             <nav
-              aria-label="Temporary admin links"
+              aria-label="Application entry points"
               className="flex flex-wrap gap-x-3 gap-y-1 text-xs"
             >
-              <Link href="/admin" className="hover:text-foreground">
-                Admin
+              <Link href="/platform" className="hover:text-foreground">
+                Platform
               </Link>
-              <Link href="/staff/orders" className="hover:text-foreground">
-                Staff Orders
+              <Link
+                href="/businesses/pronto-demo/admin"
+                className="hover:text-foreground"
+              >
+                Business
+              </Link>
+              <Link
+                href="/businesses/pronto-demo/locations/ashland-road/manager"
+                className="hover:text-foreground"
+              >
+                Staff
               </Link>
             </nav>
           </div>
