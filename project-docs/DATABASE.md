@@ -41,6 +41,7 @@ All schema changes must be made through files in `database/migrations/`.
 - `profiles`
 - `businesses`
 - `business_users`
+- `employee_permissions`
 - `locations`
 - `location_users`
 - `location_hours`
@@ -191,7 +192,7 @@ Known order-system gaps:
 
 The initial schema also includes foundation for public media and future website/page/theme work:
 
-- media assets, currently managed through `/admin/media`
+- media assets, managed through `/businesses/[businessSlug]/admin/media`
 - pages
 - page sections
 - navigation

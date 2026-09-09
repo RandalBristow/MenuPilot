@@ -1,13 +1,15 @@
 export function getModifierAdminBaseHref(businessSlug?: string | null) {
-  if (!businessSlug) return "/admin/modifiers"
+  if (!businessSlug) return "/platform/businesses"
 
-  return `/businesses/${encodeURIComponent(businessSlug)}/admin/modifiers`
+  return `/businesses/${encodeURIComponent(businessSlug)}/admin/catalog/modifiers`
 }
 
 export function getModifierAdminHref(
   path = "",
   businessSlug?: string | null
 ) {
+  if (!businessSlug) return "/platform/businesses"
+
   const baseHref = getModifierAdminBaseHref(businessSlug)
   const normalizedPath = path.trim()
 

@@ -46,7 +46,7 @@ placement weight and multiplier are applied.
 
 ## Route And Component Map
 
-- Admin setup: `/admin/products`, `/admin/products/list`, `/admin/products/new`, `/admin/products/[productId]`, `/admin/products/variant-groups`, `/admin/products/variant-assignments`, `/admin/products/modifier-groups`, `/admin/modifiers/...`.
+- Business catalog setup: `/businesses/[businessSlug]/admin/catalog/products/...` and `/businesses/[businessSlug]/admin/catalog/modifiers/...`.
 - Public menu: `features/menu/queries/get-menu.ts`, `features/menu/components/MenuClient.tsx`, `features/menu/components/ProductCard.tsx`.
 - Builder routing: `features/product-configurator/components/ProductConfigurator.tsx`, `features/product-configurator/utils/resolve-product-builder-mode.ts`.
 - Active builders: PizzaBuilder, GenericConfigurableBuilder, SimpleProductBuilder.

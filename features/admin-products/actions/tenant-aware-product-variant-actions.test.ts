@@ -397,10 +397,10 @@ describe("tenant-aware variant group actions", () => {
     )
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/variant-groups"
+      "/businesses/randys-pizza/admin/catalog/products/variant-groups"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/variant-groups/group-a"
+      "/businesses/randys-pizza/admin/catalog/products/variant-groups/group-a"
     )
   })
 })
@@ -535,10 +535,10 @@ describe("tenant-aware product variant assignment actions", () => {
     )
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/variant-assignments"
+      "/businesses/randys-pizza/admin/catalog/products/variant-assignments"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/product-a"
+      "/businesses/randys-pizza/admin/catalog/products/product-a"
     )
   })
 })

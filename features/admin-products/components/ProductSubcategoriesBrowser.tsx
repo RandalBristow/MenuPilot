@@ -305,6 +305,12 @@ export function ProductSubcategoriesBrowser({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
+            backHref={
+              businessSlug
+                ? getProductAdminHref("categories", businessSlug)
+                : undefined
+            }
+            backLabel="Product Categories"
             title={
               selectedCategory
                 ? `${selectedCategory.name} Subcategories`

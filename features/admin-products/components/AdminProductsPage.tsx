@@ -1,4 +1,4 @@
-import { ThemedHeading } from "@/components/themed/ThemedHeading"
+import { ThemedPageHeader } from "@/components/themed/ThemedPageHeader"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
   AdminProductsBrowser,
@@ -69,13 +69,17 @@ function sortBySortOrder<T extends { sort_order: number; name?: string }>(
   })
 }
 
-function mapProductGroup(productGroup: RawProductGroup) {
+function mapProductGroup(
+  productGroup: RawProductGroup,
+  availabilityLocationId?: string
+) {
   const product = Array.isArray(productGroup.products)
     ? productGroup.products[0]
     : productGroup.products
   const operationalAvailability = product
     ? resolveOperationalAvailability({
         isPermanentlyEnabled: product.is_enabled,
+        locationId: availabilityLocationId,
         currentTime: new Date(),
         overrides: (product.product_operational_availability ?? []).map(
           (override) => ({
@@ -101,7 +105,10 @@ function mapProductGroup(productGroup: RawProductGroup) {
   }
 }
 
-function mapMenuGroup(group: RawMenuGroup): AdminMenuGroup {
+function mapMenuGroup(
+  group: RawMenuGroup,
+  availabilityLocationId?: string
+): AdminMenuGroup {
   return {
     id: group.id,
     name: group.name,
@@ -110,13 +117,14 @@ function mapMenuGroup(group: RawMenuGroup): AdminMenuGroup {
     parent_group_id: group.parent_group_id,
     sort_order: group.sort_order,
     product_groups: sortBySortOrder(group.product_groups ?? []).map(
-      mapProductGroup
+      (productGroup) => mapProductGroup(productGroup, availabilityLocationId)
     ),
   }
 }
 
 export async function getAdminProductsPageData(
-  businessContext: ProductAdminBusinessContextInput = {}
+  businessContext: ProductAdminBusinessContextInput = {},
+  availabilityLocationId?: string
 ) {
   const business = await resolveProductAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
@@ -161,7 +169,11 @@ export async function getAdminProductsPageData(
 
   return {
     businessName: business.name,
-    menuGroups: sortBySortOrder(((data ?? []) as RawMenuGroup[]).map(mapMenuGroup)),
+    menuGroups: sortBySortOrder(
+      ((data ?? []) as RawMenuGroup[]).map((group) =>
+        mapMenuGroup(group, availabilityLocationId)
+      )
+    ),
   }
 }
 
@@ -182,13 +194,17 @@ export async function AdminProductsPage({
   return (
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-col space-y-4">
-        <div className="shrink-0 space-y-3">
-          <ThemedHeading>Product Management</ThemedHeading>
-          <p className="text-sm text-muted-foreground">
-            Products, menu categories, and modifier attachments for{" "}
-            {businessName}.
-          </p>
-        </div>
+        <ThemedPageHeader
+          title="Product Management"
+          description={`Products, menu categories, and modifier attachments for ${businessName}.`}
+          backHref={
+            businessSlug
+              ? `/businesses/${encodeURIComponent(businessSlug)}/admin/catalog`
+              : undefined
+          }
+          backLabel="Product Catalog"
+          className="shrink-0"
+        />
 
         <div className="min-h-0 flex-1">
           <AdminProductsBrowser

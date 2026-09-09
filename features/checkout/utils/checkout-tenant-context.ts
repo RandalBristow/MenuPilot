@@ -43,13 +43,6 @@ export function getCheckoutOrderability({
     }
   }
 
-  if (!location.isEnabled) {
-    return {
-      ok: false,
-      reason: "This location is not enabled for ordering.",
-    }
-  }
-
   if (!location.acceptingOrders) {
     return {
       ok: false,

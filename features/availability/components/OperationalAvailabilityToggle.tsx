@@ -1,3 +1,5 @@
+"use client"
+
 import { CircleSlash2, RotateCcw } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 
@@ -7,6 +9,7 @@ type OperationalAvailabilityToggleProps = {
   itemId: string
   itemName: string
   businessSlug?: string
+  locationSlug?: string
   modifierGroupId?: string
   is86d: boolean
 }
@@ -17,6 +20,7 @@ export function OperationalAvailabilityToggle({
   itemId,
   itemName,
   businessSlug,
+  locationSlug,
   modifierGroupId,
   is86d,
 }: OperationalAvailabilityToggleProps) {
@@ -29,6 +33,9 @@ export function OperationalAvailabilityToggle({
     <form action={action} onClick={(event) => event.stopPropagation()}>
       {businessSlug ? (
         <input type="hidden" name="businessSlug" value={businessSlug} />
+      ) : null}
+      {locationSlug ? (
+        <input type="hidden" name="locationSlug" value={locationSlug} />
       ) : null}
       <input type="hidden" name={itemIdField} value={itemId} />
       {modifierGroupId ? (

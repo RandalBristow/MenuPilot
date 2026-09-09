@@ -6,29 +6,27 @@ import {
 } from "@/features/admin-modifiers/utils/modifier-admin-routes"
 
 describe("modifier admin route helpers", () => {
-  it("builds legacy modifier admin URLs without a business slug", () => {
-    expect(getModifierAdminHref()).toBe("/admin/modifiers")
-    expect(getModifierAdminHref("categories")).toBe(
-      "/admin/modifiers/categories"
-    )
+  it("returns to business selection without a business slug", () => {
+    expect(getModifierAdminHref()).toBe("/platform/businesses")
+    expect(getModifierAdminHref("categories")).toBe("/platform/businesses")
     expect(getModifierGroupHref({ groupId: "group-1" })).toBe(
-      "/admin/modifiers/group-1"
+      "/platform/businesses"
     )
   })
 
   it("builds business-scoped modifier admin URLs when a slug is supplied", () => {
     expect(getModifierAdminHref("", "randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/modifiers"
+      "/businesses/randys-pizza/admin/catalog/modifiers"
     )
     expect(getModifierAdminHref("groups", "randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/modifiers/groups"
+      "/businesses/randys-pizza/admin/catalog/modifiers/groups"
     )
     expect(
       getModifierGroupHref({
         groupId: "group-1",
         businessSlug: "randys-pizza",
       })
-    ).toBe("/businesses/randys-pizza/admin/modifiers/group-1")
+    ).toBe("/businesses/randys-pizza/admin/catalog/modifiers/group-1")
   })
 
   it("preserves product query context for scoped detail URLs", () => {
@@ -40,7 +38,7 @@ describe("modifier admin route helpers", () => {
         businessSlug: "randys-pizza",
       })
     ).toBe(
-      "/businesses/randys-pizza/admin/modifiers/group-1/subgroups/list-1?productId=product-1"
+      "/businesses/randys-pizza/admin/catalog/modifiers/group-1/subgroups/list-1?productId=product-1"
     )
   })
 })

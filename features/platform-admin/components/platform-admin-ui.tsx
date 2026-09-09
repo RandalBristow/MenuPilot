@@ -14,30 +14,13 @@ import { ThemedPageShell } from "@/components/themed/ThemedPageShell"
 import type {
   PlatformBusinessDetail,
   PlatformBusinessListItem,
-  PlatformBusinessLocation,
 } from "@/features/platform-admin/types/platform-admin"
-import {
-  BusinessStatusControl,
-  LocationActivationControl,
-} from "@/features/platform-admin/components/PlatformActivationControls"
-import { BusinessPricingSettingsForm } from "@/features/pricing-settings/components/BusinessPricingSettingsForm"
+import { PlatformBusinessPageForm } from "@/features/platform-admin/components/PlatformBusinessPageForm"
 import type { BusinessPricingSettings } from "@/lib/pricing/business-pricing-settings"
 import { cn } from "@/lib/utils"
 
 function formatFallback(value: string | null | undefined) {
   return value?.trim() ? value : "Not set"
-}
-
-function formatAddress(location: PlatformBusinessLocation) {
-  const parts = [
-    location.addressLine1,
-    location.addressLine2,
-    [location.city, location.state, location.postalCode]
-      .filter(Boolean)
-      .join(", "),
-  ].filter(Boolean)
-
-  return parts.length > 0 ? parts.join(" ") : "Address not set"
 }
 
 function getStatusClassName(status: string) {
@@ -65,27 +48,6 @@ function StatusPill({ status }: { status: string }) {
       )}
     >
       {status}
-    </span>
-  )
-}
-
-function BooleanPill({
-  enabled,
-  label,
-}: {
-  enabled: boolean
-  label: string
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-        enabled
-          ? "border-success/30 bg-success/10 text-success"
-          : "border-muted-foreground/25 bg-muted text-muted-foreground"
-      )}
-    >
-      {label}: {enabled ? "Yes" : "No"}
     </span>
   )
 }
@@ -254,11 +216,6 @@ export function PlatformBusinessDetailPage({
   business: PlatformBusinessDetail
   pricingSettings: BusinessPricingSettings
 }) {
-  const hasLocations = business.locations.length > 0
-  const hasOrderingEnabled = business.locations.some(
-    (location) => location.acceptingOrders
-  )
-
   return (
     <ThemedPageShell maxWidth="xl">
       <BackLink href="/platform/businesses" label="Businesses" />
@@ -280,181 +237,10 @@ export function PlatformBusinessDetailPage({
 
       <AuthWarning />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <section className="space-y-3">
-          <ThemedCard className="p-4">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-semibold">Business Details</h2>
-                <StatusPill status={business.status} />
-              </div>
-
-              <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Slug</dt>
-                  <dd className="font-medium">{business.slug}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Legal name</dt>
-                  <dd>{formatFallback(business.legalName)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Primary contact</dt>
-                  <dd>{formatFallback(business.primaryContactName)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Contact email</dt>
-                  <dd>{formatFallback(business.primaryContactEmail)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Primary phone</dt>
-                  <dd>{formatFallback(business.primaryPhone)}</dd>
-                </div>
-              </dl>
-
-              {business.description ? (
-                <p className="text-sm text-muted-foreground">
-                  {business.description}
-                </p>
-              ) : null}
-
-              <BusinessStatusControl
-                key={`${business.id}-${business.status}`}
-                business={business}
-              />
-            </div>
-          </ThemedCard>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold">Locations</h2>
-
-            {!hasLocations ? (
-              <ThemedCard className="p-4">
-                <p className="text-sm text-muted-foreground">
-                  No locations have been created for this business yet.
-                </p>
-              </ThemedCard>
-            ) : (
-              <div className="grid gap-3">
-                {business.locations.map((location) => (
-                  <ThemedCard key={location.id} className="p-3">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h3 className="truncate text-base font-semibold">
-                            {location.name}
-                          </h3>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {location.slug}
-                          </p>
-                        </div>
-                        <StatusPill status={location.status} />
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        <BooleanPill
-                          enabled={location.isEnabled}
-                          label="Enabled"
-                        />
-                        <BooleanPill
-                          enabled={location.acceptingOrders}
-                          label="Accepting orders"
-                        />
-                        <BooleanPill
-                          enabled={location.pickupEnabled}
-                          label="Pickup"
-                        />
-                        <BooleanPill
-                          enabled={location.deliveryEnabled}
-                          label="Delivery"
-                        />
-                      </div>
-
-                      <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                        <div>
-                          <dt className="text-muted-foreground">Address</dt>
-                          <dd>{formatAddress(location)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Phone</dt>
-                          <dd>{formatFallback(location.phone)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Email</dt>
-                          <dd>{formatFallback(location.email)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Timezone</dt>
-                          <dd>{location.timezone}</dd>
-                        </div>
-                      </dl>
-
-                      <LocationActivationControl
-                        key={`${location.id}-${location.status}-${location.isEnabled}-${location.acceptingOrders}-${location.pickupEnabled}-${location.deliveryEnabled}`}
-                        business={business}
-                        location={location}
-                      />
-                    </div>
-                  </ThemedCard>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <ThemedCard className="p-4">
-            <div className="space-y-3">
-              <div>
-                <h2 className="text-base font-semibold">Pricing Settings</h2>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Business-level rules for pizza half toppings, checkout tax,
-                  service fees, and tips.
-                </p>
-              </div>
-
-              <BusinessPricingSettingsForm
-                businessId={business.id}
-                businessSlug={business.slug}
-                settings={pricingSettings}
-              />
-            </div>
-          </ThemedCard>
-        </section>
-
-        <aside className="space-y-3">
-          <ThemedCard className="p-4">
-            <h2 className="text-base font-semibold">Setup Status</h2>
-            <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Business status</dt>
-                <dd>
-                  <StatusPill status={business.status} />
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Has location</dt>
-                <dd className="font-medium">{hasLocations ? "Yes" : "No"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Ordering enabled</dt>
-                <dd className="font-medium">
-                  {hasOrderingEnabled ? "Yes" : "No"}
-                </dd>
-              </div>
-            </dl>
-
-            <p className="mt-3 text-sm text-muted-foreground">
-              Setup businesses should not be public or live. Ordering should
-              remain disabled until the business and at least one location are
-              ready.
-            </p>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              A location must be active, enabled, accepting orders, and have
-              pickup or delivery enabled for checkout to succeed.
-            </p>
-          </ThemedCard>
-        </aside>
-      </div>
+      <PlatformBusinessPageForm
+        business={business}
+        pricingSettings={pricingSettings}
+      />
     </ThemedPageShell>
   )
 }

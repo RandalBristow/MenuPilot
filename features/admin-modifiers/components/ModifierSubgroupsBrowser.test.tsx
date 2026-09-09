@@ -85,7 +85,7 @@ describe("ModifierSubgroupsBrowser", () => {
       screen.getByRole("link", { name: "Manage Option Lists" })
     ).toHaveAttribute(
       "href",
-      "/businesses/randys-pizza/admin/modifiers/group-toppings"
+      "/businesses/randys-pizza/admin/catalog/modifiers/group-toppings"
     )
     expect(screen.queryByText("Meats")).not.toBeInTheDocument()
   })

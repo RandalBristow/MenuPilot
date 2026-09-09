@@ -52,9 +52,9 @@ Expected result:
 - [ ] Confirm business slug shown in the admin context is the new business slug.
 - [ ] Confirm `Back to Platform` returns to the Platform business detail.
 - [ ] Confirm `Switch Business` returns to `/platform/businesses`.
-- [ ] Confirm Product Catalog links stay under `/businesses/[businessSlug]/admin/products...`.
-- [ ] Confirm Variant links stay under `/businesses/[businessSlug]/admin/products...`.
-- [ ] Confirm Modifier links stay under `/businesses/[businessSlug]/admin/modifiers...`.
+- [ ] Confirm Product Catalog links stay under `/businesses/[businessSlug]/admin/catalog/products...`.
+- [ ] Confirm Variant links stay under `/businesses/[businessSlug]/admin/catalog/products...`.
+- [ ] Confirm Modifier links stay under `/businesses/[businessSlug]/admin/catalog/modifiers...`.
 - [ ] Confirm Specials link stays under `/businesses/[businessSlug]/admin/specials...`.
 - [ ] Confirm Media link stays under `/businesses/[businessSlug]/admin/media`.
 - [ ] Confirm Pricing Settings show half-topping pricing and half included-slot counting enabled by default.
@@ -99,7 +99,7 @@ Expected result:
 
 ## D. Product Catalog Setup
 
-Using `/businesses/[businessSlug]/admin/products...`:
+Using `/businesses/[businessSlug]/admin/catalog/products...`:
 
 - [ ] Create a top-level product category.
 - [ ] If the business was created before the default-menu fix, confirm the first category save repairs the missing `Main Menu` without a runtime error.
@@ -112,7 +112,6 @@ Using `/businesses/[businessSlug]/admin/products...`:
 - [ ] Mark a product temporarily sold out from the product list, confirm the row shows sold-out state, then make it available again.
 - [ ] Confirm product list shows only products for the selected business.
 - [ ] Confirm Pronto/demo products do not appear in the selected business product list.
-- [ ] Confirm legacy `/admin/products...` still works for Pronto demo compatibility.
 
 Expected result:
 
@@ -122,7 +121,7 @@ Expected result:
 
 ## E. Variant Setup
 
-Using `/businesses/[businessSlug]/admin/products/variant-groups` and related product assignment routes:
+Using `/businesses/[businessSlug]/admin/catalog/products/variant-groups` and related product assignment routes:
 
 - [ ] Create a reusable variant group.
 - [ ] Create variant options.
@@ -139,7 +138,7 @@ Expected result:
 
 ## F. Modifier Library Setup
 
-Using `/businesses/[businessSlug]/admin/modifiers...`:
+Using `/businesses/[businessSlug]/admin/catalog/modifiers...`:
 
 - [ ] Create a Modifier Category.
 - [ ] Create a Modifier Group.
@@ -153,7 +152,6 @@ Using `/businesses/[businessSlug]/admin/modifiers...`:
 - [ ] Safe-delete an unused option.
 - [ ] Confirm safe-delete is blocked for an option still in use.
 - [ ] Confirm selected business sees only its own Modifier Categories, Groups, Option Groups, and Options.
-- [ ] Confirm legacy `/admin/modifiers...` still works for Pronto demo compatibility.
 
 Expected result:
 
@@ -162,7 +160,7 @@ Expected result:
 
 ## G. Product Modifier Setup
 
-Using `/businesses/[businessSlug]/admin/products/modifier-groups` and related availability routes:
+Using `/businesses/[businessSlug]/admin/catalog/products/modifier-groups` and related availability routes:
 
 - [ ] Attach a Modifier Group to a product.
 - [ ] Open the assigned Modifier Group's availability/defaults flow.
@@ -196,7 +194,6 @@ Using `/businesses/[businessSlug]/admin/media` and product edit pages:
 - [ ] Select media as a product image.
 - [ ] Confirm product image appears in the selected business product/menu flow.
 - [ ] Confirm Pronto/demo media does not appear in the selected business media picker/list.
-- [ ] Confirm legacy `/admin/media` still works for Pronto demo compatibility.
 
 Expected result:
 
@@ -324,6 +321,19 @@ Expected result:
 - Staff reads filter by `business_id` and `location_id`.
 - Status updates resolve business/location slugs server-side and verify order ownership.
 
+## K2. Deferred Platform Surface Checks
+
+These are future/deferred and should not block the current tenant onboarding regression:
+
+- [D] PWA/installable customer app for menu/order/status.
+- [D] PWA/installable staff orders tablet app.
+- [D] Customer accounts, order history, reorder, and true loyalty/rewards.
+- [D] Restaurant-owned custom domains such as `www.restaurant.com`, `order.restaurant.com`, and `menu.restaurant.com`.
+- [D] Host-based tenant resolution and domain verification.
+- [D] Digital menu board routes such as `/businesses/[businessSlug]/boards/[boardSlug]` and `/businesses/[businessSlug]/locations/[locationSlug]/boards/[boardSlug]`.
+- [D] Fullscreen TV/signage layouts, board slugs, rotation timing, auto-refresh, and future Realtime board updates.
+- [D] Hardware display deployment guidance for Raspberry Pi, Chromebox, mini PC, Android TV, Fire TV, and commercial signage players.
+
 ## L. Legacy Demo Safety
 
 Legacy routes intentionally remain for Pronto demo compatibility:
@@ -331,9 +341,6 @@ Legacy routes intentionally remain for Pronto demo compatibility:
 - [ ] `/menu` still loads seeded Pronto Demo menu.
 - [ ] `/checkout` still uses Pronto Demo/main-street.
 - [ ] `/staff/orders` still shows Pronto Demo/main-street staff queue.
-- [ ] `/admin/products...` still works for Pronto demo product admin.
-- [ ] `/admin/modifiers...` still works for Pronto demo modifier admin.
-- [ ] `/admin/media` still works for Pronto demo media admin.
 - [ ] Work under the new tenant does not mutate Pronto Demo products.
 - [ ] Work under the new tenant does not mutate Pronto Demo modifiers.
 - [ ] Work under the new tenant does not mutate Pronto Demo media.
@@ -341,7 +348,7 @@ Legacy routes intentionally remain for Pronto demo compatibility:
 
 Expected result:
 
-- Legacy demo compatibility remains intact until intentionally retired.
+- Removed admin route families return not found and are not generated by application navigation.
 - New tenant regression can prove the app no longer depends on `pronto-demo` for scoped flows.
 
 ## Readiness Audit
@@ -350,7 +357,7 @@ Expected result:
 | --- | --- | --- | --- |
 | Platform Admin | Implemented | `/platform`, `/platform/businesses`, `/platform/businesses/new`, `/platform/businesses/[businessId]`; `features/platform-admin` create/detail/activation actions. | Full create-business and first-location browser pass. |
 | Tenant resolver | Implemented | `features/tenant/queries/resolve-business-context.ts`, `resolve-location-context.ts`, tenant context tests. | Verify unknown/mismatched slugs return not found in browser. |
-| Products | Implemented, needs manual verification | Tenant product routes under `/businesses/[businessSlug]/admin/products...`; scoped product action tests. | Create/edit/duplicate/enable product under a new business and verify isolation. |
+| Products | Implemented, needs manual verification | Tenant product routes under `/businesses/[businessSlug]/admin/catalog/products...`; scoped product action tests. | Create/edit/duplicate/enable product under a new business and verify isolation. |
 | Variants | Implemented, needs manual verification | Tenant-scoped variant group and assignment routes/actions/tests. | Create reusable variant group/options, assign to product, set overrides. |
 | Modifiers | Implemented, needs manual verification | Tenant-scoped modifier library routes/actions/tests; option move/safe delete support. | Create hierarchy, move option, safe-delete unused option, verify isolation. |
 | Media | Implemented, needs manual verification | `/businesses/[businessSlug]/admin/media`; media action tests; selected-business storage paths. | Upload/import media and confirm selected business ownership/path. |
@@ -363,7 +370,7 @@ Expected result:
 | Quick 86 / operational availability | Business-wide product/option runtime implemented, staff/location pending | `026_operational_availability.sql`; `features/availability`; tenant Product Admin and Modifier Library business-wide toggles; public menu/builder/deal/mix/checkout enforcement. | Verify tenant admin toggles write/read sold-out state, public menu hides sold-out products, builders hide/block sold-out options, checkout rejects stale sold-out cart data, and staff/location controls remain deferred. |
 | Taxes, fees, tips | Basic business-level implementation needs manual verification | `027_checkout_tax_fee_tip_settings.sql`; `business_pricing_settings`; checkout total utility/action/component tests; order status and staff display tests. | Configure tax/service/tips, submit a discounted order, and confirm checkout, confirmation, order status, and staff orders show the same server-calculated totals. |
 | Defaults/included warning | Implemented, needs manual verification | `getDefaultModifierIncludedSelectionWarnings`; Product Modifier Assignments UI/test. | 5 defaults + 0 included warning appears; included 5 removes it. |
-| Legacy demo compatibility | Implemented, intentionally retained | Legacy constants/fallbacks exist in menu, checkout, staff, product/modifier/media admin context helpers. | Confirm legacy routes still work and new tenant changes do not mutate Pronto data. |
+| Legacy public/staff review | Pending | `/menu`, `/checkout`, and `/staff/orders` remain until their access and route review. | Review public and staff routes separately. |
 | Auth/role protection | Deferred intentionally | Docs mark Platform/Admin/Staff auth protection as deferred. | Do not expose Platform Admin publicly until auth is built. |
 | Checkout transaction/RPC | Known gap | Checkout creates order/items with server validation but still lacks transaction/RPC pattern. | Acceptable for manual regression; fix before real payment launch. |
 | Stripe/payment automation | Deferred intentionally | Payment/webhook work remains roadmap future. | Not required for new-tenant pickup order regression. |
@@ -375,7 +382,7 @@ No code blocker is currently known for running the new-tenant manual regression.
 Known remaining risks before a clean database rebuild:
 
 - Manual browser regression has not passed yet.
-- Legacy demo fallbacks still exist intentionally for `/menu`, `/checkout`, `/staff/orders`, `/admin/products...`, `/admin/modifiers...`, and `/admin/media`.
+- Seeded-demo fallbacks remain only for `/menu`, `/checkout`, and `/staff/orders` pending their separate reviews.
 - Auth/role protection is deferred; Platform Admin must remain internal.
 - Checkout order creation still needs a transaction/RPC pattern before real payment use.
 - Stripe/payment automation is deferred.

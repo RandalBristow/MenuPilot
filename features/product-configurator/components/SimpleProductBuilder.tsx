@@ -6,6 +6,7 @@ import { ThemedCard } from "@/components/themed/ThemedCard"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -152,11 +153,9 @@ export function SimpleProductBuilder({
       <DialogContent className="flex h-[92dvh] max-h-[92dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:h-[min(90dvh,42rem)] sm:max-h-[90dvh]">
         <DialogHeader className="shrink-0 border-b px-4 py-4">
           <DialogTitle>{product.name}</DialogTitle>
-          {product.description ? (
-            <p className="text-sm leading-5 text-muted-foreground">
-              {product.description}
-            </p>
-          ) : null}
+          <DialogDescription className="leading-5">
+            {product.description || "Choose quantity and options for this item."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">

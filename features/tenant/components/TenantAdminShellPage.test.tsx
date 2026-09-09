@@ -9,10 +9,10 @@ import type {
 import { DEFAULT_BUSINESS_PRICING_SETTINGS } from "@/lib/pricing/business-pricing-settings"
 
 vi.mock("@/features/pricing-settings/components/BusinessPricingSettingsForm", () => ({
-  BusinessPricingSettingsForm: () => <div>Pizza pricing settings form</div>,
+  BusinessPricingSettingsForm: () => <div>Pricing settings form</div>,
 }))
 
-const setupBusiness: TenantBusinessContext = {
+const business: TenantBusinessContext = {
   id: "business-randys",
   slug: "randys-pizza",
   name: "Randy's Pizza & Pub",
@@ -26,11 +26,11 @@ const setupBusiness: TenantBusinessContext = {
   isArchived: false,
 }
 
-const setupLocation: TenantLocationContext = {
+const location: TenantLocationContext = {
   id: "location-randys",
-  businessId: "business-randys",
-  slug: "randys-main-street",
-  name: "Randy's Main Street",
+  businessId: business.id,
+  slug: "main-street",
+  name: "Main Street",
   status: "setup",
   isEnabled: false,
   acceptingOrders: false,
@@ -41,119 +41,56 @@ const setupLocation: TenantLocationContext = {
   isSetup: true,
 }
 
-function getLinkHref(name: RegExp) {
-  return screen.getByRole("link", { name }).getAttribute("href")
+function renderPage(defaultLocation: TenantLocationContext | null = location) {
+  render(
+    <TenantAdminShellPage
+      business={business}
+      defaultLocation={defaultLocation}
+      pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
+    />
+  )
 }
 
 describe("TenantAdminShellPage", () => {
-  it("groups setup links by catalog, variants, modifiers, specials, media, and preview", () => {
-    render(
-      <TenantAdminShellPage
-        business={setupBusiness}
-        pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
-      />
-    )
+  it("links the business dashboard to each top-level administration area", () => {
+    renderPage()
 
-    expect(screen.getByText("Product Catalog")).toBeInTheDocument()
-    expect(screen.getByText("Categories & Subcategories")).toBeInTheDocument()
-    expect(screen.queryByText("Product Subcategories")).not.toBeInTheDocument()
-    expect(screen.queryByText("New Product")).not.toBeInTheDocument()
-    expect(screen.getByText("Variants")).toBeInTheDocument()
-    expect(screen.queryByText("Product Variant Assignments")).not.toBeInTheDocument()
-    expect(screen.getByText("Modifiers")).toBeInTheDocument()
-    expect(screen.queryByText("Product Modifier Assignments")).not.toBeInTheDocument()
-    expect(screen.getAllByText("Specials").length).toBeGreaterThan(0)
-    expect(screen.getByText("Media")).toBeInTheDocument()
-    expect(screen.getByText("Customer Preview")).toBeInTheDocument()
-    expect(screen.getByText("Platform Admin Mode")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /Product Catalog/ })).toHaveAttribute(
+      "href",
+      "/businesses/randys-pizza/admin/catalog"
+    )
+    expect(
+      screen.getByRole("link", { name: /Specials & Promotions/ })
+    ).toHaveAttribute("href", "/businesses/randys-pizza/admin/specials")
+    expect(screen.getByRole("link", { name: /Media Library/ })).toHaveAttribute(
+      "href",
+      "/businesses/randys-pizza/admin/media"
+    )
+    expect(
+      screen.getByRole("link", { name: /Orders & Operations/ })
+    ).toHaveAttribute(
+      "href",
+      "/businesses/randys-pizza/locations/main-street/orders"
+    )
+    expect(
+      screen.getByRole("link", { name: /Storefront Preview/ })
+    ).toHaveAttribute("href", "/businesses/randys-pizza/menu")
   })
 
-  it("uses tenant-scoped links for reusable setup and product assignments", () => {
-    render(
-      <TenantAdminShellPage
-        business={setupBusiness}
-        defaultLocation={setupLocation}
-        pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
-      />
-    )
-
-    expect(getLinkHref(/^Categories & Subcategories/)).toBe(
-      "/businesses/randys-pizza/admin/products/categories"
-    )
-    expect(getLinkHref(/^Variant Groups/)).toBe(
-      "/businesses/randys-pizza/admin/products/variant-groups"
-    )
-    expect(getLinkHref(/^Modifier Library/)).toBe(
-      "/businesses/randys-pizza/admin/modifiers"
-    )
-    expect(getLinkHref(/^Specials/)).toBe(
-      "/businesses/randys-pizza/admin/specials"
-    )
-  })
-
-  it("puts category setup before products in the product catalog section", () => {
-    render(
-      <TenantAdminShellPage
-        business={setupBusiness}
-        pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
-      />
-    )
-
-    const catalogSection = screen
-      .getByText("Product Catalog")
-      .closest("div")?.parentElement
-
-    expect(catalogSection).not.toBeNull()
-
-    const catalogLinks = Array.from(
-      catalogSection?.querySelectorAll("a") ?? []
-    ).map((link) => link.textContent ?? "")
-
-    expect(catalogLinks[0]).toContain("Categories & Subcategories")
-    expect(catalogLinks[1]).toContain("Product List")
-    expect(catalogLinks).toHaveLength(2)
-  })
-
-  it("links setup businesses to the scoped public menu preview", () => {
-    render(
-      <TenantAdminShellPage
-        business={setupBusiness}
-        pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
-      />
-    )
+  it("does not link orders when the business has no location", () => {
+    renderPage(null)
 
     expect(
-      getLinkHref(/^Public Menu Preview \(setup\)/)
-    ).toBe("/businesses/randys-pizza/menu")
-  })
-
-  it("links locations and orders to the scoped location order route", () => {
-    render(
-      <TenantAdminShellPage
-        business={setupBusiness}
-        defaultLocation={setupLocation}
-        pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
-      />
-    )
-
-    expect(getLinkHref(/^Randy's Main Street Orders/)).toBe(
-      "/businesses/randys-pizza/locations/randys-main-street/orders"
-    )
-  })
-
-  it("keeps future bundles disabled and shows no-location order messaging", () => {
-    render(
-      <TenantAdminShellPage
-        business={setupBusiness}
-        pricingSettings={DEFAULT_BUSINESS_PRICING_SETTINGS}
-      />
-    )
-
-    expect(screen.getByText("Bundles / Combos")).toBeInTheDocument()
-    expect(screen.getByText("Locations / Orders")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /^Specials/ })).toBeInTheDocument()
-    expect(
-      screen.queryByRole("link", { name: /orders/i })
+      screen.queryByRole("link", { name: /Orders & Operations/ })
     ).not.toBeInTheDocument()
+    expect(screen.getByText("Orders & Operations")).toBeInTheDocument()
+  })
+
+  it("keeps product configuration links off the dashboard", () => {
+    renderPage()
+
+    expect(screen.queryByText("Categories & Subcategories")).not.toBeInTheDocument()
+    expect(screen.queryByText("Variant Groups")).not.toBeInTheDocument()
+    expect(screen.queryByText("Modifier Library")).not.toBeInTheDocument()
   })
 })

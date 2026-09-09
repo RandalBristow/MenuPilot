@@ -361,10 +361,10 @@ describe("tenant-aware core product actions", () => {
       records: [{ business_id: "business-a" }],
     })
     expect(actionMocks.state.redirected).toEqual([
-      "/businesses/randys-pizza/admin/products/list",
+      "/businesses/randys-pizza/admin/catalog/products/list",
     ])
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/list"
+      "/businesses/randys-pizza/admin/catalog/products/list"
     )
   })
 
@@ -377,7 +377,7 @@ describe("tenant-aware core product actions", () => {
       table: "products",
       records: [{ business_id: "business-demo" }],
     })
-    expect(actionMocks.state.redirected).toEqual(["/admin/products"])
+    expect(actionMocks.state.redirected).toEqual(["/platform/businesses"])
   })
 
   it("updateProduct refuses a product from another business", async () => {
@@ -487,10 +487,10 @@ describe("tenant-aware core product actions", () => {
     await duplicateProduct(createDuplicateFormData())
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/list"
+      "/businesses/randys-pizza/admin/catalog/products/list"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/new-product"
+      "/businesses/randys-pizza/admin/catalog/products/new-product"
     )
   })
 })

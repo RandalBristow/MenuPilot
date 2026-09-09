@@ -612,7 +612,7 @@ describe("tenant-aware variant modifier rules", () => {
     )
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/modifier-groups/modifier-group-a/availability?productId=product-a"
+      "/businesses/randys-pizza/admin/catalog/products/modifier-groups/modifier-group-a/availability?productId=product-a"
     )
   })
 })

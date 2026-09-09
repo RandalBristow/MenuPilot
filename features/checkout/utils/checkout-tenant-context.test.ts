@@ -135,17 +135,11 @@ describe("checkout tenant context", () => {
     ).toBe(false)
   })
 
-  it("blocks inactive, disabled, and non-ordering locations", () => {
+  it("blocks inactive and non-ordering locations", () => {
     expect(
       getCheckoutOrderability({
         business: buildBusiness(),
         location: buildLocation({ status: "setup", isActive: false }),
-      }).ok
-    ).toBe(false)
-    expect(
-      getCheckoutOrderability({
-        business: buildBusiness(),
-        location: buildLocation({ isEnabled: false }),
       }).ok
     ).toBe(false)
     expect(

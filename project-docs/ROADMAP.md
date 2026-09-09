@@ -45,7 +45,7 @@ V1 customer experience:
 
 - [ ] Add customer accounts or lightweight phone/email lookup for order history and reorder.
 - [ ] Add public multi-location selection UX with address/distance/context.
-- [ ] Add PWA/installable app support.
+- [ ] Add PWA/installable app support for customer and staff workflows.
 - [ ] Add nutritional information such as calories and optional macros.
 - [ ] Add catering inquiry / large-order request flow.
 
@@ -55,6 +55,12 @@ Future monetization and marketing:
 - [ ] Add gift cards / store credit.
 - [ ] Add age verification flow if alcohol or regulated products are supported.
 - [ ] Add advanced customer marketing and notification tooling.
+
+Future platform surfaces and hosting:
+
+- [ ] Add restaurant-owned custom domain support.
+- [ ] Add fullscreen digital menu boards / signage support.
+- [ ] Add hardware display guidance for kiosk/signage deployments.
 
 ### 1. Product Entry Cleanup And Foundation
 
@@ -140,7 +146,7 @@ Schema foundation completed:
 - [x] Platform Admin business detail can update business activation status and location status/order flags.
 - [x] Tenant resolver helpers exist for business/location context.
 - [x] Tenant-aware business admin shell exists at `/businesses/[businessSlug]/admin` with setup sections for Product Catalog, Variants, Modifiers, Media, Customer Preview, and disabled future items.
-- [x] Tenant-scoped Product Admin route shells exist at `/businesses/[businessSlug]/admin/products...`.
+- [x] Tenant-scoped Product Admin routes exist at `/businesses/[businessSlug]/admin/catalog/products...`.
 - [x] Tenant-scoped core product mutations exist for create, update, delete, enable/disable, and duplicate.
 - [x] Tenant-scoped category/subcategory mutations exist for create, update, and enable/disable saves; they defensively create the default product menu for fresh tenants missing the scaffold.
 - [x] Tenant-scoped reusable variant group/option and product variant assignment/override mutations exist.
@@ -183,9 +189,9 @@ Platform Admin business context/switcher direction:
 - Long term, tenant context should be explicit in the URL instead of relying only on local/session state.
 - Possible route shape: `/businesses/[businessSlug]/admin`, or another explicit business-slug admin route chosen during implementation.
 - The Platform Admin business detail page exposes a clear "Open Business Admin" action.
-- Product Admin routes under `/businesses/[businessSlug]/admin/products...` support product-owned reads/writes, including core products, category/subcategory, reusable variants, product variant assignments/overrides, product Modifier Group assignments, included/default modifiers, and variant-specific modifier availability/price rules.
-- Admin Modifier Library routes under `/businesses/[businessSlug]/admin/modifiers...` support business-scoped reusable modifier reads/writes. Legacy `/admin/modifiers...` remains demo-scoped.
-- Admin Media route `/businesses/[businessSlug]/admin/media` supports business-scoped media reads/writes/uploads/imports. Legacy `/admin/media` remains demo-scoped.
+- Product Admin routes under `/businesses/[businessSlug]/admin/catalog/products...` support product-owned reads/writes, including core products, category/subcategory, reusable variants, product variant assignments/overrides, product Modifier Group assignments, included/default modifiers, and variant-specific modifier availability/price rules.
+- Modifier Library routes under `/businesses/[businessSlug]/admin/catalog/modifiers...` support business-scoped reusable modifier reads/writes.
+- Media route `/businesses/[businessSlug]/admin/media` supports business-scoped media reads/writes/uploads/imports.
 - Public menu route `/businesses/[businessSlug]/menu` supports business-scoped menu reads, product configurator loading, and a link to the selected business's Specials & Deals page. Legacy `/menu` remains demo-scoped for compatibility.
 - Public Specials & Deals route `/businesses/[businessSlug]/specials` supports business-scoped active passive specials, orderable deal build actions, and Mix & Match build actions.
 - Checkout route `/businesses/[businessSlug]/checkout` resolves the business and deterministic default location, blocks setup/inactive/non-orderable contexts, rejects cross-tenant carts, and preserves legacy `/checkout` for demo compatibility.
@@ -305,6 +311,15 @@ Planned Specials / Deals backlog:
 - [x] Basic checkout tax/discount ordering: passive discounts apply before tax; service fee and tip are composed after discounted subtotal. Complex tax jurisdiction behavior remains deferred.
 - [ ] Customer/account-specific promos.
 
+Specials/auth/rewards sequencing:
+
+- Finish non-user-based Specials and promo types first: BOGO, free-item-with-purchase, discounted add-ons, coupon codes, usage limits, and category/subcategory eligibility.
+- Then implement auth/roles foundation.
+- Then implement customer accounts, order history, and reorder.
+- Then implement true user-based loyalty/rewards.
+- Cart promotions such as "Spend $25, get free breadsticks" can work without login.
+- Loyalty rewards such as "Earn 100 points, redeem free breadsticks" require customer identity/account support.
+
 Recommended next Specials build:
 
 - Build cart edit/reconfigure behavior for orderable deals and Mix-and-Match deals after checkout/order/staff regression is manually verified.
@@ -316,6 +331,105 @@ Recommended next operational availability build:
 - Add staff/location-friendly controls and location-scoped runtime enforcement. Location-specific overrides should take precedence over business-wide overrides.
 - Add optional realtime/customer refresh behavior after runtime enforcement and staff controls are stable.
 - Keep Quick 86 separate from permanent admin enable/disable.
+
+## PWA / Installable App Support
+
+Planned/deferred. No PWA manifest, service worker, or install flow is implemented yet.
+
+Customer install use cases:
+
+- Install a restaurant menu/order page for quick return visits.
+- Reopen customer order status after checkout.
+- Future reorder from order history.
+- Future loyalty/rewards access after customer identity exists.
+
+Staff install use cases:
+
+- Install the staff orders page on a tablet.
+- Future realtime order updates.
+- Future notification behavior.
+- Tablet/kitchen workflow polish.
+
+Implementation items:
+
+- Web app manifest.
+- App name/icons.
+- Theme color.
+- Standalone display mode.
+- Mobile install polish.
+- iPhone safe-area handling.
+- Android Chrome testing.
+- iPhone Safari testing.
+- Desktop Chrome testing.
+- Offline/fallback behavior if appropriate.
+- Tenant/business branding strategy for app name, icons, and colors if practical.
+
+## Custom Domains
+
+Planned/deferred. Tenant routing currently uses MenuPilot slug URLs such as `/businesses/[businessSlug]/menu`.
+
+Planned support:
+
+- `www.restaurant.com`
+- `order.restaurant.com`
+- `menu.restaurant.com`
+- MenuPilot fallback URLs such as `/businesses/[businessSlug]/menu` for previews, support, and onboarding.
+
+Future implementation concepts:
+
+- `business_domains` table or equivalent.
+- `business_id`.
+- `domain`.
+- Primary/alias type.
+- Verification status.
+- Verification token.
+- `verified_at`.
+- Host-based tenant resolution.
+- Vercel custom-domain integration.
+- SSL/certificate verification workflow.
+- Keep MenuPilot fallback URLs even after custom domains are live.
+
+## Digital Menu Boards And Hardware Displays
+
+Planned/deferred. Digital menu boards are different from printable menus and customer ordering menus.
+
+Planned display routes:
+
+- `/businesses/[businessSlug]/boards/[boardSlug]`
+- `/businesses/[businessSlug]/locations/[locationSlug]/boards/[boardSlug]`
+- Custom-domain-friendly route such as `https://menu.restaurant.com/boards/main-menu`
+
+Planned board features:
+
+- Fullscreen TV-optimized layout.
+- No cart, checkout, or customer ordering buttons.
+- Large typography.
+- Category/product panels.
+- Active specials banner.
+- Multiple boards per business/location.
+- Board slugs.
+- Assign board to location.
+- Choose categories/products.
+- Choose layout/columns.
+- Show/hide prices.
+- Show/hide images.
+- Rotation/page timing.
+- Auto-refresh every X seconds.
+- Future Supabase Realtime updates.
+- Hide Quick 86 sold-out products/options.
+
+Hardware/display support notes:
+
+- Recommended hardware paths include Raspberry Pi 5 / Raspberry Pi 4, Chromebox, mini PC, Android TV box, Fire TV Stick, and commercial signage players.
+- Raspberry Pi needs Raspberry Pi OS with Desktop before Chromium can run.
+- Raspberry Pi can auto-login and launch Chromium in kiosk mode.
+- Example kiosk command: `chromium-browser --kiosk https://menu.restaurant.com/boards/main-menu`
+- Each TV can point to a different board URL.
+- Pi 5 4GB is a good future test/recommendation target.
+- Ethernet is preferred where available.
+- SSD is more durable than microSD for always-on installs.
+- Arduino is not appropriate for rendering browser-based menu boards because it is a microcontroller, not a small Linux computer.
+- Arduino could be useful later for hardware extras such as LED signs, buzzers, pickup displays, physical buttons, or simple order-ready displays.
 
 ## Product Setup Warnings
 

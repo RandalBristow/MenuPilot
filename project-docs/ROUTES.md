@@ -1,190 +1,110 @@
 # Routes
 
-_Last updated: 2026-06-10_
+_Last updated: 2026-09-06_
+
+This file is the authoritative route inventory. Business administration is always tenant-scoped by `businessSlug`. The former unscoped admin routes and pre-catalog tenant admin routes have been removed.
 
 Status values:
 
 - `current`: active route in the current product flow.
-- `legacy/remove`: older route or compatibility route that should be removed or avoided.
-- `future/planned`: planned route not implemented yet.
-- `hidden/internal`: implemented route used by a workflow but not meant as a primary navigation destination.
+- `hidden/internal`: active workflow route that is not a primary navigation destination.
+- `review pending`: retained until its role and replacement are reviewed.
+- `future/planned`: not implemented.
 
-## Public Pages
+## Platform Owner
 
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/` | current | Public entry page. |
-| `/menu` | current | Legacy customer-facing menu and product configuration entry point for the seeded `pronto-demo` business. |
-| `/businesses/[businessSlug]` | current | Tenant-scoped storefront landing page for a business. Links to the scoped menu, shows storefront/orderability status, and only shows checkout when the default location is orderable. |
-| `/businesses/[businessSlug]/menu` | current | Tenant-scoped public menu route. Active businesses show normally; setup businesses show preview messaging with customer ordering actions disabled. |
-| `/businesses/[businessSlug]/specials` | current | Tenant-scoped public Specials & Deals page. Shows active passive specials, orderable deals, and Mix & Match deals for the selected business; buildable deals open the public builders, while passive specials note that checkout applies them automatically. |
-| `/businesses/[businessSlug]/orders/[orderNumber]` | current | Customer-facing order status page for a placed order. Looks up by business slug and order number, shows safe order/status/summary details, and does not expose internal IDs, payment data, or private lookup fields. |
-
-## Checkout
+These internal routes are for the MenuPilot platform owner. Authentication and role enforcement are still deferred.
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/checkout` | current | Legacy pickup checkout flow for Pronto Demo/main-street. |
-| `/businesses/[businessSlug]/checkout` | current | Tenant-scoped checkout using the selected business and deterministic default location. Blocks setup/inactive/non-orderable contexts, rejects cross-tenant carts, and links successful orders to the scoped customer order status route. |
+| `/platform` | hidden/internal | Platform-owner onboarding and administration hub. |
+| `/platform/businesses` | hidden/internal | List every business and its setup state. |
+| `/platform/businesses/new` | hidden/internal | Create a business and its initial location. |
+| `/platform/businesses/[businessId]` | hidden/internal | Edit business identity, contacts, status, locations, orderability, and pricing with one page-level save. |
 
-## Staff Orders
-
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/staff/orders` | current | Legacy staff order queue for Pronto Demo/main-street. |
-| `/businesses/[businessSlug]/locations/[locationSlug]/orders` | current | Tenant/location-scoped staff order queue. Resolves business/location from route slugs, filters reads by `business_id` and `location_id`, and verifies order ownership before status updates. |
-
-## Admin Dashboard
+## Business Owner
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/admin` | current | Admin dashboard/navigation hub. Modifier management access lives under Product Management. |
+| `/businesses/[businessSlug]/admin` | hidden/internal | Business-owner landing page and navigation hub for catalog, specials, media, orders, and storefront preview. |
+| `/businesses/[businessSlug]/admin/catalog` | hidden/internal | Product Catalog workspace for products, categories, variants, and reusable modifiers. |
+| `/businesses/[businessSlug]/admin/media` | hidden/internal | Tenant-scoped media library for uploads, imports, metadata, and product images. |
+| `/businesses/[businessSlug]/admin/specials` | hidden/internal | List and manage reusable specials and discounts. |
+| `/businesses/[businessSlug]/admin/specials/new` | hidden/internal | Create a special. |
+| `/businesses/[businessSlug]/admin/specials/[specialId]` | hidden/internal | Edit a tenant-owned special. |
+| `/businesses/[businessSlug]/admin/employees` | hidden/internal | Business-owner page for choosing an employee, assigning Manager or Staff role, and configuring per-location permissions. |
 
-## Platform Admin
-
-Platform Admin is an internal app-owner area. Auth/role protection is deferred; do not expose these routes publicly.
-
-Future Platform Admin business switching should open an explicit tenant admin context instead of relying only on local/session state. A route shape such as `/businesses/[businessSlug]/admin` is acceptable if chosen during implementation.
-
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/platform` | hidden/internal | Platform Admin hub for app-owner business onboarding tools. |
-| `/platform/businesses` | hidden/internal | Business list showing setup status, contact fields, location counts, first-location state, and a link to create a new business. |
-| `/platform/businesses/new` | hidden/internal | Platform Admin create-business and first-location form. New businesses and locations start in setup mode; first locations start disabled and not accepting orders. |
-| `/platform/businesses/[businessId]` | hidden/internal | Business detail page showing business contact/status fields, locations, ordering flags, setup warnings, and activation controls for business/location status and ordering flags. |
-| `/businesses/[businessSlug]/admin` | hidden/internal | Tenant-aware business setup landing page opened from Platform Admin. Shows selected business context, default-location orderability, grouped links for Product Catalog, Variants, Modifiers, Specials, Media, Customer Preview, and Locations / Orders when a location exists. |
-
-## Tenant Product Management
-
-These routes are internal business-scoped route shells. They use the selected business slug for read queries, links, and converted product mutations. Core product create/update/delete/enable/duplicate actions, category/subcategory create/edit/enable-disable saves, reusable variant group/option saves, product variant assignment/override saves, product Modifier Group assignments, included modifier rules, default modifier selections, and variant-specific modifier availability/price rules are tenant-aware here.
+### Product Catalog
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/businesses/[businessSlug]/admin/products` | hidden/internal | Tenant-scoped Product Management hub. |
-| `/businesses/[businessSlug]/admin/products/categories` | hidden/internal | Tenant-scoped product category management. Create/edit saves resolve the business server-side from `businessSlug`. |
-| `/businesses/[businessSlug]/admin/products/subcategories` | hidden/internal | Tenant-scoped product subcategory management, usually with `categoryId`. Create/edit saves validate parent category and subcategory ownership. |
-| `/businesses/[businessSlug]/admin/products/list` | hidden/internal | Tenant-scoped product browser. Product links remain in the scoped route family; new and duplicate core product writes are enabled. |
-| `/businesses/[businessSlug]/admin/products/new` | hidden/internal | Tenant-scoped new product form. Create writes to the selected business. |
-| `/businesses/[businessSlug]/admin/products/[productId]` | hidden/internal | Tenant-scoped product detail/edit shell. Product lookup and core product saves/duplicates are scoped by business. |
-| `/businesses/[businessSlug]/admin/products/variant-groups` | hidden/internal | Tenant-scoped reusable variant group management. Create/edit saves resolve the business server-side from `businessSlug`. |
-| `/businesses/[businessSlug]/admin/products/variant-groups/[groupId]` | hidden/internal | Tenant-scoped variant group option management and product-specific variant option overrides. Group, option, and product writes validate selected business ownership. |
-| `/businesses/[businessSlug]/admin/products/variant-assignments` | hidden/internal | Tenant-scoped product variant assignment management. Select/detach writes validate product and variant group ownership. |
-| `/businesses/[businessSlug]/admin/products/modifier-groups` | hidden/internal | Tenant-scoped product Modifier Group assignment management. Attach/detach and included-rule saves validate selected business ownership. |
-| `/businesses/[businessSlug]/admin/products/modifier-groups/[groupId]/availability` | hidden/internal | Tenant-scoped Modifier Group variant rules management. Availability and variant-specific modifier price writes validate selected business ownership. |
+| `/businesses/[businessSlug]/admin/catalog/products` | hidden/internal | Product-management hub. |
+| `/businesses/[businessSlug]/admin/catalog/products/categories` | hidden/internal | Create and edit top-level product categories. |
+| `/businesses/[businessSlug]/admin/catalog/products/subcategories?categoryId=[categoryId]` | hidden/internal | Manage subcategories for a selected category. |
+| `/businesses/[businessSlug]/admin/catalog/products/list` | hidden/internal | Browse and manage products. |
+| `/businesses/[businessSlug]/admin/catalog/products/new` | hidden/internal | Create a product. |
+| `/businesses/[businessSlug]/admin/catalog/products/[productId]` | hidden/internal | Edit a tenant-owned product. |
+| `/businesses/[businessSlug]/admin/catalog/products/variant-groups` | hidden/internal | Manage reusable variant groups. |
+| `/businesses/[businessSlug]/admin/catalog/products/variant-groups/[groupId]` | hidden/internal | Manage options in a reusable variant group. With `productId`, manage product-specific overrides. |
+| `/businesses/[businessSlug]/admin/catalog/products/variant-assignments?productId=[productId]` | hidden/internal | Assign reusable variant groups to a product. |
+| `/businesses/[businessSlug]/admin/catalog/products/modifier-groups?productId=[productId]` | hidden/internal | Assign reusable modifier groups and included/default rules to a product. |
+| `/businesses/[businessSlug]/admin/catalog/products/modifier-groups/[groupId]/availability?productId=[productId]` | hidden/internal | Manage variant-specific modifier availability and pricing. |
 
-## Tenant Modifier Management
+### Modifier Library
 
-These routes are internal business-scoped route shells for reusable modifier library management. They use the selected business slug for read queries, links, and converted modifier mutations. Legacy `/admin/modifiers...` remains demo-scoped for compatibility.
-
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/businesses/[businessSlug]/admin/modifiers` | hidden/internal | Tenant-scoped Modifier Management hub. |
-| `/businesses/[businessSlug]/admin/modifiers/categories` | hidden/internal | Tenant-scoped Modifier Category management. |
-| `/businesses/[businessSlug]/admin/modifiers/groups` | hidden/internal | Tenant-scoped Modifier Category list displayed as the current Modifier Groups entry point. |
-| `/businesses/[businessSlug]/admin/modifiers/groups/[categoryId]` | hidden/internal | Tenant-scoped Modifier Groups for one Modifier Category. Unknown/cross-tenant category IDs return not found. |
-| `/businesses/[businessSlug]/admin/modifiers/[groupId]` | hidden/internal | Tenant-scoped Modifier Option Groups for one Modifier Group. With `productId`, this route keeps product-scoped override context. |
-| `/businesses/[businessSlug]/admin/modifiers/[groupId]/subgroups/[subgroupId]` | hidden/internal | Tenant-scoped Modifier Options for one Modifier Option Group. With `productId`, this route keeps product-scoped override context. |
-| `/businesses/[businessSlug]/admin/modifiers/subgroups` | hidden/internal | Tenant-scoped aggregate Modifier Option Group/List management screen. |
-| `/businesses/[businessSlug]/admin/modifiers/options` | hidden/internal | Tenant-scoped aggregate Modifier Option management screen. |
-
-## Media Library
+The primary drill-down is Modifier Library → Category → Modifier Group → List → Option.
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/admin/media` | current | Media Library for managing image assets in `media_assets`; product images are selected from here through `products.image_media_id`. |
-| `/businesses/[businessSlug]/admin/media` | hidden/internal | Tenant-scoped Media Library. Reads, uploads, URL imports, metadata edits, and storage paths use the selected business. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers` | hidden/internal | Reusable Modifier Library entry point. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/groups` | hidden/internal | Browse modifier categories. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/groups/[categoryId]` | hidden/internal | Manage modifier groups in one category. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/[groupId]` | hidden/internal | Manage lists in one modifier group. With `productId`, preserve product override context. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/[groupId]/subgroups/[subgroupId]` | hidden/internal | Manage options in one modifier list. With `productId`, preserve product override context. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/categories` | hidden/internal | Direct modifier-category management screen. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/subgroups` | hidden/internal | Aggregate modifier-list management screen. |
+| `/businesses/[businessSlug]/admin/catalog/modifiers/options` | hidden/internal | Aggregate modifier-option management screen. |
 
-## Tenant Specials Management
-
-These routes are internal business-scoped route shells for reusable Specials MVP management. Expired specials remain visible and reusable; checkout only applies currently eligible enabled specials.
-
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/businesses/[businessSlug]/admin/specials` | hidden/internal | Tenant-scoped Specials Admin list. Shows enabled state, computed lifecycle status, eligibility summary, schedule summary, and enable/disable/edit actions. |
-| `/businesses/[businessSlug]/admin/specials/new` | hidden/internal | Tenant-scoped create-special form for line discounts, fixed-price line specials, cart discounts, eligibility, date range, and recurring day/time availability. |
-| `/businesses/[businessSlug]/admin/specials/[specialId]` | hidden/internal | Tenant-scoped edit-special form. Cross-tenant special IDs return not found or are rejected by server-side actions. |
-
-## Product Management
+## Public Customer Routes
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/admin/products` | current | Product Management hub. |
-| `/admin/products/categories` | current | Product category management. Category cards link to subcategory management for that category. |
-| `/admin/products/subcategories` | current | Product subcategory management, usually entered with `categoryId` query context. |
-| `/admin/products/list` | current | Product browser and product row actions. |
-| `/admin/products/new` | current | Create product page. |
-| `/admin/products/[productId]` | current | Edit product page. |
-| `/admin/products/modifier-groups` | current | Product-to-Modifier Group assignment and per-product Modifier Option override flow. |
-| `/admin/products/modifier-groups/[groupId]/availability` | hidden/internal | Product-scoped Modifier Group variant rules page for availability and variant-specific modifier option price overrides. Use with `productId`. |
-| `/admin/products/variants` | legacy/remove | Removed from active navigation. Old product-specific variant route replaced by reusable Variant Groups and `/admin/products/variant-assignments`. Do not use for new work. |
+| `/` | current | Public application entry page. |
+| `/businesses/[businessSlug]` | current | Tenant storefront landing page. |
+| `/businesses/[businessSlug]/menu` | current | Tenant customer menu and setup-mode preview. |
+| `/businesses/[businessSlug]/specials` | current | Tenant customer specials page. |
+| `/businesses/[businessSlug]/checkout` | current | Tenant checkout using the selected business and default location. |
+| `/businesses/[businessSlug]/orders/[orderNumber]` | current | Customer-safe order status page. |
+| `/menu` | review pending | Seeded-demo customer menu retained until public-route review. |
+| `/checkout` | review pending | Seeded-demo checkout retained until public-route review. |
 
-## Reusable Variant Groups
+## Staff Routes
 
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/admin/products/variant-groups` | current | Reusable variant group management. |
-| `/admin/products/variant-groups/[groupId]` | current | Variant options for one reusable variant group. With `productId`, this route is used for product-specific variant option overrides or preview. |
-
-## Variant Assignments
+These routes are intentionally retained for the next staff-access review.
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/admin/products/variant-assignments` | hidden/internal | Product-to-variant-group assignment route. This is not a Product Management hub card; enter it from a Product card with `productId` context. |
-| `/admin/products/variant-assignments?productId=...` | hidden/internal | Product-scoped entry from a Product card for assigning reusable variant groups and managing product-specific variant overrides. |
+| `/businesses/[businessSlug]/locations/[locationSlug]/manager` | hidden/internal | Location manager dashboard and entry point. Catalog editing remains disabled until permissions are defined. |
+| `/businesses/[businessSlug]/locations/[locationSlug]/manager/orders` | hidden/internal | Manager order queue for the assigned business location. |
+| `/businesses/[businessSlug]/locations/[locationSlug]/manager/availability` | hidden/internal | Location-specific temporary sold-out controls for products. |
+| `/businesses/[businessSlug]/locations/[locationSlug]/manager/modifier-availability` | hidden/internal | Location-specific temporary sold-out controls for toppings and other modifier options. |
+| `/businesses/[businessSlug]/locations/[locationSlug]/orders` | current | Tenant/location-scoped staff order queue. |
+| `/staff/orders` | review pending | Seeded-demo staff queue pending staff route and access review. |
 
-## Modifier Management
-
-Modifier terminology:
-
-- Modifier Category: admin organization layer backed by `modifier_categories`.
-- Modifier Group: product-attached rule set backed by `modifier_groups`.
-- Modifier Option Group: bucket/list inside a Modifier Group backed by `modifier_option_groups`.
-- Modifier Option: selectable customer choice backed by `modifier_options`.
-
-Products attach Modifier Groups. Products do not attach Modifier Categories or Modifier Option Groups directly. Products do not attach individual Modifier Options directly except through product-specific override/availability systems.
+## Planned Routes
 
 | Route | Status | Purpose |
 | --- | --- | --- |
-| `/admin/modifiers` | legacy/remove | Modifier management landing/compatibility route. Product Management is the current entry point. |
-| `/admin/modifiers/groups` | current | Modifier Category list displayed as the current Modifier Groups entry point. |
-| `/admin/modifiers/groups/[categoryId]` | current | Modifier Groups for one Modifier Category. |
-| `/admin/modifiers/[groupId]` | current | Modifier Option Groups for one Modifier Group. With `productId`, this route is product-scoped and returns to product modifier assignments. |
-| `/admin/modifiers/[groupId]/subgroups/[subgroupId]` | current | Modifier Options for one Modifier Option Group. With `productId`, this route is product-scoped for per-product Modifier Option overrides. |
-| `/admin/modifiers/categories` | legacy/remove | Older direct Modifier Category management screen. The current flow starts at `/admin/modifiers/groups`. |
-| `/admin/modifiers/subgroups` | legacy/remove | Older aggregate Modifier Group screen with filters. Use the current drill-down flow instead. |
-| `/admin/modifiers/options` | legacy/remove | Older aggregate Modifier Option screen. Use the current drill-down flow instead. |
+| `/businesses/[businessSlug]/boards/[boardSlug]` | future/planned | Business-scoped fullscreen digital menu board. |
+| `/businesses/[businessSlug]/locations/[locationSlug]/boards/[boardSlug]` | future/planned | Location-scoped fullscreen digital menu board. |
+| `/businesses/[businessSlug]/admin/locations/[locationSlug]` | future/planned | Explicit location settings, subject to the staff/admin access review. |
 
-## Hidden/Internal Workflow Routes
+## Removed Route Families
 
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/admin/products/subcategories?categoryId=...` | hidden/internal | Category-scoped subcategory management entry from a Product Category card. |
-| `/admin/products/modifier-groups?productId=...` | hidden/internal | Product-scoped Modifier Group assignment entry from a Product card. |
-| `/admin/products/modifier-groups/[groupId]/availability?productId=...` | hidden/internal | Product-scoped Variant Rules page for one assigned Modifier Group. Manages availability and price overrides per selected reusable variant option. |
-| `/admin/products/variant-groups/[groupId]?productId=...` | hidden/internal | Product-scoped variant option override/preview route. |
-| `/admin/modifiers/[groupId]?productId=...` | hidden/internal | Product-scoped Modifier Option Group list. |
-| `/admin/modifiers/[groupId]/subgroups/[subgroupId]?productId=...` | hidden/internal | Product-scoped Modifier Option override list. |
+The following route families no longer exist and must not be generated:
 
-## Future/Planned Admin Routes
+- Unscoped `/admin` and `/admin/*`.
+- Pre-catalog `/businesses/[businessSlug]/admin/products/*`.
+- Pre-catalog `/businesses/[businessSlug]/admin/modifiers/*`.
 
-| Route | Status | Purpose |
-| --- | --- | --- |
-| `/businesses/[businessSlug]/admin/locations/[locationSlug]` | future/planned | Explicit location-scoped admin settings context if location admin stays under the business admin route family. Exact route shape may change. |
-| `/admin/settings` | future/planned | Business and admin settings. |
-| `/admin/theme` | future/planned | Brand and theme management. |
-| `/admin/pages` | future/planned | Page/content management. |
-| `/admin/specials` | future/planned | Specials Engine admin after product entry foundation and builder modes are stable. |
-| `/admin/print-menus` | future/planned | Printable Menu Builder using product/category/special data from the same source of truth. |
-| `/admin/inventory` | future/planned | Inventory management. |
-| `/admin/orders` | future/planned | Admin order management and history. |
-
-## Deferred Route Families
-
-These route families are intentionally not current product-entry work:
-
-- Full draft/publish/versioning screens.
-- Billing/subscription screens.
-- AI Owner Copilot screens.
-- Multiple builder visual layout configuration screens.
-- BundleBuilder/ComboBuilder customer/admin flows.
-- Customer-facing AI.
+Use the business-scoped `/businesses/[businessSlug]/admin/catalog/*` routes for all catalog administration.

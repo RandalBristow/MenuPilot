@@ -10,30 +10,30 @@ import {
 } from "./product-admin-routes"
 
 describe("product admin route helpers", () => {
-  it("builds legacy product admin URLs without a business slug", () => {
-    expect(getProductAdminHref()).toBe("/admin/products")
-    expect(getProductListHref()).toBe("/admin/products/list")
-    expect(getProductDetailHref("product-1")).toBe("/admin/products/product-1")
+  it("returns to business selection without a business slug", () => {
+    expect(getProductAdminHref()).toBe("/platform/businesses")
+    expect(getProductListHref()).toBe("/platform/businesses")
+    expect(getProductDetailHref("product-1")).toBe("/platform/businesses")
   })
 
   it("builds business-scoped product admin URLs when a business slug is supplied", () => {
     expect(getProductAdminHref("", "randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/products"
+      "/businesses/randys-pizza/admin/catalog/products"
     )
     expect(getProductListHref("randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/products/list"
+      "/businesses/randys-pizza/admin/catalog/products/list"
     )
     expect(getProductDetailHref("product-1", "randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/products/product-1"
+      "/businesses/randys-pizza/admin/catalog/products/product-1"
     )
   })
 
   it("builds scoped product sub-pages with query strings", () => {
     expect(getProductVariantAssignmentsHref("product-1", "randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/products/variant-assignments?productId=product-1"
+      "/businesses/randys-pizza/admin/catalog/products/variant-assignments?productId=product-1"
     )
     expect(getProductModifierGroupsHref("product-1", "randys-pizza")).toBe(
-      "/businesses/randys-pizza/admin/products/modifier-groups?productId=product-1"
+      "/businesses/randys-pizza/admin/catalog/products/modifier-groups?productId=product-1"
     )
     expect(
       getProductModifierAvailabilityHref({
@@ -42,7 +42,7 @@ describe("product admin route helpers", () => {
         businessSlug: "randys-pizza",
       })
     ).toBe(
-      "/businesses/randys-pizza/admin/products/modifier-groups/modifier-1/availability?productId=product-1"
+      "/businesses/randys-pizza/admin/catalog/products/modifier-groups/modifier-1/availability?productId=product-1"
     )
     expect(
       getVariantGroupDetailHref({
@@ -51,7 +51,7 @@ describe("product admin route helpers", () => {
         businessSlug: "randys-pizza",
       })
     ).toBe(
-      "/businesses/randys-pizza/admin/products/variant-groups/variant-1?productId=product-1"
+      "/businesses/randys-pizza/admin/catalog/products/variant-groups/variant-1?productId=product-1"
     )
   })
 })

@@ -955,6 +955,18 @@ For each feature:
 - [ ] Add SEO metadata
 - [ ] Build public multi-location selection UX with address/distance/context
 - [ ] Add PWA manifest/service worker/installable app support
+- [ ] Add PWA app name/icons
+- [ ] Add PWA theme color and standalone display mode
+- [ ] Polish customer install flow for restaurant menu/order page
+- [ ] Support customer order status access from installed app
+- [D] Future reorder from installed app after customer identity/order history exists
+- [D] Future loyalty/rewards access from installed app after customer accounts exist
+- [ ] Test install behavior in Android Chrome
+- [ ] Test install behavior in iPhone Safari
+- [ ] Test install behavior in desktop Chrome
+- [ ] Handle iPhone safe-area layout for installed/standalone mode
+- [ ] Decide offline/fallback behavior
+- [ ] Decide tenant/business branding strategy for PWA name, icons, and colors
 
 ## 17.2 Home page
 
@@ -1007,6 +1019,25 @@ For each feature:
 - [ ] Compact quantity-only SimpleProductBuilder dialog
 - [ ] Tune accordion padding/header density without changing pricing or validation
 - [ ] Keep future builder layouts presentation-only through shared pricing, validation, cart, and checkout logic
+
+## 17.5 Digital menu boards / signage
+
+- [D] Add public fullscreen board route `/businesses/[businessSlug]/boards/[boardSlug]`
+- [D] Add location-scoped board route `/businesses/[businessSlug]/locations/[locationSlug]/boards/[boardSlug]`
+- [D] Support custom-domain board route such as `https://menu.restaurant.com/boards/main-menu`
+- [D] Create digital board configuration records with board slugs
+- [D] Support multiple boards per business/location
+- [D] Assign board to location
+- [D] Choose categories/products for a board
+- [D] Choose board layout/columns
+- [D] Show/hide prices
+- [D] Show/hide images
+- [D] Show active specials banner
+- [D] Add rotation/page timing
+- [D] Add auto-refresh every X seconds
+- [D] Add future Supabase Realtime refresh
+- [D] Hide Quick 86 sold-out products/options
+- [D] Keep boards fullscreen and TV-optimized with no cart/checkout/customer buttons
 
 ---
 
@@ -1570,7 +1601,11 @@ For each feature:
 - [ ] Apply migrations to production
 - [ ] Configure Stripe production keys
 - [ ] Configure Stripe webhooks
-- [ ] Configure custom domain support later
+- [D] Configure custom domain support later
+- [D] Support `www.restaurant.com`
+- [D] Support `order.restaurant.com`
+- [D] Support `menu.restaurant.com`
+- [D] Keep MenuPilot fallback URLs for previews/support/onboarding
 - [ ] Add deployment documentation
 
 ---
@@ -1628,6 +1663,7 @@ V1 is complete when:
 - [ ] Notifications send order confirmations
 - [ ] Customer order history/reorder works
 - [ ] PWA installable experience works
+- [ ] Staff orders page can be installed on tablet when PWA work is built
 - [ ] Public multi-location selection is clear
 - [ ] Multi-location support is reliable
 - [~] Tenant-scoped single-default-location flows are implemented; full multi-location management remains pending
@@ -1640,6 +1676,8 @@ The full platform is complete when:
 
 - [ ] Printed menu builder works
 - [ ] Display panel builder works
+- [ ] Digital menu boards/signage routes work
+- [ ] Hardware display guidance is documented
 - [ ] Advanced specials work
 - [ ] Advanced delivery zones work
 - [ ] Theme versioning works
@@ -1717,8 +1755,13 @@ The full platform is complete when:
 
 ## 41.5 Customization and Branding
 
-- [ ] Implement custom domains
-- [ ] Add domain verification flow
+- [D] Implement custom domains with a `business_domains` table or equivalent
+- [D] Store `business_id`, domain, primary/alias type, verification status, verification token, and `verified_at`
+- [D] Add host-based tenant resolution for verified custom domains
+- [D] Add Vercel custom-domain integration
+- [D] Add SSL/certificate verification workflow
+- [D] Add domain verification flow
+- [D] Preserve MenuPilot slug fallback URLs after custom domains go live
 - [ ] Add theme versioning UI
 - [ ] Add page version history
 - [ ] Add menu version history
@@ -1733,6 +1776,19 @@ The full platform is complete when:
 - [ ] Add refund policy management
 - [ ] Add delivery policy management
 - [ ] Add business-specific policy display sections
+
+## 41.7 Hardware Display Support
+
+- [D] Document Raspberry Pi 5 / Raspberry Pi 4 menu board setup
+- [D] Document Chromebox, mini PC, Android TV box, Fire TV Stick, and commercial signage player options
+- [D] Document Raspberry Pi OS with Desktop requirement before Chromium kiosk mode
+- [D] Document kiosk launch command such as `chromium-browser --kiosk https://menu.restaurant.com/boards/main-menu`
+- [D] Document one board URL per TV/display
+- [D] Prefer Pi 5 4GB as future test/recommendation target
+- [D] Prefer Ethernet where available
+- [D] Prefer SSD over microSD for always-on installs
+- [D] Note that Arduino is not appropriate for browser-rendered menu boards
+- [D] Track possible Arduino-adjacent hardware extras later: LED signs, buzzers, pickup displays, physical buttons, or simple order-ready displays
 
 ## 41.7 Operations
 

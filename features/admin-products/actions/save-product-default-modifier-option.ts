@@ -95,9 +95,6 @@ function revalidateDefaultModifierPaths({
 }) {
   const businessSlug = getActionBusinessSlug(context)
 
-  if (!context.isScoped) {
-    revalidatePath(`/admin/modifiers/${modifierGroupId}`)
-  }
   revalidatePath(getProductModifierGroupsHref(productId, businessSlug))
   revalidatePath(
     getProductModifierAvailabilityHref({

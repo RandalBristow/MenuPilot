@@ -11,6 +11,7 @@ import {
   parseOperationalExpiresAt,
   parseOperationalReason,
 } from "@/features/availability/utils/operational-availability-form"
+import { resolveLocationContext } from "@/features/tenant/queries/resolve-location-context"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -39,16 +40,31 @@ export async function setProductOperationalAvailability(formData: FormData) {
   const is86d = parseOperational86Flag(formData.get("is86d"))
   const reason = parseOperationalReason(formData.get("reason"))
   const expiresAt = parseOperationalExpiresAt(formData.get("expiresAt"))
+  const locationSlug =
+    typeof formData.get("locationSlug") === "string"
+      ? String(formData.get("locationSlug")).trim()
+      : ""
+  const location = locationSlug
+    ? await resolveLocationContext({
+        businessId: context.businessId,
+        locationSlug,
+      })
+    : null
+
+  if (locationSlug && !location) {
+    throw new Error("Location could not be found.")
+  }
 
   await assertProduct(context.businessId, productId)
 
-  const { data: existing, error: existingError } = await supabaseAdmin
+  const existingQuery = supabaseAdmin
     .from("product_operational_availability")
     .select("id")
     .eq("business_id", context.businessId)
     .eq("product_id", productId)
-    .is("location_id", null)
-    .maybeSingle()
+  const { data: existing, error: existingError } = location
+    ? await existingQuery.eq("location_id", location.id).maybeSingle()
+    : await existingQuery.is("location_id", null).maybeSingle()
 
   if (existingError) {
     throw new Error(
@@ -58,7 +74,7 @@ export async function setProductOperationalAvailability(formData: FormData) {
 
   const payload = {
     business_id: context.businessId,
-    location_id: null,
+    location_id: location?.id ?? null,
     product_id: productId,
     is_86d: is86d,
     reason: is86d ? reason : null,
@@ -85,4 +101,9 @@ export async function setProductOperationalAvailability(formData: FormData) {
   revalidatePath("/menu")
   revalidatePath(`/businesses/${context.businessSlug}/menu`)
   revalidatePath(`/businesses/${context.businessSlug}/specials`)
+  if (location) {
+    revalidatePath(
+      `/businesses/${context.businessSlug}/locations/${location.slug}/manager/availability`
+    )
+  }
 }

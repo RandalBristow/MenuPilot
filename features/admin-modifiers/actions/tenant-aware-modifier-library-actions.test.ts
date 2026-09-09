@@ -482,10 +482,10 @@ describe("tenant-aware modifier library actions", () => {
     await createModifierOption(optionFormData())
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/modifiers/options"
+      "/businesses/randys-pizza/admin/catalog/modifiers/options"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/modifiers/group-a"
+      "/businesses/randys-pizza/admin/catalog/modifiers/group-a"
     )
   })
 })

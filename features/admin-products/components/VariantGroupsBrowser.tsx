@@ -240,6 +240,12 @@ export function VariantGroupsBrowser({
     <main className="flex h-dvh min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <ThemedPageHeader
+          backHref={
+            businessSlug
+              ? `/businesses/${encodeURIComponent(businessSlug)}/admin/catalog`
+              : undefined
+          }
+          backLabel="Product Catalog"
           title="Variant Groups"
           description={`Reusable product variant groups for ${data.businessName}.`}
           className="shrink-0 border-b pb-3"

@@ -50,9 +50,13 @@ function formatPriceDelta(value: number | string) {
 export function ModifierOptionsBrowser({
   businessSlug,
   categories,
+  locationSlug,
+  availabilityOnly = false,
 }: {
   businessSlug?: string
   categories: ModifierCategory[]
+  locationSlug?: string
+  availabilityOnly?: boolean
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     categories[0]?.id ?? ""
@@ -192,27 +196,33 @@ export function ModifierOptionsBrowser({
           {options.map((option) => (
             <ThemedCard
               key={option.id}
-              role="button"
-              tabIndex={0}
-              aria-label={`Open modifier ${option.name}`}
-              onClick={() => setActiveOption(option)}
+              role={availabilityOnly ? undefined : "button"}
+              tabIndex={availabilityOnly ? undefined : 0}
+              aria-label={availabilityOnly ? undefined : `Open modifier ${option.name}`}
+              onClick={availabilityOnly ? undefined : () => setActiveOption(option)}
               onKeyDown={(event) => {
+                if (availabilityOnly) return
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault()
                   setActiveOption(option)
                 }
               }}
               className={
-                option.is_enabled
-                  ? `${MODIFIER_ADMIN_ROW_CARD_CLASS} cursor-pointer`
-                  : `${MODIFIER_ADMIN_ROW_CARD_CLASS} cursor-pointer bg-muted/30 opacity-75`
+                  option.is_enabled && !availabilityOnly
+                    ? `${MODIFIER_ADMIN_ROW_CARD_CLASS} cursor-pointer`
+                    : `${MODIFIER_ADMIN_ROW_CARD_CLASS}${option.is_enabled ? "" : " bg-muted/30 opacity-75"}`
               }
             >
               <CompactRecordRow
                 className={MODIFIER_ADMIN_ROW_CLASS}
                 title={option.name}
                 statusIcon={
-                  <CompactRecordStatusIcon enabled={option.is_enabled} />
+                  <CompactRecordStatusIcon
+                    enabled={
+                      option.is_enabled &&
+                      !option.operationalAvailability?.is86d
+                    }
+                  />
                 }
                 description={
                   option.operationalAvailability?.is86d
@@ -236,10 +246,11 @@ export function ModifierOptionsBrowser({
                       itemId={option.id}
                       itemName={option.name}
                       businessSlug={businessSlug}
+                      locationSlug={locationSlug}
                       modifierGroupId={selectedGroup.id}
                       is86d={Boolean(option.operationalAvailability?.is86d)}
                     />
-                    <DeleteModifierOptionButton
+                    {availabilityOnly ? null : <DeleteModifierOptionButton
                       businessSlug={businessSlug}
                       optionId={option.id}
                       optionName={option.name}
@@ -249,7 +260,7 @@ export function ModifierOptionsBrowser({
                           result.status === "deleted" ? null : result
                         )
                       }
-                    />
+                    />}
                   </>
                 }
               />
@@ -258,7 +269,7 @@ export function ModifierOptionsBrowser({
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
+      {availabilityOnly ? null : <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-5xl justify-end gap-2">
           <AdminBackButton
             fallbackHref={getModifierAdminHref("", businessSlug)}
@@ -275,8 +286,9 @@ export function ModifierOptionsBrowser({
           </ThemedButton>
         </div>
       </div>
+      }
 
-      {createOpen ? (
+      {!availabilityOnly && createOpen ? (
         <ModifierOptionFormDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
@@ -294,7 +306,7 @@ export function ModifierOptionsBrowser({
         />
       ) : null}
 
-      {activeOption ? (
+      {!availabilityOnly && activeOption ? (
         <ModifierOptionFormDialog
           open={Boolean(activeOption)}
           onOpenChange={(open) => {

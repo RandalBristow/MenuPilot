@@ -8,6 +8,7 @@ import { ThemedButton } from "@/components/themed/ThemedButton"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -74,11 +75,11 @@ export function ProductConfigurator({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{product.name}</DialogTitle>
+            <DialogDescription>
+              Combos and bundles are coming soon.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Combos and bundles are coming soon.
-            </p>
             <div className="flex justify-end">
               <ThemedButton type="button" onClick={() => onOpenChange(false)}>
                 Close

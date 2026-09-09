@@ -104,13 +104,13 @@ describe("ProductModifierGroupsClient", () => {
       screen.getByLabelText("Open modifier group Pizza Toppings")
     ).toHaveAttribute(
       "href",
-      "/businesses/randys-pizza/admin/modifiers/group-toppings?productId=product-meat"
+      "/businesses/randys-pizza/admin/catalog/modifiers/group-toppings?productId=product-meat"
     )
     expect(
       screen.getByRole("link", { name: "Manage modifier availability" })
     ).toHaveAttribute(
       "href",
-      "/businesses/randys-pizza/admin/products/modifier-groups/group-toppings/availability?productId=product-meat"
+      "/businesses/randys-pizza/admin/catalog/products/modifier-groups/group-toppings/availability?productId=product-meat"
     )
   })
 })

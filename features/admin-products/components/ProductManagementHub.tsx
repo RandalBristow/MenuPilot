@@ -19,7 +19,6 @@ const productHubLinks = [
   {
     title: "Modifier Groups",
     path: "modifier-groups",
-    legacyHref: "/admin/modifiers/groups",
     description: "Review product modifier assignments.",
   },
   {
@@ -43,6 +42,12 @@ export function ProductManagementHub({
         <ThemedPageHeader
           title="Product Management"
           description="Choose a focused product management area."
+          backHref={
+            businessSlug
+              ? `/businesses/${encodeURIComponent(businessSlug)}/admin/catalog`
+              : undefined
+          }
+          backLabel="Product Catalog"
           className="shrink-0 border-b pb-3"
         />
 
@@ -51,11 +56,7 @@ export function ProductManagementHub({
             {productHubLinks.map((item) => (
               <Link
                 key={item.path}
-                href={
-                  item.legacyHref && !businessSlug
-                    ? item.legacyHref
-                    : getProductAdminHref(item.path, businessSlug)
-                }
+                href={getProductAdminHref(item.path, businessSlug)}
                 aria-label={`Open ${item.title}`}
                 className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >

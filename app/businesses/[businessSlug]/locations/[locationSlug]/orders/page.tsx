@@ -36,7 +36,6 @@ export default async function BusinessLocationOrdersRoutePage({
       businessName={business.name}
       locationName={location.name}
       locationStatus={location.status}
-      isLocationEnabled={location.isEnabled}
       isAcceptingOrders={location.acceptingOrders}
       adminHref={`/businesses/${encodeURIComponent(business.slug)}/admin`}
     />

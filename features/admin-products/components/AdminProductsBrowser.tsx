@@ -52,6 +52,8 @@ type ProductCategoryBrowserProps = {
   menuGroups: AdminMenuGroup[]
   businessSlug?: string
   writesEnabled?: boolean
+  availabilityOnly?: boolean
+  locationSlug?: string
 }
 
 function sortBySortOrder<T extends { sort_order: number }>(items: T[]) {
@@ -76,6 +78,8 @@ export function AdminProductsBrowser({
   menuGroups,
   businessSlug,
   writesEnabled = true,
+  availabilityOnly = false,
+  locationSlug,
 }: ProductCategoryBrowserProps) {
   const router = useRouter()
   const sortedGroups = useMemo(() => sortBySortOrder(menuGroups), [menuGroups])
@@ -99,20 +103,35 @@ export function AdminProductsBrowser({
     ? getProductGroups(selectedParentGroup)
     : []
 
-  const visibleSections = [
-    ...childGroups.map((group) => ({
+  const childSections = childGroups
+    .map((group) => ({
       id: group.id,
       name: group.name,
       description: group.description,
       productGroups: getProductGroups(group),
-    })),
-    ...(directProductGroups.length > 0
+    }))
+    .filter(
+      (section) => !availabilityOnly || section.productGroups.length > 0
+    )
+  const childProductIds = new Set(
+    childSections.flatMap((section) =>
+      section.productGroups.map(({ product }) => product.id)
+    )
+  )
+  const uniqueDirectProductGroups = availabilityOnly
+    ? directProductGroups.filter(
+        ({ product }) => !childProductIds.has(product.id)
+      )
+    : directProductGroups
+  const visibleSections = [
+    ...childSections,
+    ...(uniqueDirectProductGroups.length > 0
       ? [
           {
             id: `${selectedParentGroup?.id}-direct`,
             name: "Other",
             description: null,
-            productGroups: directProductGroups,
+            productGroups: uniqueDirectProductGroups,
           },
         ]
     : []),
@@ -173,15 +192,14 @@ export function AdminProductsBrowser({
                         return (
                           <ThemedCard
                             key={id}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`Open product ${product.name}`}
-                            onClick={() =>
-                              router.push(
-                                getProductDetailHref(product.id, businessSlug)
-                              )
+                            role={availabilityOnly ? undefined : "button"}
+                            tabIndex={availabilityOnly ? undefined : 0}
+                            aria-label={availabilityOnly ? undefined : `Open product ${product.name}`}
+                            onClick={availabilityOnly ? undefined : () =>
+                              router.push(getProductDetailHref(product.id, businessSlug))
                             }
                             onKeyDown={(event) => {
+                              if (availabilityOnly) return
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault()
                                 router.push(
@@ -189,13 +207,18 @@ export function AdminProductsBrowser({
                                 )
                               }
                             }}
-                            className="cursor-pointer overflow-hidden border bg-background py-0"
+                            className={availabilityOnly
+                              ? "overflow-hidden border bg-background py-0"
+                              : "cursor-pointer overflow-hidden border bg-background py-0"}
                           >
                             <CompactRecordRow
                               title={product.name}
                               statusIcon={
                                 <CompactRecordStatusIcon
-                                  enabled={product.is_enabled}
+                                  enabled={
+                                    product.is_enabled &&
+                                    !product.operationalAvailability?.is86d
+                                  }
                                 />
                               }
                               description={
@@ -221,11 +244,12 @@ export function AdminProductsBrowser({
                                     itemId={product.id}
                                     itemName={product.name}
                                     businessSlug={businessSlug}
+                                    locationSlug={locationSlug}
                                     is86d={Boolean(
                                       product.operationalAvailability?.is86d
                                     )}
                                   />
-                                  <ThemedButton
+                                  {availabilityOnly ? null : <><ThemedButton
                                     type="button"
                                     size="sm"
                                     variant="outline"
@@ -267,6 +291,7 @@ export function AdminProductsBrowser({
                                     disabled={!writesEnabled}
                                     redirectBusinessSlug={businessSlug}
                                   />
+                                  </>}
                                 </>
                               }
                             />
@@ -297,7 +322,7 @@ export function AdminProductsBrowser({
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
+      {availabilityOnly ? null : <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-6xl justify-end gap-2">
           <AdminBackButton
             fallbackHref={getProductAdminHref("", businessSlug)}
@@ -327,6 +352,7 @@ export function AdminProductsBrowser({
           )}
         </div>
       </div>
+      }
     </div>
   )
 }

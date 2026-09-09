@@ -11,6 +11,7 @@ import {
   parseOperationalExpiresAt,
   parseOperationalReason,
 } from "@/features/availability/utils/operational-availability-form"
+import { resolveLocationContext } from "@/features/tenant/queries/resolve-location-context"
 
 function parseString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -54,6 +55,20 @@ export async function setModifierOptionOperationalAvailability(
   const is86d = parseOperational86Flag(formData.get("is86d"))
   const reason = parseOperationalReason(formData.get("reason"))
   const expiresAt = parseOperationalExpiresAt(formData.get("expiresAt"))
+  const locationSlug =
+    typeof formData.get("locationSlug") === "string"
+      ? String(formData.get("locationSlug")).trim()
+      : ""
+  const location = locationSlug
+    ? await resolveLocationContext({
+        businessId: context.businessId,
+        locationSlug,
+      })
+    : null
+
+  if (locationSlug && !location) {
+    throw new Error("Location could not be found.")
+  }
 
   await assertModifierOption({
     businessId: context.businessId,
@@ -61,13 +76,14 @@ export async function setModifierOptionOperationalAvailability(
     optionId,
   })
 
-  const { data: existing, error: existingError } = await supabaseAdmin
+  const existingQuery = supabaseAdmin
     .from("modifier_option_operational_availability")
     .select("id")
     .eq("business_id", context.businessId)
     .eq("modifier_option_id", optionId)
-    .is("location_id", null)
-    .maybeSingle()
+  const { data: existing, error: existingError } = location
+    ? await existingQuery.eq("location_id", location.id).maybeSingle()
+    : await existingQuery.is("location_id", null).maybeSingle()
 
   if (existingError) {
     throw new Error(
@@ -77,7 +93,7 @@ export async function setModifierOptionOperationalAvailability(
 
   const payload = {
     business_id: context.businessId,
-    location_id: null,
+    location_id: location?.id ?? null,
     modifier_option_id: optionId,
     is_86d: is86d,
     reason: is86d ? reason : null,
@@ -106,4 +122,9 @@ export async function setModifierOptionOperationalAvailability(
   revalidatePath("/menu")
   revalidatePath(`/businesses/${context.businessSlug}/menu`)
   revalidatePath(`/businesses/${context.businessSlug}/specials`)
+  if (location) {
+    revalidatePath(
+      `/businesses/${context.businessSlug}/locations/${location.slug}/manager/availability`
+    )
+  }
 }

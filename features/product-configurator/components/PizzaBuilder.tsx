@@ -31,6 +31,7 @@ import { ModifierOptionGroupAccordion } from "@/features/product-configurator/co
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -521,6 +522,9 @@ export function PizzaBuilder({
       <DialogContent className="flex h-[92dvh] max-h-[92dvh] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:h-[min(90dvh,52rem)] sm:max-h-[90dvh]">
         <DialogHeader className="shrink-0 border-b px-4 py-3">
           <DialogTitle>{product.name}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Choose pizza quantity, size, and modifiers.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">

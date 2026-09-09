@@ -182,9 +182,6 @@ function revalidateProductModifierPaths({
   revalidatePath(getProductModifierGroupsHref(undefined, businessSlug))
   revalidatePath(getProductModifierGroupsHref(productId, businessSlug))
   revalidatePath(getProductDetailHref(productId, businessSlug))
-  if (!context.isScoped) {
-    revalidatePath("/admin/modifiers")
-  }
   revalidatePath("/menu")
 }
 

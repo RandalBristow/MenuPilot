@@ -312,10 +312,10 @@ describe("tenant-aware product category actions", () => {
     )
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/categories"
+      "/businesses/randys-pizza/admin/catalog/products/categories"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/subcategories"
+      "/businesses/randys-pizza/admin/catalog/products/subcategories"
     )
   })
 
@@ -408,10 +408,10 @@ describe("tenant-aware product subcategory actions", () => {
     )
 
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/categories"
+      "/businesses/randys-pizza/admin/catalog/products/categories"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/subcategories"
+      "/businesses/randys-pizza/admin/catalog/products/subcategories"
     )
   })
 })

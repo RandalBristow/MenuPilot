@@ -38,7 +38,10 @@ function sortBySortOrder<T extends { sort_order: number; name: string }>(
   })
 }
 
-function mapCategory(category: RawModifierCategory) {
+function mapCategory(
+  category: RawModifierCategory,
+  availabilityLocationId?: string
+) {
   return {
     id: category.id,
     name: category.name,
@@ -63,6 +66,7 @@ function mapCategory(category: RawModifierCategory) {
               ...option,
               operationalAvailability: resolveOperationalAvailability({
                 isPermanentlyEnabled: option.is_enabled,
+                locationId: availabilityLocationId,
                 currentTime: new Date(),
                 overrides: (
                   optionWithAvailability.modifier_option_operational_availability ??
@@ -84,7 +88,8 @@ function mapCategory(category: RawModifierCategory) {
 }
 
 export async function getModifierAdminData(
-  businessContext: ModifierAdminBusinessContextInput = {}
+  businessContext: ModifierAdminBusinessContextInput = {},
+  availabilityLocationId?: string
 ) {
   const business = await resolveModifierAdminBusinessContext(businessContext)
   const { data, error } = await supabaseAdmin
@@ -145,7 +150,9 @@ export async function getModifierAdminData(
   return {
     businessName: business.name,
     categories: sortBySortOrder(
-      ((data ?? []) as RawModifierCategory[]).map(mapCategory)
+      ((data ?? []) as RawModifierCategory[]).map((category) =>
+        mapCategory(category, availabilityLocationId)
+      )
     ) as ModifierCategory[],
   }
 }

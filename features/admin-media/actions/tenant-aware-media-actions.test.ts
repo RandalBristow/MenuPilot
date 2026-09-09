@@ -326,10 +326,10 @@ describe("tenant-aware media library", () => {
       "/businesses/randys-pizza/admin/media"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products"
+      "/businesses/randys-pizza/admin/catalog/products"
     )
     expect(actionMocks.state.revalidated).toContain(
-      "/businesses/randys-pizza/admin/products/list"
+      "/businesses/randys-pizza/admin/catalog/products/list"
     )
   })
 
@@ -341,6 +341,6 @@ describe("tenant-aware media library", () => {
       table: "media_assets",
       records: [{ business_id: "business-demo" }],
     })
-    expect(actionMocks.state.revalidated).toContain("/admin/media")
+    expect(actionMocks.state.revalidated).toContain("/platform/businesses")
   })
 })

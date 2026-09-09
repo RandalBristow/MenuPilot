@@ -357,6 +357,16 @@ export function ModifierSubgroupOptionsClient({
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col space-y-4">
         <div className="shrink-0 space-y-3 border-b pb-3">
           <ThemedPageHeader
+            backHref={
+              businessSlug
+                ? getModifierGroupHref({
+                    groupId: group.id,
+                    productId: productContext?.id,
+                    businessSlug,
+                  })
+                : undefined
+            }
+            backLabel={`${group.name} Lists`}
             title={`${subgroup.name} Options`}
             description={
               productContext

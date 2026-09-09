@@ -21,9 +21,10 @@ type StaffOrdersPageProps = {
   businessName?: string | null
   locationName?: string | null
   locationStatus?: string | null
-  isLocationEnabled?: boolean | null
   isAcceptingOrders?: boolean | null
   adminHref?: string | null
+  backLabel?: string
+  pageTitle?: string
   isLegacy?: boolean
 }
 
@@ -476,17 +477,12 @@ function OrdersSection({
 
 function getLocationWarning({
   locationStatus,
-  isLocationEnabled,
   isAcceptingOrders,
 }: StaffOrdersPageProps) {
   const warnings = []
 
   if (locationStatus && locationStatus !== "active") {
     warnings.push(`Location status is ${locationStatus}.`)
-  }
-
-  if (isLocationEnabled === false) {
-    warnings.push("Location is disabled.")
   }
 
   if (isAcceptingOrders === false) {
@@ -523,9 +519,10 @@ export async function StaffOrdersPage({
   businessName = "Pronto Demo",
   locationName = "Main Street",
   locationStatus = "active",
-  isLocationEnabled = true,
   isAcceptingOrders = true,
   adminHref = null,
+  backLabel = "Back to business admin",
+  pageTitle = "Staff Orders",
   isLegacy = false,
 }: StaffOrdersPageProps = {}) {
   const orders = await getRecentStaffOrders({ businessSlug, locationSlug })
@@ -537,7 +534,6 @@ export async function StaffOrdersPage({
   )
   const locationWarning = getLocationWarning({
     locationStatus,
-    isLocationEnabled,
     isAcceptingOrders,
   })
   const actionScope = { businessSlug, locationSlug }
@@ -552,12 +548,12 @@ export async function StaffOrdersPage({
               className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft aria-hidden="true" className="size-4" />
-              Back to business admin
+              {backLabel}
             </Link>
           ) : null}
 
           <div className="space-y-2">
-            <ThemedHeading>Staff Orders</ThemedHeading>
+            <ThemedHeading>{pageTitle}</ThemedHeading>
             <p className="text-sm text-muted-foreground">
               Recent orders for {businessName}, {locationName}.
             </p>
@@ -580,10 +576,6 @@ export async function StaffOrdersPage({
 
               <div className="flex flex-wrap gap-2">
                 <StatusBadge>{locationStatus ?? "unknown"}</StatusBadge>
-                <LocationStatePill
-                  label={isLocationEnabled ? "Enabled" : "Disabled"}
-                  isPositive={Boolean(isLocationEnabled)}
-                />
                 <LocationStatePill
                   label={
                     isAcceptingOrders

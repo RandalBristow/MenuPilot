@@ -255,6 +255,12 @@ export function ProductCategoriesBrowser({
         <ThemedPageHeader
           title="Product Categories"
           description={`Top-level menu categories for ${businessName}.`}
+          backHref={
+            businessSlug
+              ? `/businesses/${encodeURIComponent(businessSlug)}/admin/catalog`
+              : undefined
+          }
+          backLabel="Product Catalog"
           className="shrink-0 border-b pb-3"
         />
 

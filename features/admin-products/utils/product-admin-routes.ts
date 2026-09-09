@@ -1,13 +1,15 @@
 export function getProductAdminBaseHref(businessSlug?: string | null) {
-  if (!businessSlug) return "/admin/products"
+  if (!businessSlug) return "/platform/businesses"
 
-  return `/businesses/${encodeURIComponent(businessSlug)}/admin/products`
+  return `/businesses/${encodeURIComponent(businessSlug)}/admin/catalog/products`
 }
 
 export function getProductAdminHref(
   path = "",
   businessSlug?: string | null
 ) {
+  if (!businessSlug) return "/platform/businesses"
+
   const baseHref = getProductAdminBaseHref(businessSlug)
   const normalizedPath = path.trim()
 

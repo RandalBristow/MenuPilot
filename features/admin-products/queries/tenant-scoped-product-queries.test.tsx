@@ -208,7 +208,7 @@ describe("tenant-scoped product admin reads", () => {
     const { unmount } = render(<ProductManagementHub businessSlug="business-a" />)
 
     expect(screen.getByLabelText("Open Products").getAttribute("href")).toBe(
-      "/businesses/business-a/admin/products/list"
+      "/businesses/business-a/admin/catalog/products/list"
     )
     unmount()
 
