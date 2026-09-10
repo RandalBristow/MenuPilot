@@ -119,8 +119,8 @@ export function TenantAdminShellPage({
       icon: Eye,
     },
     {
-      title: "Employee Permissions",
-      description: "Assign employee roles and configure their permissions.",
+      title: "Manage Employees",
+      description: "Manage employee details, locations, roles, and permissions.",
       href: `${baseHref}/admin/employees`,
       icon: UserRoundCog,
     },

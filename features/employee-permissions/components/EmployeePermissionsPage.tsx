@@ -11,8 +11,8 @@ export async function EmployeePermissionsPage({ business }: { business: TenantBu
       <ThemedPageHeader
         backHref={`/businesses/${encodeURIComponent(business.slug)}/admin`}
         backLabel="Business Admin"
-        title={`${business.name} Employee Permissions`}
-        description="Choose an employee, assign their role, and configure their permissions."
+        title={`${business.name} Manage Employees`}
+        description="Add employees and manage their details, role, locations, and permissions."
       />
       <EmployeePermissionsForm
         businessSlug={business.slug}

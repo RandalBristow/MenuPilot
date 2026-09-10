@@ -10,7 +10,7 @@ The MenuPilot owner operates `/platform`. This role creates and maintains busine
 
 Business owners and delegated business administrators operate `/businesses/[businessSlug]/admin`. They own business-wide catalog, media, specials, pricing, locations, and staff permission configuration.
 
-The Employee Permissions page can invite an employee by email, create/update their profile, assign them to the business and a location, choose Manager or Staff role, and save initial permissions.
+The Manage Employees page can invite an employee by email, create/update their profile, assign one Manager or Staff role, select multiple locations, and save permissions shared across every assigned location.
 
 ## Location Manager
 

@@ -4,14 +4,16 @@ import type {
   EmployeeRole,
 } from "@/features/employee-permissions/types/employee-permission"
 
-type RawAssignment = {
-  id: string
+type RawEmployee = {
   user_id: string
-  location_id: string
   role: EmployeeRole
   is_enabled: boolean
   profiles: { first_name: string | null; last_name: string | null; display_name: string | null; phone: string | null } | null
-  locations: { name: string } | null
+}
+
+type RawAssignment = {
+  user_id: string
+  location_id: string
 }
 
 type RawPermission = EmployeePermissionAssignment["permissions"] & {
@@ -19,7 +21,7 @@ type RawPermission = EmployeePermissionAssignment["permissions"] & {
   location_id: string
 }
 
-function getEmployeeName(profile: RawAssignment["profiles"]) {
+function getEmployeeName(profile: RawEmployee["profiles"]) {
   if (!profile) return "Unnamed employee"
   if (profile.display_name?.trim()) return profile.display_name.trim()
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim()
@@ -41,10 +43,15 @@ function getDefaults(role: EmployeeRole) {
 }
 
 export async function getEmployeePermissions(businessId: string) {
-  const [assignmentsResult, permissionsResult, locationsResult, authUsersResult] = await Promise.all([
+  const [employeesResult, assignmentsResult, permissionsResult, locationsResult, authUsersResult] = await Promise.all([
+    supabaseAdmin
+      .from("business_users")
+      .select("user_id, role, is_enabled, profiles(first_name, last_name, display_name, phone)")
+      .eq("business_id", businessId)
+      .in("role", ["manager", "staff"]),
     supabaseAdmin
       .from("location_users")
-      .select("id, user_id, location_id, role, is_enabled, profiles(first_name, last_name, display_name, phone), locations(name)")
+      .select("user_id, location_id")
       .eq("business_id", businessId)
       .in("role", ["manager", "staff"]),
     supabaseAdmin
@@ -60,40 +67,41 @@ export async function getEmployeePermissions(businessId: string) {
     supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ])
 
-  if (assignmentsResult.error) throw new Error(`Could not load employees: ${assignmentsResult.error.message}`)
+  if (employeesResult.error) throw new Error(`Could not load employees: ${employeesResult.error.message}`)
+  if (assignmentsResult.error) throw new Error(`Could not load employee locations: ${assignmentsResult.error.message}`)
   if (permissionsResult.error) throw new Error(`Could not load employee permissions: ${permissionsResult.error.message}`)
   if (locationsResult.error) throw new Error(`Could not load employee locations: ${locationsResult.error.message}`)
   if (authUsersResult.error) throw new Error(`Could not load employee emails: ${authUsersResult.error.message}`)
 
-  const assignments = (assignmentsResult.data ?? []) as unknown as RawAssignment[]
+  const employees = (employeesResult.data ?? []) as unknown as RawEmployee[]
+  const assignments = (assignmentsResult.data ?? []) as RawAssignment[]
   const permissions = (permissionsResult.data ?? []) as RawPermission[]
   const authUsers = new Map(
     authUsersResult.data.users.map((user) => [user.id, user.email ?? ""])
   )
 
-  const mappedAssignments = assignments
-    .map((assignment): EmployeePermissionAssignment => {
+  const mappedAssignments = employees
+    .map((employee): EmployeePermissionAssignment => {
+      const locationIds = assignments
+        .filter((assignment) => assignment.user_id === employee.user_id)
+        .map((assignment) => assignment.location_id)
       const saved = permissions.find(
-        (permission) => permission.user_id === assignment.user_id && permission.location_id === assignment.location_id
+        (permission) => permission.user_id === employee.user_id
       )
       return {
-        assignmentId: assignment.id,
-        userId: assignment.user_id,
-        employeeName: getEmployeeName(assignment.profiles),
-        firstName: assignment.profiles?.first_name ?? "",
-        lastName: assignment.profiles?.last_name ?? "",
-        email: authUsers.get(assignment.user_id) ?? "",
-        phone: assignment.profiles?.phone ?? "",
-        locationId: assignment.location_id,
-        locationName: assignment.locations?.name ?? "Unknown location",
-        role: assignment.role,
-        isEnabled: assignment.is_enabled,
-        permissions: saved ?? getDefaults(assignment.role),
+        userId: employee.user_id,
+        employeeName: getEmployeeName(employee.profiles),
+        firstName: employee.profiles?.first_name ?? "",
+        lastName: employee.profiles?.last_name ?? "",
+        email: authUsers.get(employee.user_id) ?? "",
+        phone: employee.profiles?.phone ?? "",
+        locationIds,
+        role: employee.role,
+        isEnabled: employee.is_enabled,
+        permissions: saved ?? getDefaults(employee.role),
       }
     })
-    .sort((first, second) =>
-      `${first.locationName}-${first.employeeName}`.localeCompare(`${second.locationName}-${second.employeeName}`)
-    )
+    .sort((first, second) => first.employeeName.localeCompare(second.employeeName))
 
   return {
     assignments: mappedAssignments,

@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import {
   employeePermissionFields,
@@ -35,7 +36,8 @@ export async function createEmployee(
     const lastName = required(formData, "lastName", "Last name")
     const email = required(formData, "email", "Email").toLowerCase()
     const phone = String(formData.get("phone") ?? "").trim() || null
-    const locationId = required(formData, "locationId", "Location")
+    const locationIds = [...new Set(formData.getAll("locationIds").map(String))]
+    if (locationIds.length === 0) return { ok: false, message: "Choose at least one location." }
     const role = required(formData, "role", "Role") as EmployeeRole
     if (role !== "manager" && role !== "staff") {
       return { ok: false, message: "Choose a valid employee role." }
@@ -43,21 +45,23 @@ export async function createEmployee(
 
     const business = await resolveBusinessContext({ businessSlug })
     if (!business) return { ok: false, message: "Business could not be found." }
-    const { data: location, error: locationError } = await supabaseAdmin
+    const { data: locations, error: locationError } = await supabaseAdmin
       .from("locations")
       .select("id")
-      .eq("id", locationId)
       .eq("business_id", business.id)
-      .single()
-    if (locationError || !location) {
-      return { ok: false, message: "Selected location is invalid." }
+      .in("id", locationIds)
+    if (locationError || (locations?.length ?? 0) !== locationIds.length) {
+      return { ok: false, message: "One or more selected locations are invalid." }
     }
 
     let user = await findAuthUserByEmail(email)
     let invitationSent = false
     if (!user) {
+      const requestHeaders = await headers()
+      const origin = requestHeaders.get("origin") ?? `${requestHeaders.get("x-forwarded-proto") ?? "https"}://${requestHeaders.get("host")}`
       const invitation = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         data: { first_name: firstName, last_name: lastName, display_name: `${firstName} ${lastName}` },
+        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/auth/update-password")}`,
       })
       if (invitation.error || !invitation.data.user) {
         return { ok: false, message: `Could not invite employee: ${invitation.error?.message ?? "Unknown error"}` }
@@ -91,25 +95,23 @@ export async function createEmployee(
     )
     if (businessUserResult.error) return { ok: false, message: `Could not assign employee to business: ${businessUserResult.error.message}` }
 
-    const { data: assignment, error: assignmentError } = await supabaseAdmin
+    const { error: assignmentError } = await supabaseAdmin
       .from("location_users")
       .upsert(
-        { business_id: business.id, location_id: location.id, user_id: user.id, role, is_enabled: true },
+        locationIds.map((locationId) => ({ business_id: business.id, location_id: locationId, user_id: user.id, role, is_enabled: true })),
         { onConflict: "location_id,user_id" }
       )
-      .select("id")
-      .single()
-    if (assignmentError || !assignment) return { ok: false, message: `Could not assign employee to location: ${assignmentError?.message ?? "Unknown error"}` }
+    if (assignmentError) return { ok: false, message: `Could not assign employee to locations: ${assignmentError.message}` }
 
     const permissionResult = await supabaseAdmin.from("employee_permissions").upsert(
-      {
+      locationIds.map((locationId) => ({
         business_id: business.id,
-        location_id: location.id,
+        location_id: locationId,
         user_id: user.id,
         ...Object.fromEntries(
           employeePermissionFields.map((field) => [field, formData.get(field) === "true"])
         ),
-      },
+      })),
       { onConflict: "location_id,user_id" }
     )
     if (permissionResult.error) return { ok: false, message: `Could not save employee permissions: ${permissionResult.error.message}` }

@@ -175,17 +175,17 @@ export default function HomePage() {
               aria-label="Application entry points"
               className="flex flex-wrap gap-x-3 gap-y-1 text-xs"
             >
-              <Link href="/platform" className="hover:text-foreground">
+              <Link href="/login?next=/platform" className="hover:text-foreground">
                 Platform
               </Link>
               <Link
-                href="/businesses/pronto-demo/admin"
+                href="/login?next=/businesses/pronto-demo/admin"
                 className="hover:text-foreground"
               >
                 Business
               </Link>
               <Link
-                href="/businesses/pronto-demo/locations/ashland-road/manager"
+                href="/login?next=/businesses/pronto-demo/locations/ashland-road/manager"
                 className="hover:text-foreground"
               >
                 Staff

@@ -13,15 +13,13 @@ export type EmployeePermissionField = (typeof employeePermissionFields)[number]
 export type EmployeeRole = "manager" | "staff"
 
 export type EmployeePermissionAssignment = {
-  assignmentId: string
   userId: string
   employeeName: string
   firstName: string
   lastName: string
   email: string
   phone: string
-  locationId: string
-  locationName: string
+  locationIds: string[]
   role: EmployeeRole
   isEnabled: boolean
   permissions: Record<EmployeePermissionField, boolean>

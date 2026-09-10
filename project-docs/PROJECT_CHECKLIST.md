@@ -575,14 +575,14 @@ For each feature:
 ## 8.1 Auth setup
 
 - [ ] Configure Supabase Auth
-- [ ] Create sign-in page
-- [ ] Create sign-out action
-- [ ] Create forgot password page
-- [ ] Create reset password page
-- [ ] Create auth callback route if needed
-- [ ] Protect admin routes
-- [ ] Protect staff routes
-- [ ] Redirect users based on role
+- [x] Create sign-in page
+- [x] Create sign-out action
+- [x] Create forgot password page
+- [x] Create reset password page
+- [x] Create auth callback route if needed
+- [x] Protect admin routes
+- [x] Protect staff routes
+- [x] Redirect users based on role
 
 ## 8.2 Profiles
 
@@ -1166,7 +1166,7 @@ For each feature:
 
 ## 22.1 Staff shell
 
-- [ ] Build staff login redirect
+- [x] Build staff login redirect
 - [ ] Build staff layout
 - [ ] Build location-scoped staff navigation
 - [ ] Build large touch-friendly UI

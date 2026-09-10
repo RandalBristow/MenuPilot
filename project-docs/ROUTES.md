@@ -22,6 +22,19 @@ These internal routes are for the MenuPilot platform owner. Authentication and r
 | `/platform/businesses/new` | hidden/internal | Create a business and its initial location. |
 | `/platform/businesses/[businessId]` | hidden/internal | Edit business identity, contacts, status, locations, orderability, and pricing with one page-level save. |
 
+## Workforce Authentication
+
+| Route | Status | Purpose |
+| --- | --- | --- |
+| `/login` | current | Shared workforce login for platform owners, business owners, managers, and staff. |
+| `/forgot-password` | current | Request a workforce password-reset email. |
+| `/auth/callback` | hidden/internal | Exchange Supabase invitation and recovery codes for a persistent session. |
+| `/auth/update-password` | hidden/internal | Set a password after an invitation or recovery link. |
+| `/auth/continue` | hidden/internal | Redirect an authenticated user to the appropriate workspace. |
+| `/access` | current | Choose among multiple authorized businesses or locations. |
+| `/unauthorized` | hidden/internal | Explain a denied workforce-route request. |
+| `/dev/access` | development only | Localhost-only role and tenant switcher. |
+
 ## Business Owner
 
 | Route | Status | Purpose |
@@ -32,7 +45,7 @@ These internal routes are for the MenuPilot platform owner. Authentication and r
 | `/businesses/[businessSlug]/admin/specials` | hidden/internal | List and manage reusable specials and discounts. |
 | `/businesses/[businessSlug]/admin/specials/new` | hidden/internal | Create a special. |
 | `/businesses/[businessSlug]/admin/specials/[specialId]` | hidden/internal | Edit a tenant-owned special. |
-| `/businesses/[businessSlug]/admin/employees` | hidden/internal | Business-owner page for choosing an employee, assigning Manager or Staff role, and configuring per-location permissions. |
+| `/businesses/[businessSlug]/admin/employees` | hidden/internal | Manage Employees page for employee details, one business role, multiple assigned locations, and permissions shared across those locations. |
 
 ### Product Catalog
 

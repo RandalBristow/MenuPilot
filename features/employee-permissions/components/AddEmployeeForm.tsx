@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, UserPlus, X } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
+import { ThemedMultiSelect } from "@/components/themed/ThemedMultiSelect"
 import {
   ThemedSheet,
   ThemedSheetContent,
@@ -63,6 +64,7 @@ export function AddEmployeeForm({
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(createEmployee, initialState)
   const [role, setRole] = useState<EmployeeRole>("staff")
+  const [locationIds, setLocationIds] = useState<string[]>([])
   const [permissions, setPermissions] = useState(defaultsForRole("staff"))
 
   useEffect(() => {
@@ -143,24 +145,16 @@ export function AddEmployeeForm({
                     className="h-10 w-full min-w-0 rounded-md border bg-background px-3"
                   />
                 </label>
-                <label className="grid gap-1.5 text-sm">
+                <div className="grid gap-1.5 text-sm">
                   <span className="font-medium">Location</span>
-                  <select
-                    name="locationId"
-                    required
-                    defaultValue=""
-                    className="h-10 w-full min-w-0 rounded-md border bg-background px-3"
-                  >
-                    <option value="" disabled>
-                      Select a location
-                    </option>
-                    {locations.map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {location.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <ThemedMultiSelect
+                    name="locationIds"
+                    options={locations.map((location) => ({ value: location.id, label: location.name }))}
+                    values={locationIds}
+                    onChange={setLocationIds}
+                    placeholder="Select locations"
+                  />
+                </div>
                 <label className="grid gap-1.5 text-sm">
                   <span className="font-medium">Role</span>
                   <select
@@ -225,7 +219,7 @@ export function AddEmployeeForm({
               <ThemedButton
                 type="submit"
                 size="icon"
-                disabled={pending || locations.length === 0}
+                disabled={pending || locationIds.length === 0}
                 aria-label="Add and invite employee"
                 className="size-10"
               >
