@@ -222,7 +222,7 @@ describe("validateAndPriceOrderableDeal", () => {
     expect(result.components[0].selectedQuantity).toBe(2)
   })
 
-  it("counts selected child lines toward component quantity, not product quantity", () => {
+  it("rejects multiple product units inside one component slot", () => {
     const result = validate({
       deal: buildDeal({
         components: [
@@ -237,11 +237,12 @@ describe("validateAndPriceOrderableDeal", () => {
       children: [buildChild({ quantity: 2 })],
     })
 
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
+    expect(result.ok).toBe(false)
+    if (result.ok) return
 
-    expect(result.components[0].selectedQuantity).toBe(1)
-    expect(result.components[0].children[0].quantity).toBe(2)
+    expect(result.errors.map((error) => error.code)).toContain(
+      "invalid_child_quantity"
+    )
   })
 
   it("adds explicit child extras to included components", () => {

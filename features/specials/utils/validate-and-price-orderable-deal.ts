@@ -372,10 +372,10 @@ export function validateAndPriceOrderableDeal({
       continue
     }
 
-    if (!Number.isInteger(child.quantity) || child.quantity <= 0) {
+    if (!Number.isInteger(child.quantity) || child.quantity !== 1) {
       errors.push({
         code: "invalid_child_quantity",
-        message: `${child.productName} has an invalid deal quantity.`,
+        message: `${child.productName} must be configured one item at a time for this deal.`,
         componentId: child.componentId,
         childLineId: child.childLineId,
         productId: child.productId,

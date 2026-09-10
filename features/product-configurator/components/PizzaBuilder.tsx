@@ -148,6 +148,7 @@ type PizzaBuilderProps = {
   allowedVariantOptionIds?: string[] | null;
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null;
   dealComponentPricingContext?: DealComponentPricingContext | null;
+  lockQuantity?: boolean;
   onConfiguredItem?: (result: ConfiguredProductResult) => void;
 };
 
@@ -202,6 +203,7 @@ export function PizzaBuilder({
   allowedVariantOptionIds = null,
   modifierIncludedRuleOverrides = null,
   dealComponentPricingContext = null,
+  lockQuantity = false,
   onConfiguredItem,
 }: PizzaBuilderProps) {
   const sortedVariants = useMemo(
@@ -224,7 +226,9 @@ export function PizzaBuilder({
   const [selectedModifiers, setSelectedModifiers] = useState<
     Record<string, SelectedModifier>
   >(() => getInitialSelectedModifiers(editingCartItem));
-  const [quantity, setQuantity] = useState(getInitialQuantity(editingCartItem));
+  const [quantity, setQuantity] = useState(
+    lockQuantity ? 1 : getInitialQuantity(editingCartItem),
+  );
   const hasAppliedDefaultModifiersRef = useRef(false);
 
   const { addItem, updateItem } = useCart();
@@ -528,7 +532,7 @@ export function PizzaBuilder({
         </DialogHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-          <ThemedCard className="p-3">
+          {!lockQuantity ? <ThemedCard className="p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold">Quantity</h3>
@@ -563,7 +567,7 @@ export function PizzaBuilder({
                 </ThemedButton>
               </div>
             </div>
-          </ThemedCard>
+          </ThemedCard> : null}
 
           <ThemedCard className="p-3">
             <h3 className="mb-2 text-base font-semibold">Choose Your Size</h3>

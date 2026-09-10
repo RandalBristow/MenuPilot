@@ -221,10 +221,12 @@ function renderPizzaBuilder({
   product = buildPizzaProduct(),
   submitBehavior,
   onConfiguredItem,
+  lockQuantity = false,
 }: {
   product?: ProductConfig
   submitBehavior?: Parameters<typeof PizzaBuilder>[0]["submitBehavior"]
   onConfiguredItem?: (result: ConfiguredProductResult) => void
+  lockQuantity?: boolean
 } = {}) {
   return render(
     <CartProvider>
@@ -234,6 +236,7 @@ function renderPizzaBuilder({
         onOpenChange={() => undefined}
         submitBehavior={submitBehavior}
         onConfiguredItem={onConfiguredItem}
+        lockQuantity={lockQuantity}
       />
     </CartProvider>
   )
@@ -282,6 +285,15 @@ describe("PizzaBuilder", () => {
 
     expect(screen.getByRole("button", { name: /add to cart/i }))
       .toHaveTextContent("$20.00")
+  })
+
+  it("hides quantity controls when a deal component locks quantity", () => {
+    renderPizzaBuilder({ lockQuantity: true })
+
+    expect(screen.queryByText("Quantity")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /increase quantity/i })
+    ).not.toBeInTheDocument()
   })
 
   it("charges the sixth topping after one default topping is swapped out", async () => {

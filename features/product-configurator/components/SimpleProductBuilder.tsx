@@ -42,6 +42,7 @@ type SimpleProductBuilderProps = {
   allowedVariantOptionIds?: string[] | null
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
   dealComponentPricingContext?: DealComponentPricingContext | null
+  lockQuantity?: boolean
   onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
@@ -59,6 +60,7 @@ export function SimpleProductBuilder({
   submitBehavior = "cart",
   allowedVariantOptionIds = null,
   dealComponentPricingContext = null,
+  lockQuantity = false,
   onConfiguredItem,
 }: SimpleProductBuilderProps) {
   const sortedVariants = useMemo(
@@ -76,7 +78,9 @@ export function SimpleProductBuilder({
   const [variantId, setVariantId] = useState(
     getSafeInitialVariantId(sortedVariants, cartItem?.variantId)
   )
-  const [quantity, setQuantity] = useState(getInitialQuantity(cartItem))
+  const [quantity, setQuantity] = useState(
+    lockQuantity ? 1 : getInitialQuantity(cartItem)
+  )
   const { addItem, updateItem } = useCart()
 
   const selectedVariant = sortedVariants.find(
@@ -159,7 +163,7 @@ export function SimpleProductBuilder({
         </DialogHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          <ThemedCard className="p-4">
+          {!lockQuantity ? <ThemedCard className="p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Quantity</h3>
@@ -194,7 +198,7 @@ export function SimpleProductBuilder({
                 </ThemedButton>
               </div>
             </div>
-          </ThemedCard>
+          </ThemedCard> : null}
 
           {hasVariantChoices ? (
             <ThemedCard className="p-4">

@@ -31,6 +31,7 @@ type ProductConfiguratorProps = {
   allowedVariantOptionIds?: string[] | null
   modifierIncludedRuleOverrides?: ModifierIncludedRuleOverride[] | null
   dealComponentPricingContext?: DealComponentPricingContext | null
+  lockQuantity?: boolean
   onConfiguredItem?: (result: ConfiguredProductResult) => void
 }
 
@@ -47,6 +48,7 @@ export function ProductConfigurator({
   allowedVariantOptionIds = null,
   modifierIncludedRuleOverrides = null,
   dealComponentPricingContext = null,
+  lockQuantity = false,
   onConfiguredItem,
 }: ProductConfiguratorProps) {
   const builderMode = resolveProductBuilderMode(product)
@@ -64,6 +66,7 @@ export function ProductConfigurator({
         allowedVariantOptionIds={allowedVariantOptionIds}
         modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
         dealComponentPricingContext={dealComponentPricingContext}
+        lockQuantity={lockQuantity}
         onConfiguredItem={onConfiguredItem}
       />
     )
@@ -108,6 +111,7 @@ export function ProductConfigurator({
         allowedVariantOptionIds={allowedVariantOptionIds}
         modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
         dealComponentPricingContext={dealComponentPricingContext}
+        lockQuantity={lockQuantity}
         onConfiguredItem={onConfiguredItem}
       />
     )
@@ -126,6 +130,7 @@ export function ProductConfigurator({
       allowedVariantOptionIds={allowedVariantOptionIds}
       modifierIncludedRuleOverrides={modifierIncludedRuleOverrides}
       dealComponentPricingContext={dealComponentPricingContext}
+      lockQuantity={lockQuantity}
       onConfiguredItem={onConfiguredItem}
     />
   )

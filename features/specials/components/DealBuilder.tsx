@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft, CheckCircle, ImageIcon, Loader2 } from "lucide-react"
+import { CheckCircle, ImageIcon, Loader2, LockKeyhole } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
 import { ThemedCard } from "@/components/themed/ThemedCard"
 import { useThemedToast } from "@/components/themed/ThemedToastProvider"
@@ -249,10 +249,10 @@ export function DealBuilder({
                   productName: child.productName,
                   variantId: child.variantId,
                   variantName: child.variantName,
-                  quantity: child.quantity,
+                  quantity: 1,
                   unitPrice,
-                  totalPrice: configuredLineTotal,
-                  configuredLineTotal,
+                  totalPrice: unitPrice + firstIncludedUnitExtra,
+                  configuredLineTotal: unitPrice + firstIncludedUnitExtra,
                   chargedModifierTotal: firstIncludedUnitExtra,
                   modifierExtraTotal: firstIncludedUnitExtra,
                   childExtraTotal: firstIncludedUnitExtra,
@@ -426,6 +426,14 @@ export function DealBuilder({
 
   function handleConfiguredItem(result: ConfiguredProductResult) {
     if (!activeComponentId || !activeStepKey) return
+    if (result.quantity !== 1) {
+      showToast({
+        kind: "error",
+        title: "Choose one item for this deal step",
+        description: "Each deal item is configured separately.",
+      })
+      return
+    }
     handleConfiguredItemForStep({
       result,
       componentId: activeComponentId,
@@ -452,8 +460,14 @@ export function DealBuilder({
     const activeProduct = activeComponent?.products.find(
       (product) => product.id === result.productId
     )
-    const nextStepIndex = steps.findIndex((step) => step.key === stepKey) + 1
-    const nextStep = steps[nextStepIndex] ?? null
+    const currentStep = steps.findIndex((step) => step.key === stepKey)
+    const nextStepIndex = steps.findIndex(
+      (step, index) =>
+        index > currentStep &&
+        step.key !== stepKey &&
+        !selectedChildrenByStep.has(step.key)
+    )
+    const nextStep = nextStepIndex >= 0 ? steps[nextStepIndex] : null
 
     setSelectedChildren((current) => [
       ...current.filter((child) => child.stepKey !== stepKey),
@@ -465,13 +479,13 @@ export function DealBuilder({
         result,
       },
     ])
-    setCurrentStepIndex((current) => Math.min(current + 1, steps.length))
+    setCurrentStepIndex(nextStep ? nextStepIndex : steps.length)
     showToast({
       kind: "success",
       title: `${result.productName} added to deal`,
       description: nextStep
         ? `Moving to item ${nextStepIndex + 1}: ${nextStep.component.label}.`
-        : "All items are selected. Review your deal.",
+        : "All items are selected and ready to add.",
     })
   }
 
@@ -546,16 +560,36 @@ export function DealBuilder({
     selectedChildren.map((child) => [child.stepKey, child])
   )
   const canAddDeal = Boolean(validation?.ok)
-  const activeStep = steps[currentStepIndex] ?? null
-  const isReviewStep = Boolean(deal && steps.length > 0 && currentStepIndex >= steps.length)
   const completedStepCount = steps.filter((step) =>
     selectedChildrenByStep.has(step.key)
   ).length
-  const incompleteSteps = steps.filter((step) => !selectedChildrenByStep.has(step.key))
-  const displayedTotal = validation?.ok ? validation.total : deal?.dealBasePrice ?? 0
+  const usesFixedComponentPricing = steps.some(
+    (step) => step.component.pricingMode === "fixed_price"
+  )
+  const minimumComponentBase = usesFixedComponentPricing
+    ? steps.reduce(
+        (total, step) =>
+          total +
+          (step.component.pricingMode === "fixed_price"
+            ? step.component.fixedPrice ?? 0
+            : 0),
+        0
+      )
+    : deal?.dealBasePrice ?? 0
+  const displayedComponentBase = validation?.ok
+    ? validation.componentBaseTotal
+    : minimumComponentBase ?? 0
+  const displayedTotal = validation?.ok
+    ? validation.total
+    : minimumComponentBase ?? 0
   const displayedExtras = validation?.ok ? validation.childExtraTotal : 0
   const validationErrors =
     validation && !validation.ok ? validation.errors : []
+  const unexpectedValidationErrors = validationErrors.filter(
+    (validationError) =>
+      validationError.code !== "missing_required_component" &&
+      validationError.code !== "below_min_quantity"
+  )
   const activeBuilderComponent = activeComponentId
     ? deal?.components.find((component) => component.id === activeComponentId)
     : null
@@ -572,59 +606,53 @@ export function DealBuilder({
           </p>
         </div>
 
-        <div className="space-y-2">
+        <div className="divide-y border-y">
           {steps.map((step, index) => {
             const selectedChild = selectedChildrenByStep.get(step.key)
+            const itemBasePrice = step.component.pricingMode === "fixed_price"
+              ? step.component.fixedPrice ?? 0
+              : 0
+            const itemExtra = selectedChild
+              ? getDealChildExtra(selectedChild.result)
+              : 0
 
             return (
-              <button
-                key={step.key}
-                type="button"
-                onClick={() => setCurrentStepIndex(index)}
-                className="flex w-full items-start gap-2 rounded-lg border bg-background p-2 text-left hover:bg-muted"
-              >
-                {selectedChild ? (
-                  <CheckCircle className="mt-0.5 size-4 shrink-0 text-success" />
-                ) : (
-                  <span className="mt-1 size-2 shrink-0 rounded-full bg-muted-foreground/40" />
-                )}
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">
-                    Item {index + 1}: {step.component.label}
+              <div key={step.key} className="py-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold">Item {index + 1}: {step.component.label}</p>
+                    {selectedChild ? <>
+                      <p className="text-muted-foreground">
+                        {selectedChild.result.productName}
+                        {selectedChild.result.variantName ? ` — ${selectedChild.result.variantName}` : ""}
+                      </p>
+                      {selectedChild.result.modifiers.length > 0 ? (
+                        <ul className="mt-1 text-xs text-muted-foreground">
+                          {selectedChild.result.modifiers.map((modifier) => (
+                            <li key={`${modifier.groupId}:${modifier.optionId}`}>
+                              {modifier.groupName}: {modifier.optionName}
+                              {modifier.placement !== "whole" ? ` (${modifier.placement})` : ""}
+                              {modifier.multiplier > 1 ? ` ×${modifier.multiplier}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {itemExtra > 0 ? <p className="mt-1 text-xs text-muted-foreground">Extras {formatMoney(itemExtra)}</p> : null}
+                    </> : <p className="text-muted-foreground">Pending</p>}
+                  </div>
+                  <span className="shrink-0 font-medium">
+                    {step.component.pricingMode === "included" ? "Included" : formatMoney(itemBasePrice + itemExtra)}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {selectedChild
-                      ? `${selectedChild.result.productName}${
-                          selectedChild.result.variantName
-                            ? ` - ${selectedChild.result.variantName}`
-                            : ""
-                        }`
-                      : "Not selected"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {getComponentPricingText(step.component)}
-                  </span>
-                </span>
-              </button>
+                </div>
+              </div>
             )
           })}
         </div>
 
-        {incompleteSteps.length > 0 ? (
-          <div className="rounded-lg border border-border bg-muted/25 p-3 text-sm">
-            <p className="font-medium">Still needed</p>
-            <ul className="mt-1 space-y-1 text-muted-foreground">
-              {incompleteSteps.map((step) => (
-                <li key={step.key}>{step.component.label}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
         <div className="space-y-1 border-t pt-3 text-sm">
           <div className="flex justify-between">
             <span>Component base</span>
-            <span>{formatMoney(validation?.ok ? validation.componentBaseTotal : 0)}</span>
+            <span>{formatMoney(displayedComponentBase)}</span>
           </div>
           <div className="flex justify-between">
             <span>Extras</span>
@@ -636,26 +664,15 @@ export function DealBuilder({
           </div>
         </div>
 
-        {isReviewStep ? (
-          <ThemedButton
-            type="button"
-            disabled={!canAddDeal}
-            onClick={handleAddDeal}
-            className="h-11 w-full justify-between"
-          >
-            <span>Add Deal to Cart</span>
-            <span>{formatMoney(displayedTotal)}</span>
-          </ThemedButton>
-        ) : (
-          <ThemedButton
-            type="button"
-            disabled={completedStepCount < steps.length}
-            onClick={() => setCurrentStepIndex(steps.length)}
-            className="h-11 w-full"
-          >
-            Review Deal
-          </ThemedButton>
-        )}
+        <ThemedButton
+          type="button"
+          disabled={!canAddDeal}
+          onClick={handleAddDeal}
+          className="h-11 w-full justify-between"
+        >
+          <span>{editingDealItem ? "Update Deal" : "Add Deal to Cart"}</span>
+          <span>{formatMoney(displayedTotal)}</span>
+        </ThemedButton>
       </div>
     )
   }
@@ -666,11 +683,9 @@ export function DealBuilder({
         <DialogContent className="deal-builder-shell flex h-[92dvh] max-h-[92dvh] max-w-6xl flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="shrink-0 border-b px-4 py-4">
             <DialogTitle>{deal?.name ?? "Build Deal"}</DialogTitle>
-            {deal?.customerDescription ? (
-              <DialogDescription>
-                {deal.customerDescription}
-              </DialogDescription>
-            ) : null}
+            <DialogDescription className="sr-only">
+              Select each item required for this deal.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="deal-builder-content grid min-h-0 flex-1">
@@ -688,46 +703,47 @@ export function DealBuilder({
                 </p>
               ) : null}
 
-              {validationErrors.length > 0 ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  <p className="font-semibold">This deal needs attention:</p>
-                  <ul className="mt-1 list-disc space-y-1 pl-5">
-                    {validationErrors.map((validationError) => (
-                      <li
-                        key={`${validationError.code}:${validationError.componentId ?? ""}:${validationError.childLineId ?? ""}`}
-                      >
-                        {validationError.message}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {unexpectedValidationErrors.length > 0 ? (
+                <p className="text-sm text-destructive">
+                  {unexpectedValidationErrors[0].message}
+                </p>
               ) : null}
 
               {deal ? (
                 <>
-                {activeStep && !isReviewStep ? (
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Item {currentStepIndex + 1} of {steps.length}
-                      </p>
-                      <h3 className="text-xl font-semibold">
-                        {activeStep.component.label}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {activeStep.slotCount > 1
-                          ? `Choose ${activeStep.slotIndex + 1} of ${activeStep.slotCount}.`
-                          : activeStep.component.description ?? "Choose one item for this part of the deal."}
-                      </p>
-                      <p className="text-sm font-medium">
-                        {getComponentPricingText(activeStep.component)}
-                      </p>
+                {steps.map((step, index) => {
+                  const selectedChild = selectedChildrenByStep.get(step.key)
+                  const isActive = index === currentStepIndex
+                  const isLocked = !selectedChild && index > completedStepCount
+
+                  return (
+                  <ThemedCard
+                    key={step.key}
+                    aria-disabled={isLocked}
+                    className={isLocked ? "space-y-4 bg-muted/30 p-4 opacity-60" : "space-y-4 p-4"}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Item {index + 1} of {steps.length}</p>
+                        <h3 className="text-xl font-semibold">{step.component.label}</h3>
+                        <p className="text-sm font-medium">{getComponentPricingText(step.component)}</p>
+                      </div>
+                      {selectedChild && !isActive ? (
+                        <ThemedButton type="button" variant="outline" onClick={() => setCurrentStepIndex(index)}>
+                          Edit Item
+                        </ThemedButton>
+                      ) : isLocked ? (
+                        <LockKeyhole aria-label="Locked until the previous item is complete" className="size-5 text-muted-foreground" />
+                      ) : selectedChild ? (
+                        <CheckCircle aria-label="Item complete" className="size-5 text-success" />
+                      ) : null}
                     </div>
 
+                    {isActive ? (
                     <div className="deal-builder-products-grid grid gap-3">
-                      {activeStep.component.products.map((product) => {
+                      {step.component.products.map((product) => {
                         const productKey = getSelectedChildKey(
-                          activeStep.key,
+                          step.key,
                           product.id
                         )
                         const image = getProductImage(product)
@@ -780,7 +796,7 @@ export function DealBuilder({
                                   </p>
                                 ) : null}
                                 <p className="text-xs font-medium text-muted-foreground">
-                                  {getComponentPricingText(activeStep.component)}
+                                  {getComponentPricingText(step.component)}
                                 </p>
                               </div>
 
@@ -788,7 +804,7 @@ export function DealBuilder({
                                 <ThemedButton
                                   type="button"
                                   onClick={() =>
-                                    handleAddDefaultProduct(activeStep, product.id)
+                                    handleAddDefaultProduct(step, product.id)
                                   }
                                   className="deal-builder-card-button h-10"
                                 >
@@ -801,7 +817,7 @@ export function DealBuilder({
                                   type="button"
                                   variant="outline"
                                   onClick={() =>
-                                    handleConfigureProduct(activeStep, product.id)
+                                    handleConfigureProduct(step, product.id)
                                   }
                                   className="deal-builder-card-button h-10 bg-background text-foreground"
                                 >
@@ -813,74 +829,10 @@ export function DealBuilder({
                         )
                       })}
                     </div>
-                  </div>
-                ) : null}
-
-                {isReviewStep ? (
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Review
-                      </p>
-                      <h3 className="text-xl font-semibold">Review your deal</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Confirm each configured item before adding the deal to cart.
-                      </p>
-                    </div>
-
-                    <div className="grid gap-3">
-                      {steps.map((step, index) => {
-                        const selectedChild = selectedChildrenByStep.get(step.key)
-
-                        return (
-                          <ThemedCard key={step.key} className="p-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground">
-                                  Item {index + 1} of {steps.length}
-                                </p>
-                                <h4 className="font-semibold">
-                                  {step.component.label}
-                                </h4>
-                                {selectedChild ? (
-                                  <>
-                                    <p className="text-sm text-muted-foreground">
-                                      {selectedChild.result.productName}
-                                      {selectedChild.result.variantName
-                                        ? ` - ${selectedChild.result.variantName}`
-                                        : ""}
-                                      {getDealChildExtra(selectedChild.result) > 0
-                                        ? ` - Extras ${formatMoney(getDealChildExtra(selectedChild.result))}`
-                                        : ""}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {getComponentPricingText(step.component)}
-                                    </p>
-                                  </>
-                                ) : (
-                                  <p className="text-sm text-destructive">
-                                    Not selected
-                                  </p>
-                                )}
-                              </div>
-                              {selectedChild ? (
-                                <CheckCircle className="size-5 shrink-0 text-success" />
-                              ) : null}
-                            </div>
-                            <ThemedButton
-                              type="button"
-                              variant="ghost"
-                              onClick={() => setCurrentStepIndex(index)}
-                              className="mt-3 h-9 bg-transparent text-foreground hover:bg-muted"
-                            >
-                              Change
-                            </ThemedButton>
-                          </ThemedCard>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ) : null}
+                    ) : null}
+                  </ThemedCard>
+                  )
+                })}
                 </>
               ) : null}
             </div>
@@ -894,12 +846,6 @@ export function DealBuilder({
 
           {deal ? (
             <div className="deal-builder-footer shrink-0 space-y-3 border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              {incompleteSteps.length > 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Complete {incompleteSteps.length} more item
-                  {incompleteSteps.length === 1 ? "" : "s"} to review this deal.
-                </p>
-              ) : null}
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Completed</span>
@@ -912,41 +858,15 @@ export function DealBuilder({
                   <span>{formatMoney(displayedTotal)}</span>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <ThemedButton
-                  type="button"
-                  variant="outline"
-                  disabled={currentStepIndex === 0}
-                  onClick={() =>
-                    setCurrentStepIndex((current) => Math.max(0, current - 1))
-                  }
-                  className="h-12 w-12 shrink-0 bg-background text-foreground"
-                  aria-label="Back"
-                >
-                  <ArrowLeft className="size-4" />
-                </ThemedButton>
-
-                {isReviewStep ? (
-                  <ThemedButton
-                    type="button"
-                    disabled={!canAddDeal}
-                    onClick={handleAddDeal}
-                    className="h-12 flex-1 justify-between"
-                  >
-                    <span>Add Deal to Cart</span>
-                    <span>{formatMoney(displayedTotal)}</span>
-                  </ThemedButton>
-                ) : (
-                  <ThemedButton
-                    type="button"
-                    disabled={completedStepCount < steps.length}
-                    onClick={() => setCurrentStepIndex(steps.length)}
-                    className="h-12 flex-1"
-                  >
-                    Review Deal
-                  </ThemedButton>
-                )}
-              </div>
+              <ThemedButton
+                type="button"
+                disabled={!canAddDeal}
+                onClick={handleAddDeal}
+                className="h-12 w-full justify-between"
+              >
+                <span>{editingDealItem ? "Update Deal" : "Add Deal to Cart"}</span>
+                <span>{formatMoney(displayedTotal)}</span>
+              </ThemedButton>
             </div>
           ) : null}
         </DialogContent>
@@ -985,6 +905,7 @@ export function DealBuilder({
                 }
               : null
           }
+          lockQuantity
           onConfiguredItem={handleConfiguredItem}
         />
       ) : null}

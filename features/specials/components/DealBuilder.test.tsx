@@ -363,7 +363,7 @@ describe("DealBuilder", () => {
     ).toBeInTheDocument()
     expect(
       screen
-        .getAllByRole("button", { name: /review deal/i })
+        .getAllByRole("button", { name: /add deal to cart/i })
         .every((button) => button.hasAttribute("disabled"))
     ).toBe(true)
 
@@ -378,12 +378,11 @@ describe("DealBuilder", () => {
     fireEvent.click(await screen.findByText("Return configured child"))
 
     await waitFor(() => {
-      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /edit item/i })).toBeInTheDocument()
     })
     expect(screen.getByText("Cheese Pizza added to deal")).toBeInTheDocument()
-    expect(
-      screen.getAllByText(/Cheese Pizza - Large - Extras \$2.00/).length
-    ).toBeGreaterThan(0)
+    expect(screen.getByText(/Cheese Pizza — Large/)).toBeInTheDocument()
+    expect(screen.getByText("Extras $2.00")).toBeInTheDocument()
 
     expect(screen.getAllByText("Total").length).toBeGreaterThan(0)
     expect(screen.getAllByText("$26.99").length).toBeGreaterThan(0)
@@ -449,9 +448,9 @@ describe("DealBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /edit item/i })).toBeInTheDocument()
     })
-    expect(screen.getAllByText(/Cheese Pizza - Large/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Cheese Pizza — Large/)).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole("button", { name: /add deal to cart/i })[0])
 
@@ -539,6 +538,7 @@ describe("DealBuilder", () => {
 
     expect(await screen.findByText("Family Deal")).toBeInTheDocument()
     expect(screen.getAllByText("Fixed price: $7.99").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("$15.98").length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
     await waitFor(() => {
@@ -552,7 +552,7 @@ describe("DealBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+      expect(screen.getAllByRole("button", { name: /edit item/i })).toHaveLength(3)
     })
     expect(screen.getAllByText("$15.98").length).toBeGreaterThan(0)
 
@@ -586,7 +586,7 @@ describe("DealBuilder", () => {
     })
   })
 
-  it("charges extra quantity units on a deal child", async () => {
+  it("rejects multiple units returned for one deal component slot", async () => {
     render(
       <ThemedToastProvider>
         <CartProvider>
@@ -605,34 +605,11 @@ describe("DealBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /customize/i }))
     fireEvent.click(await screen.findByText("Return quantity two child"))
 
-    await waitFor(() => {
-      expect(screen.getByText("Review your deal")).toBeInTheDocument()
-    })
-    expect(screen.getAllByText("$64.98").length).toBeGreaterThan(0)
-
-    fireEvent.click(screen.getAllByRole("button", { name: /add deal to cart/i })[0])
-
-    const storedCart = JSON.parse(
-      window.localStorage.getItem("menupilot-cart") ?? "[]"
-    ) as DealCartItem[]
-
-    expect(storedCart[0]).toMatchObject({
-      childExtraTotal: 15,
-      totalPrice: 64.98,
-      components: [
-        {
-          componentBaseTotal: 49.98,
-          children: [
-            {
-              quantity: 2,
-              configuredLineTotal: 30,
-              componentBasePrice: 49.98,
-              childExtraTotal: 15,
-            },
-          ],
-        },
-      ],
-    })
+    expect(
+      await screen.findByText(/choose one item for this deal step/i)
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Review your deal")).not.toBeInTheDocument()
+    expect(window.localStorage.getItem("menupilot-cart")).toBeNull()
   })
 
   it("opens the configurator when required modifier defaults are missing", async () => {
@@ -683,7 +660,7 @@ describe("DealBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /edit item/i })).toBeInTheDocument()
     })
     expect(screen.queryByText(/Allowed variants:/)).not.toBeInTheDocument()
 
@@ -782,10 +759,10 @@ describe("DealBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: /add to deal/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Review your deal")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /edit item/i })).toBeInTheDocument()
     })
     expect(screen.queryByText(/Allowed variants:/)).not.toBeInTheDocument()
-    expect(screen.getAllByText(/Cheese Pizza - Large/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Cheese Pizza — Large/)).toBeInTheDocument()
   })
 
   it("loads an existing deal cart item and updates it instead of adding another item", async () => {
@@ -841,9 +818,9 @@ describe("DealBuilder", () => {
     )
 
     expect(await screen.findByText("Family Deal")).toBeInTheDocument()
-    expect(await screen.findByText("Review your deal")).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: /edit item/i })).toBeInTheDocument()
 
-    fireEvent.click(screen.getAllByRole("button", { name: /add deal to cart/i })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /update deal/i })[0])
 
     const storedCart = JSON.parse(
       window.localStorage.getItem("menupilot-cart") ?? "[]"
@@ -869,7 +846,7 @@ describe("DealBuilder", () => {
     expect(screen.getByText("Family Deal updated")).toBeInTheDocument()
   })
 
-  it("rebuilds quantity-based component pricing when editing a deal", async () => {
+  it("normalizes legacy multi-quantity children when editing a deal", async () => {
     const editingDealItem: DealCartItem = {
       cartItemId: "existing-deal-cart-id",
       itemType: "deal",
@@ -922,9 +899,9 @@ describe("DealBuilder", () => {
     )
 
     expect(await screen.findByText("Family Deal")).toBeInTheDocument()
-    expect(await screen.findByText("Review your deal")).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: /edit item/i })).toBeInTheDocument()
 
-    fireEvent.click(screen.getAllByRole("button", { name: /add deal to cart/i })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /update deal/i })[0])
 
     const storedCart = JSON.parse(
       window.localStorage.getItem("menupilot-cart") ?? "[]"
@@ -933,17 +910,17 @@ describe("DealBuilder", () => {
     expect(storedCart).toHaveLength(1)
     expect(storedCart[0]).toMatchObject({
       cartItemId: "existing-deal-cart-id",
-      childExtraTotal: 15,
-      totalPrice: 64.98,
+      childExtraTotal: 0,
+      totalPrice: 24.99,
       components: [
         {
-          componentBaseTotal: 49.98,
+          componentBaseTotal: 24.99,
           children: [
             {
-              quantity: 2,
-              configuredLineTotal: 30,
-              componentBasePrice: 49.98,
-              childExtraTotal: 15,
+              quantity: 1,
+              configuredLineTotal: 15,
+              componentBasePrice: 24.99,
+              childExtraTotal: 0,
             },
           ],
         },
