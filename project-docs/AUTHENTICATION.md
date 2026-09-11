@@ -16,8 +16,10 @@ Supabase Auth must allow the deployed site URL and these redirect URLs:
 
 - `http://localhost:3000/auth/callback`
 - `https://[production-domain]/auth/callback`
+- `http://localhost:3000/auth/recovery`
+- `https://[production-domain]/auth/recovery`
 
-Employee invitations and password resets return through `/auth/callback` and then open `/auth/update-password`.
+Employee invitations return through `/auth/callback`. Password resets return through the dedicated `/auth/recovery` callback. Both flows then open `/auth/update-password`.
 
 ## Local development
 

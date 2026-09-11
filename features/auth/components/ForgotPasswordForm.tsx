@@ -12,7 +12,7 @@ export function ForgotPasswordForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPending(true)
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/auth/update-password")}`
+    const redirectTo = `${window.location.origin}/auth/recovery`
     const result = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     setMessage(result.error ? result.error.message : "If that account exists, a password reset email has been sent.")
     setPending(false)

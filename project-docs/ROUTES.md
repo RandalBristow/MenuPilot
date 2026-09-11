@@ -28,7 +28,8 @@ These internal routes are for the MenuPilot platform owner. Authentication and r
 | --- | --- | --- |
 | `/login` | current | Shared workforce login for platform owners, business owners, managers, and staff. |
 | `/forgot-password` | current | Request a workforce password-reset email. |
-| `/auth/callback` | hidden/internal | Exchange Supabase invitation and recovery codes for a persistent session. |
+| `/auth/callback` | hidden/internal | Exchange Supabase invitation codes for a persistent session. |
+| `/auth/recovery` | hidden/internal | Exchange a Supabase password-recovery code and open the password form. |
 | `/auth/update-password` | hidden/internal | Set a password after an invitation or recovery link. |
 | `/auth/continue` | hidden/internal | Redirect an authenticated user to the appropriate workspace. |
 | `/access` | current | Choose among multiple authorized businesses or locations. |
