@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useState } from "react"
 import { Check, Plus, Trash2 } from "lucide-react"
 import { ThemedButton } from "@/components/themed/ThemedButton"
@@ -335,14 +337,14 @@ function AvailabilityFields({ special }: { special: SpecialAdminListItem | null 
       <legend className="text-sm font-medium">Availability</legend>
       <label className="grid gap-2">
         <span className="text-xs text-muted-foreground">Mode</span>
-        <select
+        <ThemedSelect
           name="availabilityMode"
           defaultValue={hasWindows ? "specific" : "always"}
           className="h-10 w-full rounded-md border bg-background px-3 text-sm"
         >
           <option value="always">Always available during date range</option>
           <option value="specific">Specific days and times</option>
-        </select>
+        </ThemedSelect>
       </label>
 
       <div className="grid gap-2 rounded-md border bg-background p-3">
@@ -873,14 +875,14 @@ function MixMatchEditor({
                 </label>
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Allow extras</span>
-                  <select
+                  <ThemedSelect
                     name="mixAllowExtraItems"
                     defaultValue={String(initialMixMatch.allowExtraItems)}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   >
                     <option value="true">Yes</option>
                     <option value="false">No</option>
-                  </select>
+                  </ThemedSelect>
                 </label>
               </div>
 
@@ -1168,7 +1170,7 @@ function DealComponentsEditor({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium">Pricing mode</span>
-              <select
+              <ThemedSelect
                 name={`componentPricingMode-${index}`}
                 value={component.pricingMode}
                 onChange={(event) =>
@@ -1183,7 +1185,7 @@ function DealComponentsEditor({
               >
                 <option value="included">Included/free</option>
                 <option value="fixed_price">Fixed component price</option>
-              </select>
+              </ThemedSelect>
               <span className="text-xs leading-5 text-muted-foreground">
                 {component.pricingMode === "fixed_price"
                   ? "The component base item uses this fixed price instead of the product's normal base price."
@@ -1358,14 +1360,14 @@ export function SpecialFormFields({
 
         <label className="grid gap-2">
           <span className="text-sm font-medium">Status</span>
-          <select
+          <ThemedSelect
             name="isEnabled"
             defaultValue={String(special?.isEnabled ?? false)}
             className="h-10 w-full rounded-md border bg-background px-3 text-sm"
           >
             <option value="false">Disabled</option>
             <option value="true">Enabled</option>
-          </select>
+          </ThemedSelect>
         </label>
       </div>
 
@@ -1392,7 +1394,7 @@ export function SpecialFormFields({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium">Special type</span>
-          <select
+          <ThemedSelect
             name="specialType"
             value={specialType}
             onChange={(event) =>
@@ -1405,7 +1407,7 @@ export function SpecialFormFields({
             <option value="cart_discount">Cart discount</option>
             <option value="orderable_deal">Orderable deal</option>
             <option value="mix_and_match_fixed_unit_price">Mix & Match</option>
-          </select>
+          </ThemedSelect>
           <span className="text-xs leading-5 text-muted-foreground">
             Passive discounts apply automatically to normal cart items. Orderable
             deals use fixed components. Mix & Match uses one fixed-unit-price
@@ -1416,7 +1418,7 @@ export function SpecialFormFields({
         {!hidesPassiveFields ? (
           <label className="grid gap-2">
             <span className="text-sm font-medium">Discount type</span>
-            <select
+            <ThemedSelect
               name="discountType"
               defaultValue={special?.discountType ?? "percentage"}
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -1424,7 +1426,7 @@ export function SpecialFormFields({
               <option value="percentage">Percentage</option>
               <option value="fixed_amount">Fixed amount</option>
               <option value="fixed_price">Fixed price</option>
-            </select>
+            </ThemedSelect>
           </label>
         ) : null}
 

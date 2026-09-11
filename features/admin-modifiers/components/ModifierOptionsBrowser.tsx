@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
@@ -145,7 +147,7 @@ export function ModifierOptionsBrowser({
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1.5 text-sm">
             <span className="font-medium">Modifier group</span>
-            <select
+            <ThemedSelect
               value={selectedGroup.id}
               onChange={(event) => {
                 setSelectedGroupId(event.target.value)
@@ -158,12 +160,12 @@ export function ModifierOptionsBrowser({
                   {group.name}
                 </option>
               ))}
-            </select>
+            </ThemedSelect>
           </label>
 
           <label className="space-y-1.5 text-sm">
             <span className="font-medium">Subgroup</span>
-            <select
+            <ThemedSelect
               value={selectedSubgroupId}
               onChange={(event) => setSelectedSubgroupId(event.target.value)}
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -175,7 +177,7 @@ export function ModifierOptionsBrowser({
                   {subgroup.name}
                 </option>
               ))}
-            </select>
+            </ThemedSelect>
           </label>
         </div>
         {deleteResult ? (

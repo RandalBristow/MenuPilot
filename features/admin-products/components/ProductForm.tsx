@@ -1,3 +1,4 @@
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
 import { AdminBackButton } from "@/components/themed/AdminBackButton"
 import {
   ThemedSheet,
@@ -344,7 +345,7 @@ export async function ProductForm({
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium">Builder template</span>
-                <select
+                <ThemedSelect
                   name="builderTemplate"
                   defaultValue={product?.builder_template ?? "standard"}
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -357,7 +358,7 @@ export async function ProductForm({
                   <option value="combo" disabled>
                     Combo (future)
                   </option>
-                </select>
+                </ThemedSelect>
               </label>
 
               <label className="flex items-start gap-3 rounded-md border bg-background px-3 py-2.5">
@@ -387,7 +388,7 @@ export async function ProductForm({
                 <span className="text-sm font-medium">
                   Category / subcategory
                 </span>
-                <select
+                <ThemedSelect
                   name="menuGroupId"
                   required
                   defaultValue={product?.menuGroupId ?? ""}
@@ -399,7 +400,7 @@ export async function ProductForm({
                       {getMenuGroupLabel(group, menuGroups)}
                     </option>
                   ))}
-                </select>
+                </ThemedSelect>
               </label>
             </div>
 

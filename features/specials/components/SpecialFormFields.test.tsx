@@ -163,15 +163,16 @@ function openAccordion(name: RegExp) {
   }
 }
 
+function selectOption(selectName: RegExp, optionName: string) {
+  fireEvent.click(screen.getByRole("combobox", { name: selectName }))
+  fireEvent.click(screen.getByRole("option", { name: optionName }))
+}
+
 describe("SpecialFormFields", () => {
   it("shows orderable deal mode and relabels passive fields", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    expect(screen.getByRole("option", { name: "Orderable deal" })).toBeInTheDocument()
-
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "orderable_deal" },
-    })
+    selectOption(/special type/i, "Orderable deal")
 
     expect(screen.getByText("Deal base price")).toBeInTheDocument()
     expect(screen.queryByText("Discount type")).not.toBeInTheDocument()
@@ -183,9 +184,7 @@ describe("SpecialFormFields", () => {
   it("adds and removes deal components and allows product selection", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "orderable_deal" },
-    })
+    selectOption(/special type/i, "Orderable deal")
     openAccordion(/Deal components/)
     fireEvent.click(screen.getByRole("button", { name: /add component/i }))
 
@@ -264,7 +263,7 @@ describe("SpecialFormFields", () => {
     expect(screen.getByDisplayValue("Choose a pizza")).toBeInTheDocument()
     openAccordion(/Deal components/)
     openAccordion(/^Component 1/)
-    expect(screen.getByDisplayValue("fixed_price")).toBeInTheDocument()
+    expect(document.querySelector('input[name="componentPricingMode-0"]')).toHaveValue("fixed_price")
     expect(screen.getByDisplayValue("7.99")).toBeInTheDocument()
     openSubcategory("Specialty")
     expect(getProductToggle(/Deluxe Pizza/)).toHaveAttribute(
@@ -280,18 +279,14 @@ describe("SpecialFormFields", () => {
   it("shows fixed price only for fixed-price orderable deal components", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "orderable_deal" },
-    })
+    selectOption(/special type/i, "Orderable deal")
     openAccordion(/Deal components/)
     openAccordion(/^Component 1/)
 
     expect(screen.getByText("Pricing mode")).toBeInTheDocument()
     expect(screen.queryByText("Fixed price")).not.toBeInTheDocument()
 
-    fireEvent.change(screen.getByRole("combobox", { name: /pricing mode/i }), {
-      target: { value: "fixed_price" },
-    })
+    selectOption(/pricing mode/i, "Fixed component price")
 
     expect(screen.getByText("Fixed price")).toBeInTheDocument()
     expect(
@@ -305,9 +300,7 @@ describe("SpecialFormFields", () => {
   it("shows variant restriction controls for selected products", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "orderable_deal" },
-    })
+    selectOption(/special type/i, "Orderable deal")
     openAccordion(/Deal components/)
     openAccordion(/^Component 1/)
     fireEvent.click(screen.getByRole("button", { name: "Drinks" }))
@@ -324,9 +317,7 @@ describe("SpecialFormFields", () => {
   it("shows only one selected product category instead of an all-products view", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "orderable_deal" },
-    })
+    selectOption(/special type/i, "Orderable deal")
 
     openAccordion(/Deal components/)
     openAccordion(/^Component 1/)
@@ -353,9 +344,7 @@ describe("SpecialFormFields", () => {
   it("selects and clears all visible products in a subcategory", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "orderable_deal" },
-    })
+    selectOption(/special type/i, "Orderable deal")
 
     openAccordion(/Deal components/)
     openAccordion(/^Component 1/)
@@ -387,9 +376,7 @@ describe("SpecialFormFields", () => {
   it("shows mix and match fields without passive or component editors", () => {
     render(<SpecialFormFields data={buildData()} businessSlug="randys-pizza" />)
 
-    fireEvent.change(screen.getByRole("combobox", { name: /special type/i }), {
-      target: { value: "mix_and_match_fixed_unit_price" },
-    })
+    selectOption(/special type/i, "Mix & Match")
 
     expect(screen.getByRole("button", { name: /Mix & Match/ })).toBeInTheDocument()
     expect(screen.queryByText("Discount type")).not.toBeInTheDocument()

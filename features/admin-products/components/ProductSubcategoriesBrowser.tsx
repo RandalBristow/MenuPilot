@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
@@ -150,7 +152,7 @@ function SubcategoryFormPanel({
             <div className="grid gap-4">
               <label className="grid gap-2">
                 <span className="text-sm font-medium">Parent category</span>
-                <select
+                <ThemedSelect
                   name="parentCategoryId"
                   required
                   defaultValue={
@@ -164,7 +166,7 @@ function SubcategoryFormPanel({
                       {category.name}
                     </option>
                   ))}
-                </select>
+                </ThemedSelect>
               </label>
 
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
@@ -230,14 +232,14 @@ function SubcategoryFormPanel({
                 {isCreateMode ? (
                   <label className="grid gap-2">
                     <span className="text-sm font-medium">Status</span>
-                    <select
+                    <ThemedSelect
                       name="isEnabled"
                       defaultValue="true"
                       className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                     >
                       <option value="true">Enabled</option>
                       <option value="false">Disabled</option>
-                    </select>
+                    </ThemedSelect>
                   </label>
                 ) : null}
               </div>

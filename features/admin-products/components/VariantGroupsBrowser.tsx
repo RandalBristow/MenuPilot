@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
@@ -181,14 +183,14 @@ function VariantGroupFormPanel({
                 {!isEditMode ? (
                   <label className="grid gap-2">
                     <span className="text-sm font-medium">Status</span>
-                    <select
+                    <ThemedSelect
                       name="isEnabled"
                       defaultValue="true"
                       className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                     >
                       <option value="true">Enabled</option>
                       <option value="false">Disabled</option>
-                    </select>
+                    </ThemedSelect>
                   </label>
                 ) : null}
               </div>

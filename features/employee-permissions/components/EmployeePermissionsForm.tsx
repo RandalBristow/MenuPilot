@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check } from "lucide-react"
@@ -79,10 +81,10 @@ function EmployeeEditor({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm">
             <span className="font-medium">Role</span>
-            <select name="role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole)} className="h-10 rounded-md border bg-background px-3">
+            <ThemedSelect name="role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole)} className="h-10 rounded-md border bg-background px-3">
               <option value="manager">Manager</option>
               <option value="staff">Staff Employee</option>
-            </select>
+            </ThemedSelect>
           </label>
           <div className="grid gap-2 text-sm">
             <span className="font-medium">Locations</span>
@@ -132,10 +134,10 @@ export function EmployeePermissionsForm({ businessSlug, assignments, locations }
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <label className="grid min-w-0 flex-1 gap-2 text-sm sm:max-w-md">
           <span className="font-medium">Employee</span>
-          <select value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)} className="h-10 rounded-md border bg-background px-3" disabled={assignments.length === 0}>
+          <ThemedSelect value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)} className="h-10 rounded-md border bg-background px-3" disabled={assignments.length === 0}>
             {assignments.length === 0 ? <option value="">No employees</option> : null}
             {assignments.map((employee) => <option key={employee.userId} value={employee.userId}>{employee.employeeName}</option>)}
-          </select>
+          </ThemedSelect>
         </label>
         <AddEmployeeForm businessSlug={businessSlug} locations={locations} />
       </div>

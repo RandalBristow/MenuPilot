@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { ThumbsDown, ThumbsUp } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -150,7 +152,7 @@ function ProductDetailEditor({
               <div className="grid gap-4">
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Builder template</span>
-                  <select
+                  <ThemedSelect
                     name="builderTemplate"
                     defaultValue={product.builder_template}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -163,7 +165,7 @@ function ProductDetailEditor({
                     <option value="combo" disabled>
                       Combo (future)
                     </option>
-                  </select>
+                  </ThemedSelect>
                 </label>
 
                 <label className="flex items-start gap-3 rounded-md border bg-background px-3 py-2.5">

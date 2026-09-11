@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import type { ReactNode } from "react"
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -216,7 +218,7 @@ export function ModifierGroupFormDialog({
             <div className="grid grid-cols-2 gap-3">
               <label className="block space-y-1.5 text-sm">
                 <span className="font-medium">Selection</span>
-                <select
+                <ThemedSelect
                   name="selectionType"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   defaultValue={group?.selection_type ?? "single"}
@@ -224,12 +226,12 @@ export function ModifierGroupFormDialog({
                 >
                   <option value="single">Single</option>
                   <option value="multiple">Multiple</option>
-                </select>
+                </ThemedSelect>
               </label>
 
               <label className="block space-y-1.5 text-sm">
                 <span className="font-medium">Required</span>
-                <select
+                <ThemedSelect
                   name="isRequired"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   defaultValue={group?.is_required ? "true" : "false"}
@@ -237,7 +239,7 @@ export function ModifierGroupFormDialog({
                 >
                   <option value="false">No</option>
                   <option value="true">Yes</option>
-                </select>
+                </ThemedSelect>
               </label>
 
               <div className="col-span-2 grid grid-cols-2 gap-3">
@@ -308,7 +310,7 @@ export function ModifierGroupFormDialog({
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block space-y-1.5 text-sm">
                     <span className="font-medium">Placement</span>
-                    <select
+                    <ThemedSelect
                       name="supportsPlacement"
                       className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                       defaultValue={group?.supports_placement ? "true" : "false"}
@@ -316,12 +318,12 @@ export function ModifierGroupFormDialog({
                     >
                       <option value="false">No</option>
                       <option value="true">Yes</option>
-                    </select>
+                    </ThemedSelect>
                   </label>
 
                   <label className="block space-y-1.5 text-sm">
                     <span className="font-medium">Multiplier</span>
-                    <select
+                    <ThemedSelect
                       name="supportsMultiplier"
                       className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                       defaultValue={group?.supports_multiplier ? "true" : "false"}
@@ -329,7 +331,7 @@ export function ModifierGroupFormDialog({
                     >
                       <option value="false">No</option>
                       <option value="true">Yes</option>
-                    </select>
+                    </ThemedSelect>
                   </label>
                 </div>
 

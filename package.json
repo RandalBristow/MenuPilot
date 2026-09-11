@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "auth:set-password": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.development.local scripts/set-user-password.mjs",
+    "auth:set-display-name": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.development.local scripts/set-user-display-name.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

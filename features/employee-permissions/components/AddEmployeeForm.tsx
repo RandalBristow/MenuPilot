@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, UserPlus, X } from "lucide-react"
@@ -157,7 +159,7 @@ export function AddEmployeeForm({
                 </div>
                 <label className="grid gap-1.5 text-sm">
                   <span className="font-medium">Role</span>
-                  <select
+                  <ThemedSelect
                     name="role"
                     value={role}
                     onChange={(event) =>
@@ -167,7 +169,7 @@ export function AddEmployeeForm({
                   >
                     <option value="staff">Staff Employee</option>
                     <option value="manager">Manager</option>
-                  </select>
+                  </ThemedSelect>
                 </label>
               </div>
 

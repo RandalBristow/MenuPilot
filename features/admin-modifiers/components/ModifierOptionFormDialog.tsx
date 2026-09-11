@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
@@ -293,7 +295,7 @@ export function ModifierOptionFormDialog({
             ) : (
               <label className="block space-y-1.5 text-sm">
                 <span className="font-medium">Option group</span>
-                <select
+                <ThemedSelect
                   name="modifierOptionGroupId"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   value={selectedOptionGroupValue}
@@ -307,7 +309,7 @@ export function ModifierOptionFormDialog({
                       {optionGroup.name}
                     </option>
                   ))}
-                </select>
+                </ThemedSelect>
               </label>
             )}
           </div>

@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ThumbsDown, ThumbsUp, X } from "lucide-react"
@@ -231,14 +233,14 @@ export function ModifierOptionGroupFormDialog({
             {isCreateMode ? (
               <label className="block space-y-1.5 text-sm">
                 <span className="font-medium">Status</span>
-                <select
+                <ThemedSelect
                   name="isEnabled"
                   defaultValue="true"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
                   <option value="true">Enabled</option>
                   <option value="false">Disabled</option>
-                </select>
+                </ThemedSelect>
               </label>
             ) : null}
           </div>

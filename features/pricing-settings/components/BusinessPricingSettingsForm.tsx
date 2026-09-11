@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check } from "lucide-react"
@@ -135,7 +137,7 @@ export function BusinessPricingSettingsForm({
 
         <label className="space-y-1 text-sm">
           <span className="font-medium">Service fee type</span>
-          <select
+          <ThemedSelect
             name="serviceFeeType"
             value={serviceFeeType}
             onChange={(event) =>
@@ -148,7 +150,7 @@ export function BusinessPricingSettingsForm({
             <option value="none">No service fee</option>
             <option value="fixed">Fixed amount</option>
             <option value="percentage">Percentage</option>
-          </select>
+          </ThemedSelect>
         </label>
 
         {serviceFeeType !== "none" ? (

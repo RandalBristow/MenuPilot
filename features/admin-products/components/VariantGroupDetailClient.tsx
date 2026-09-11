@@ -1,5 +1,7 @@
 "use client"
 
+import { ThemedSelect } from "@/components/themed/ThemedSelect"
+
 import { useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Plus, ThumbsDown, ThumbsUp, X } from "lucide-react"
@@ -419,14 +421,14 @@ function OptionFormPanel({
 
                 <label className="grid gap-2">
                   <span className="text-sm font-medium">Default</span>
-                  <select
+                  <ThemedSelect
                     name="isDefault"
                     defaultValue={option?.is_default ? "true" : "false"}
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   >
                     <option value="true">Yes</option>
                     <option value="false">No</option>
-                  </select>
+                  </ThemedSelect>
                 </label>
               </div>
 
@@ -434,14 +436,14 @@ function OptionFormPanel({
                 <div className="grid gap-3 md:grid-cols-3">
                   <label className="grid gap-2">
                     <span className="text-sm font-medium">Status</span>
-                    <select
+                    <ThemedSelect
                       name="isEnabled"
                       defaultValue="true"
                       className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                     >
                       <option value="true">Enabled</option>
                       <option value="false">Disabled</option>
-                    </select>
+                    </ThemedSelect>
                   </label>
                 </div>
               ) : null}
